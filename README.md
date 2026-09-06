@@ -17,7 +17,7 @@ Designed to run under **Grok Bot** (CLI + SQLite) — not LangGraph/CrewAI/Teleg
 
 ```
 Research (signals only)
-  MomentumAgent | FundamentalAgent (stub) | StatisticalMLAgent
+  MomentumAgent | FundamentalAgent | StatisticalMLAgent
   SentimentAgent | MacroAgent
         │  Frozen Signal model
         ▼
@@ -118,7 +118,7 @@ pytest -q
 
 ## TODOs
 
-- **FundamentalAgent:** wire fundamentals provider; valuation vs theme peers; dilution/cash-burn flags
+- **FundamentalAgent:** yfinance info (growth, margins, FCF, D/E, P/E, P/S, balance-sheet); quality_score + valuation_note; missing data -> neutral/low confidence
 - **SentimentAgent:** yfinance headlines; lexicon polarity; credibility by source; pump heuristics (`manipulation_risk` only on coordinated hype)
 - **StatisticalMLAgent:** OOS supervised model on feature store; walk-forward only
 - **MacroAgent:** rates/credit/VIX proxies; theme beta overlays
