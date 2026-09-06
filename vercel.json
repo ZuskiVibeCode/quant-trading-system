@@ -1,7 +1,4 @@
 {
-  "version": 2,
-  "buildCommand": null,
-  "outputDirectory": "docs",
   "cleanUrls": true,
   "headers": [
     {

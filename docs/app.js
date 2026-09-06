@@ -77,7 +77,10 @@
 
   function setHeroArt() {
     const img = $("heroArt");
-    if (img) img.src = ART[filter] || ART.all;
+    if (!img) return;
+    const src = ART[filter] || ART.all;
+    img.onerror = () => { if (img.src.indexOf("observatory") === -1) img.src = ART.all; };
+    img.src = src;
   }
 
   function renderFilters() {
