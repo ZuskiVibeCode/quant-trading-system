@@ -20,6 +20,7 @@ class TicketStatus(str, Enum):
     FILLED = "filled"
     CANCELLED = "cancelled"
     BLOCKED = "blocked"
+    FAILED = "failed"
 
 
 class TradeTicket(BaseModel):

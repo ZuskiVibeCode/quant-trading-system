@@ -264,6 +264,73 @@ class Tracker:
                 )
         self.set_state("cash", f"{cash:.6f}")
 
+    def clear_positions(self) -> int:
+        """Delete all local position rows. Returns rows deleted."""
+        cur = self._conn.execute("SELECT COUNT(*) AS n FROM positions")
+        n = int(cur.fetchone()["n"])
+        self._conn.execute("DELETE FROM positions")
+        self._conn.commit()
+        return n
+
+    def reconcile_portfolio(
+        self,
+        cash: float,
+        equity: float,
+        positions: list[dict[str, Any]],
+        source: str = "alpaca",
+    ) -> dict[str, Any]:
+        """Reset local cash/equity/positions to match an external broker snapshot.
+
+        Clears phantom positions and overwrites cash/equity state. Does not invent fills.
+        """
+        ts = _now()
+        cleared = self.clear_positions()
+        written = 0
+        for p in positions:
+            ticker = str(p.get("ticker") or p.get("symbol") or "").upper()
+            if not ticker:
+                continue
+            qty = float(p.get("qty") or 0)
+            if abs(qty) <= 1e-12:
+                continue
+            avg_cost = float(p.get("avg_cost") or p.get("avg_entry_price") or 0)
+            self._conn.execute(
+                "INSERT INTO positions(ticker, qty, avg_cost, updated_at) VALUES (?,?,?,?)",
+                (ticker, qty, avg_cost, ts),
+            )
+            written += 1
+        peak = max(float(self.get_state("peak_equity", "0") or 0), float(equity))
+        day_start = float(self.get_state("day_start_equity", str(equity)) or equity)
+        self.snapshot_portfolio(
+            equity=float(equity),
+            cash=float(cash),
+            positions=self.list_positions(),
+            daily_pnl=float(equity) - day_start,
+            drawdown=(peak - float(equity)) / peak if peak else 0.0,
+            peak_equity=peak,
+        )
+        self.log_decision(
+            decision_type="reconcile",
+            actor="tracker",
+            reasoning=f"Reconciled portfolio state from {source}",
+            payload={
+                "source": source,
+                "cash": float(cash),
+                "equity": float(equity),
+                "positions_cleared": cleared,
+                "positions_written": written,
+                "positions": self.list_positions(),
+            },
+        )
+        return {
+            "source": source,
+            "cash": float(cash),
+            "equity": float(equity),
+            "positions_cleared": cleared,
+            "positions_written": written,
+            "positions": self.list_positions(),
+        }
+
     def list_positions(self) -> list[dict[str, Any]]:
         rows = self._conn.execute("SELECT * FROM positions ORDER BY ticker").fetchall()
         return [dict(r) for r in rows]

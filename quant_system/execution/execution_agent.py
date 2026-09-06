@@ -1,6 +1,7 @@
 """ExecutionAgent — Alpaca paper when keys present; otherwise dry-run sim fills.
 
 Hard rules: paper only; no withdraw/transfer/account-settings mutations; respect halt.
+Only record fills when the broker reports a real fill (filled_qty > 0).
 """
 
 from __future__ import annotations
@@ -11,6 +12,71 @@ from quant_system.config.loader import alpaca_credentials
 from quant_system.market_data.interface import MarketData
 from quant_system.models.ticket import TicketStatus, TradeTicket
 from quant_system.tracker.api import Tracker
+
+# Broker statuses that mean shares actually traded (with filled_qty > 0).
+_FILL_STATUSES = frozenset({"filled", "partially_filled"})
+# Still open / not yet traded — do not invent a local fill.
+_PENDING_STATUSES = frozenset(
+    {
+        "new",
+        "accepted",
+        "pending_new",
+        "accepted_for_bidding",
+        "held",
+        "pending_review",
+        "calculated",
+        "stopped",
+        "suspended",
+        "pending_replace",
+        "pending_cancel",
+        "replaced",
+    }
+)
+
+
+def _order_status_str(order: Any) -> str:
+    status = getattr(order, "status", None)
+    if status is None:
+        return ""
+    return str(getattr(status, "value", status)).lower()
+
+
+def _filled_qty(order: Any) -> float:
+    raw = getattr(order, "filled_qty", None)
+    if raw is None:
+        return 0.0
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _filled_avg_price(order: Any, fallback: float) -> float:
+    raw = getattr(order, "filled_avg_price", None)
+    if raw is None:
+        return float(fallback)
+    try:
+        val = float(raw)
+        return val if val > 0 else float(fallback)
+    except (TypeError, ValueError):
+        return float(fallback)
+
+
+def is_real_fill(order: Any) -> bool:
+    """True only when broker reports shares filled."""
+    qty = _filled_qty(order)
+    if qty <= 0:
+        return False
+    status = _order_status_str(order)
+    if status in _FILL_STATUSES:
+        return True
+    # Some SDKs may leave status empty but still report filled_qty.
+    return qty > 0 and status not in _PENDING_STATUSES and status not in {
+        "canceled",
+        "cancelled",
+        "expired",
+        "rejected",
+    }
 
 
 class ExecutionAgent:
@@ -110,7 +176,13 @@ class ExecutionAgent:
         }
 
     def _execute_alpaca(self, ticket: TradeTicket, price: float, side: str) -> dict[str, Any]:
-        """Submit paper market order only. No account mutations."""
+        """Submit paper market order only. No account mutations.
+
+        Records a Tracker fill only when Alpaca reports filled_qty > 0.
+        Accepted/new/pending orders are logged as order_submitted — cash untouched.
+        API errors (e.g. 403 insufficient buying power) are logged and returned;
+        they must never crash run-once.
+        """
         from alpaca.trading.enums import OrderSide, TimeInForce
         from alpaca.trading.requests import MarketOrderRequest
 
@@ -135,27 +207,98 @@ class ExecutionAgent:
             time_in_force=TimeInForce.DAY,
         )
         self.tracker.update_ticket_status(ticket.id, TicketStatus.SUBMITTED)
-        order = self._alpaca.submit_order(req)
-        # Record sim-mark fill locally for Tracker equity; Alpaca is source of broker truth
-        fill_id = self.tracker.insert_fill(
-            ticket_id=ticket.id,
-            ticker=ticket.ticker,
-            side=side,
-            qty=float(ticket.qty),
-            price=float(price),
-            mode="alpaca",
-        )
+
+        try:
+            order = self._alpaca.submit_order(req)
+        except Exception as exc:  # noqa: BLE001 — include APIError and network
+            self.tracker.update_ticket_status(ticket.id, TicketStatus.FAILED)
+            self.tracker.log_decision(
+                decision_type="order_failed",
+                actor="execution_agent",
+                ticker=ticket.ticker,
+                reasoning=f"Alpaca order rejected/failed: {exc}",
+                payload={
+                    "ticket_id": ticket.id,
+                    "error": str(exc),
+                    "error_type": type(exc).__name__,
+                    "side": side,
+                    "qty": float(ticket.qty),
+                },
+            )
+            return {
+                "mode": "alpaca",
+                "status": "failed",
+                "ticket_id": ticket.id,
+                "ticker": ticket.ticker,
+                "error": str(exc),
+            }
+
+        status = _order_status_str(order)
+        filled_qty = _filled_qty(order)
+        order_id = str(getattr(order, "id", ""))
+
+        if is_real_fill(order):
+            fill_price = _filled_avg_price(order, price)
+            fill_id = self.tracker.insert_fill(
+                ticket_id=ticket.id,
+                ticker=ticket.ticker,
+                side=side,
+                qty=filled_qty,
+                price=fill_price,
+                mode="alpaca",
+            )
+            self.tracker.log_decision(
+                decision_type="alpaca_order",
+                actor="execution_agent",
+                ticker=ticket.ticker,
+                reasoning=f"Alpaca paper order filled ({status})",
+                payload={
+                    "order_id": order_id,
+                    "ticket_id": ticket.id,
+                    "status": status,
+                    "filled_qty": filled_qty,
+                    "fill_id": fill_id,
+                },
+            )
+            return {
+                "mode": "alpaca",
+                "status": "filled",
+                "fill_id": fill_id,
+                "ticket_id": ticket.id,
+                "order_id": order_id,
+                "qty": filled_qty,
+                "price": fill_price,
+            }
+
+        # Accepted / new / pending / rejected without fill — do not move cash.
+        decision_type = "order_submitted"
+        reasoning = f"Alpaca paper order submitted; awaiting fill (status={status})"
+        if status in {"rejected", "canceled", "cancelled", "expired"}:
+            decision_type = "order_failed"
+            reasoning = f"Alpaca order ended without fill (status={status})"
+            self.tracker.update_ticket_status(ticket.id, TicketStatus.FAILED)
+        else:
+            # Keep SUBMITTED; optionally mark pending explicitly via decision log.
+            decision_type = "order_submitted"
+
         self.tracker.log_decision(
-            decision_type="alpaca_order",
+            decision_type=decision_type,
             actor="execution_agent",
             ticker=ticket.ticker,
-            reasoning="Submitted Alpaca paper market order",
-            payload={"order_id": str(getattr(order, "id", "")), "ticket_id": ticket.id},
+            reasoning=reasoning,
+            payload={
+                "order_id": order_id,
+                "ticket_id": ticket.id,
+                "status": status,
+                "filled_qty": filled_qty,
+                "requested_qty": float(ticket.qty),
+            },
         )
         return {
             "mode": "alpaca",
-            "fill_id": fill_id,
+            "status": status or "pending",
             "ticket_id": ticket.id,
-            "order_id": str(getattr(order, "id", "")),
+            "order_id": order_id,
+            "filled_qty": filled_qty,
             "price": price,
         }

@@ -65,6 +65,11 @@ python -m quant_system halt --reason "manual"
 python -m quant_system resume
 python -m quant_system status
 python -m quant_system digest
+
+# Paper broker hygiene (Alpaca keys required)
+python -m quant_system cancel-open-orders   # free BP reserved by open/accepted orders
+python -m quant_system reconcile           # sync tracker cash/equity/positions from Alpaca
+python -m quant_system status --broker     # tracker + Alpaca cash/equity/BP/open orders
 ```
 
 Optional Alpaca paper keys (never commit secrets):
@@ -100,7 +105,7 @@ quant_system/
   market_data/     # MarketData interface + yfinance + mock
   config/          # YAML loaders
   pipeline.py      # run-once orchestration
-  cli.py           # run-once | halt | resume | status | digest
+  cli.py           # run-once | halt | resume | status | digest | cancel-open-orders | reconcile
 config/
   universe.yaml
   risk.yaml

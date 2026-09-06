@@ -1,4 +1,4 @@
-"""CLI: python -m quant_system run-once | halt | resume | status | digest"""
+"""CLI: python -m quant_system run-once | halt | resume | status | digest | cancel-open-orders | reconcile"""
 
 from __future__ import annotations
 
@@ -59,7 +59,7 @@ def cmd_resume(args: argparse.Namespace) -> int:
 
 def cmd_status(args: argparse.Namespace) -> int:
     tracker = Tracker(args.db)
-    out = {
+    out: dict[str, Any] = {
         "halted": tracker.is_halted(),
         "day_halted": tracker.is_day_halted(),
         "halt_reason": tracker.get_state("halt_reason", ""),
@@ -70,6 +70,20 @@ def cmd_status(args: argparse.Namespace) -> int:
         "weights": tracker.get_weights(),
         "db_path": tracker.db_path,
     }
+    if args.broker:
+        try:
+            from quant_system.execution.broker import fetch_account_snapshot
+
+            snap = fetch_account_snapshot()
+            out["alpaca"] = {
+                "cash": snap["cash"],
+                "equity": snap["equity"],
+                "buying_power": snap["buying_power"],
+                "open_orders_count": snap["open_orders_count"],
+                "positions": snap["positions"],
+            }
+        except Exception as exc:  # noqa: BLE001
+            out["alpaca_error"] = str(exc)
     print(json.dumps(out, indent=2, default=str))
     tracker.close()
     return 0
@@ -81,6 +95,62 @@ def cmd_digest(args: argparse.Namespace) -> int:
     print(json.dumps(_jsonable(dig), indent=2, default=str))
     tracker.close()
     return 0
+
+
+def cmd_cancel_open_orders(args: argparse.Namespace) -> int:
+    """Cancel all open Alpaca paper orders to free buying power."""
+    from quant_system.execution.broker import cancel_all_open_orders
+
+    tracker = Tracker(args.db)
+    try:
+        result = cancel_all_open_orders()
+        tracker.log_decision(
+            decision_type="cancel_open_orders",
+            actor="cli",
+            reasoning="Cancelled open Alpaca paper orders",
+            payload={
+                "cancelled_count": result.get("cancelled_count"),
+                "open_orders_before": result.get("open_orders_before"),
+                "open_orders_after": result.get("open_orders_after"),
+                "buying_power_after": result.get("buying_power_after"),
+                "errors": result.get("errors"),
+            },
+        )
+        print(json.dumps(result, indent=2, default=str))
+        tracker.close()
+        return 0 if not result.get("errors") else 1
+    except Exception as exc:  # noqa: BLE001
+        tracker.log_decision(
+            decision_type="cancel_open_orders",
+            actor="cli",
+            reasoning=f"cancel-open-orders failed: {exc}",
+            payload={"error": str(exc)},
+        )
+        print(json.dumps({"error": str(exc)}, indent=2))
+        tracker.close()
+        return 1
+
+
+def cmd_reconcile(args: argparse.Namespace) -> int:
+    """Reset tracker cash/equity/positions from Alpaca account+positions."""
+    from quant_system.execution.broker import reconcile_tracker_to_alpaca
+
+    tracker = Tracker(args.db)
+    try:
+        result = reconcile_tracker_to_alpaca(tracker)
+        print(json.dumps(_jsonable(result), indent=2, default=str))
+        tracker.close()
+        return 0
+    except Exception as exc:  # noqa: BLE001
+        tracker.log_decision(
+            decision_type="reconcile",
+            actor="cli",
+            reasoning=f"reconcile failed: {exc}",
+            payload={"error": str(exc)},
+        )
+        print(json.dumps({"error": str(exc)}, indent=2))
+        tracker.close()
+        return 1
 
 
 def _jsonable(obj: Any) -> Any:
@@ -113,11 +183,24 @@ def build_parser() -> argparse.ArgumentParser:
     rs.set_defaults(func=cmd_resume)
 
     st = sub.add_parser("status", help="Account/halt/positions summary")
+    st.add_argument("--broker", action="store_true", help="Include Alpaca cash/equity/BP/open orders")
     st.set_defaults(func=cmd_status)
 
     dg = sub.add_parser("digest", help="Digest from Tracker tables")
     dg.add_argument("--limit", type=int, default=20)
     dg.set_defaults(func=cmd_digest)
+
+    co = sub.add_parser(
+        "cancel-open-orders",
+        help="Cancel all open Alpaca paper orders (frees reserved buying power)",
+    )
+    co.set_defaults(func=cmd_cancel_open_orders)
+
+    rc = sub.add_parser(
+        "reconcile",
+        help="Set tracker cash/equity/positions from Alpaca account+positions",
+    )
+    rc.set_defaults(func=cmd_reconcile)
 
     return p
 
@@ -125,11 +208,11 @@ def build_parser() -> argparse.ArgumentParser:
 def _load_dotenv() -> None:
     """Load project .env into os.environ if present (does not override existing)."""
     import os
-    from pathlib import Path
+    from pathlib import Path as _Path
 
     candidates = [
-        Path.cwd() / ".env",
-        Path(__file__).resolve().parents[1] / ".env",
+        _Path.cwd() / ".env",
+        _Path(__file__).resolve().parents[1] / ".env",
     ]
     for env_path in candidates:
         if not env_path.is_file():

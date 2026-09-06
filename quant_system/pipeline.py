@@ -89,7 +89,19 @@ def run_once(
     for d in decisions:
         if isinstance(d, TradeTicket):
             auditor.review_ticket(d, equity=float(tr.get_state("equity", "100")))
-            result = ex.execute(d)
+            try:
+                result = ex.execute(d)
+            except Exception as exc:  # noqa: BLE001 — never crash run-once on broker errors
+                msg = f"execution/{d.ticker}: {exc}"
+                errors.append(msg)
+                tr.log_decision(
+                    decision_type="order_failed",
+                    actor="execution_agent",
+                    ticker=d.ticker,
+                    reasoning=msg,
+                    payload={"error": str(exc), "ticket_id": d.id},
+                )
+                continue
             if result:
                 fills.append(result)
 
