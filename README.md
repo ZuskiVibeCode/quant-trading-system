@@ -124,11 +124,11 @@ pytest -q
 | FundamentalAgent | live | yfinance info → quality_score + valuation_note; missing → neutral/low conf |
 | SentimentAgent | live | headline polarity + credibility; `manipulation_risk` only on coordinated hype |
 | MacroAgent | live | VIX (^VIX), dollar (UUP / DX-Y.NYB), rates (TLT / ^TNX), SPY trend → risk-on/off/neutral; `supporting_data`: regime, macro_risk_level, sector_bias, key_levels |
-| StatisticalMLAgent | stub/partial | OOS supervised model still TODO |
+| StatisticalMLAgent | live | z-score / residual-to-MA mean-reversion, momentum-stat, vol regime, optional XS mom rank; `statistical_edge_score` + confidence band; missing → neutral/low conf |
 
 ## TODOs
 
-- **StatisticalMLAgent:** OOS supervised model on feature store; walk-forward only
+- **StatisticalMLAgent (v2):** OOS supervised model on frozen feature store; walk-forward only (v1 is rule-based numpy/pandas features)
 - **Weights:** implement 90d/1y OOS Sharpe reweight job (CLI hook)
 - **Sharpe vs SPY:** performance report job from `portfolio_snapshots` + SPY history
 
