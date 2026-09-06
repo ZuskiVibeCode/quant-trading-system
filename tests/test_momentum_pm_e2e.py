@@ -81,6 +81,16 @@ def test_e2e_signal_to_fill_logging(env):
     assert decisions
     tickets = [d for d in decisions if isinstance(d, TradeTicket)]
     assert tickets, f"expected ticket, got {decisions}"
+    import os
+
+    for k in (
+        "ALPACA_API_KEY",
+        "ALPACA_SECRET_KEY",
+        "APCA_API_KEY_ID",
+        "APCA_API_SECRET_KEY",
+        "ALPACA_API_SECRET",
+    ):
+        os.environ.pop(k, None)
     ex = ExecutionAgent(tracker, md)
     assert ex.mode == "dry_run"
     result = ex.execute(tickets[0])
