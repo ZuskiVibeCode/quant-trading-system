@@ -1,0 +1,20 @@
+starting_equity: 100.0
+paper_mode: true
+
+# Hard risk limits (enforced in PortfolioManager + ExecutionAgent)
+max_position_pct: 0.20          # 20% of equity per position
+max_daily_loss_pct: 0.05        # 5% daily loss -> halt day
+max_drawdown_pct: 0.15          # 15% drawdown -> halt + alert
+
+# Agent weighting policy (OOS only; no in-sample reweight)
+initial_weight: equal
+weight_floor: 0.05              # 5%
+weight_cap: 0.40                # 40%
+review_30d: equal_only          # review only, keep equal
+review_90d: light_sharpe        # light Sharpe-based weights
+review_1y: fuller_sharpe        # fuller Sharpe weighting
+
+# Execution
+allow_short: false              # paper long-biased for small account
+min_confidence_to_trade: 55
+min_order_notional: 1.0         # dollars

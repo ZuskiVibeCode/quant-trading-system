@@ -1,0 +1,23 @@
+themes:
+  quantum:
+    - IONQ
+    - RGTI
+    - QUBT
+    - IBM
+    - GOOGL
+  space:
+    - RKLB
+    - ASTS
+    - LUNR
+    - BA
+    - LHX
+  robotics:
+    - ISRG
+    - PATH
+    - TER
+    - NVDA
+    - TSLA
+
+benchmark: SPY
+
+# Flat ticker list derived at load time from themes
