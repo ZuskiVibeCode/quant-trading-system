@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quant Mission Ledger — Paper</title>
+  <meta name="description" content="Paper-only multi-agent quant tracker for quantum, space, and robotics themes." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body class="starfield">
+  <div class="circuit-grid" aria-hidden="true"></div>
+
+  <header class="hero" id="top">
+    <img class="hero-art" id="heroArt" src="./art/observatory.jpg" alt="" />
+    <div class="hero-wash"></div>
+    <div class="hero-inner">
+      <p class="kicker">Mission ledger · paper only</p>
+      <h1>Quantum · Space · Robotics</h1>
+      <p class="subtitle">
+        Multi-agent research book for a $100 paper account. Snapshot, holdings, agent work,
+        and watchlist — exported from Tracker SQLite.
+      </p>
+      <div class="badge-row" id="heroBadges"></div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="topbar">
+      <nav class="nav" id="nav">
+        <a href="#snapshot">Snapshot</a>
+        <a href="#holdings">Holdings</a>
+        <a href="#agents">Agents</a>
+        <a href="#research">Research</a>
+        <a href="#mission">Mission log</a>
+        <a href="#watch">Watchlist</a>
+      </nav>
+      <div class="meta-line" id="exportedAt">Loading…</div>
+    </div>
+
+    <div class="filters" id="filters" role="group" aria-label="Sector filter"></div>
+    <div id="loadError" class="error-banner" hidden></div>
+
+    <section id="snapshot">
+      <div class="section-head">
+        <div>
+          <p class="kicker">01 · Snapshot</p>
+          <h2>Current totals</h2>
+        </div>
+        <p class="hint">Equity, cash, daily PnL, and drawdown from the latest Tracker / Alpaca reconcile.</p>
+      </div>
+      <div class="grid-stats" id="statGrid"></div>
+      <div class="panel chart-wrap">
+        <p class="kicker">Equity curve</p>
+        <div id="equityChart"></div>
+      </div>
+    </section>
+
+    <section id="holdings">
+      <div class="section-head">
+        <div>
+          <p class="kicker">02 · Holdings</p>
+          <h2>Open book</h2>
+        </div>
+        <p class="hint">Positions with sector tags from universe themes.</p>
+      </div>
+      <div class="panel table-scroll" id="holdingsTable"></div>
+    </section>
+
+    <section id="agents">
+      <div class="section-head">
+        <div>
+          <p class="kicker">03 · Agents</p>
+          <h2>Today's research work</h2>
+        </div>
+        <p class="hint">Per-agent signals for the UTC day — direction, confidence, truncated reasoning.</p>
+      </div>
+      <div class="agent-grid" id="agentGrid"></div>
+    </section>
+
+    <section id="research">
+      <div class="section-head">
+        <div>
+          <p class="kicker">04 · Research</p>
+          <h2>Signals &amp; decisions</h2>
+        </div>
+        <p class="hint">Tickets, holds, fills, and auditor flags from today.</p>
+      </div>
+      <div class="grid-stats" id="decisionStats" style="margin-bottom:1rem"></div>
+      <div class="panel table-scroll" id="researchTable"></div>
+      <div style="height:0.75rem"></div>
+      <div class="panel table-scroll" id="flagsTable"></div>
+    </section>
+
+    <section id="mission">
+      <div class="section-head">
+        <div>
+          <p class="kicker">05 · Mission log</p>
+          <h2>Timeline</h2>
+        </div>
+        <p class="hint">Recent decisions as a readable mission trail.</p>
+      </div>
+      <ul class="timeline" id="missionLog"></ul>
+    </section>
+
+    <section id="watch">
+      <div class="section-head">
+        <div>
+          <p class="kicker">06 · Watchlist</p>
+          <h2>Universe not held</h2>
+        </div>
+        <p class="hint">Tickers outside the open book with the strongest agent signal today.</p>
+      </div>
+      <div class="panel table-scroll" id="watchTable"></div>
+    </section>
+
+    <footer class="footer">
+      Paper trading only · No live capital · Data from <code>./data/latest.json</code>
+      · Schema: <a class="muted" href="./SCHEMA.md">SCHEMA.md</a>
+    </footer>
+  </div>
+
+  <div class="dialog-backdrop" id="dialog" role="dialog" aria-modal="true" hidden>
+    <div class="dialog">
+      <button type="button" class="dialog-close" id="dialogClose">CLOSE</button>
+      <div id="dialogBody"></div>
+    </div>
+  </div>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>

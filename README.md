@@ -70,6 +70,9 @@ python -m quant_system digest
 python -m quant_system cancel-open-orders   # free BP reserved by open/accepted orders
 python -m quant_system reconcile           # sync tracker cash/equity/positions from Alpaca
 python -m quant_system status --broker     # tracker + Alpaca cash/equity/BP/open orders
+
+# GitHub Pages payload
+python -m quant_system export-dashboard
 ```
 
 Optional Alpaca paper keys (never commit secrets):
@@ -93,6 +96,33 @@ Example Bot prompt:
 
 > From `/workspace/quant-trading-system` with venv active, run `python -m quant_system run-once`, then `digest`, report equity, positions, new fills, and any audit flags. If halted or drawdown ≥ 15%, do not resume without human confirmation.
 
+
+## GitHub Pages dashboard
+
+Static Orbit-inspired viewer under `docs/` (site root = `/docs`).
+
+**Enable Pages:** repo **Settings → Pages → Build and deployment → Deploy from a branch** → Branch `main` → folder `/docs` → Save.
+
+**Public URL pattern:** `https://zuskiVibeCode.github.io/quant-trading-system/`
+
+(Exact casing follows the GitHub user/org; this repo is `ZuskiVibeCode/quant-trading-system`.)
+
+### Export data
+
+```bash
+source .venv/bin/activate
+python -m quant_system export-dashboard
+# writes docs/data/latest.json
+# and docs/data/history/YYYY-MM-DD.json (UTC)
+# optional: --no-alpaca  --no-history  --docs PATH
+```
+
+The exporter reads Tracker SQLite and optionally a public Alpaca paper snapshot (cash/equity/positions only — **never** API secrets). `meta.paper` is always `true`. Schema: [`docs/SCHEMA.md`](docs/SCHEMA.md).
+
+### Digest / automation note
+
+Daily digest routines should run `export-dashboard` after `run-once` / `digest`, then **commit and push** `docs/data/` (and history) so Pages stays current. Parent routines own `automation.json` updates.
+
 ## Package layout
 
 ```
@@ -105,7 +135,8 @@ quant_system/
   market_data/     # MarketData interface + yfinance + mock
   config/          # YAML loaders
   pipeline.py      # run-once orchestration
-  cli.py           # run-once | halt | resume | status | digest | cancel-open-orders | reconcile
+  cli.py           # run-once | halt | resume | status | digest | cancel-open-orders | reconcile | export-dashboard
+docs/              # GitHub Pages viewer (static) + data/latest.json
 config/
   universe.yaml
   risk.yaml

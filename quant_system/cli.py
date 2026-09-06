@@ -1,4 +1,4 @@
-"""CLI: python -m quant_system run-once | halt | resume | status | digest | cancel-open-orders | reconcile"""
+"""CLI: python -m quant_system run-once | halt | resume | status | digest | cancel-open-orders | reconcile | export-dashboard"""
 
 from __future__ import annotations
 
@@ -153,6 +153,37 @@ def cmd_reconcile(args: argparse.Namespace) -> int:
         return 1
 
 
+def cmd_export_dashboard(args: argparse.Namespace) -> int:
+    """Export Tracker (+ optional Alpaca snapshot) to docs/data/latest.json for GitHub Pages."""
+    from pathlib import Path
+
+    from quant_system.dashboard_export import export_dashboard
+
+    tracker = Tracker(args.db)
+    docs = Path(args.docs) if args.docs else None
+    try:
+        result = export_dashboard(
+            tracker,
+            docs_dir=docs,
+            include_alpaca=not args.no_alpaca,
+            append_history=not args.no_history,
+            close_tracker=False,
+        )
+        print(json.dumps(_jsonable(result), indent=2, default=str))
+        tracker.close()
+        return 0
+    except Exception as exc:  # noqa: BLE001
+        tracker.log_decision(
+            decision_type="export_dashboard",
+            actor="cli",
+            reasoning=f"export-dashboard failed: {exc}",
+            payload={"error": str(exc)},
+        )
+        print(json.dumps({"error": str(exc)}, indent=2))
+        tracker.close()
+        return 1
+
+
 def _jsonable(obj: Any) -> Any:
     if isinstance(obj, dict):
         return {k: _jsonable(v) for k, v in obj.items()}
@@ -201,6 +232,27 @@ def build_parser() -> argparse.ArgumentParser:
         help="Set tracker cash/equity/positions from Alpaca account+positions",
     )
     rc.set_defaults(func=cmd_reconcile)
+
+    ed = sub.add_parser(
+        "export-dashboard",
+        help="Export Tracker snapshot to docs/data/latest.json (GitHub Pages viewer)",
+    )
+    ed.add_argument(
+        "--docs",
+        default=None,
+        help="Docs output directory (default: <repo>/docs)",
+    )
+    ed.add_argument(
+        "--no-alpaca",
+        action="store_true",
+        help="Skip optional Alpaca reconcile snapshot",
+    )
+    ed.add_argument(
+        "--no-history",
+        action="store_true",
+        help="Do not append docs/data/history/YYYY-MM-DD.json",
+    )
+    ed.set_defaults(func=cmd_export_dashboard)
 
     return p
 
