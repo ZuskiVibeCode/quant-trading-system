@@ -116,12 +116,19 @@ source .venv/bin/activate
 pytest -q
 ```
 
+## Research agents (status)
+
+| Agent | Status | Notes |
+|-------|--------|-------|
+| MomentumAgent | live | MA/RSI/MACD/ATR/RS vs benchmark |
+| FundamentalAgent | live | yfinance info → quality_score + valuation_note; missing → neutral/low conf |
+| SentimentAgent | live | headline polarity + credibility; `manipulation_risk` only on coordinated hype |
+| MacroAgent | live | VIX (^VIX), dollar (UUP / DX-Y.NYB), rates (TLT / ^TNX), SPY trend → risk-on/off/neutral; `supporting_data`: regime, macro_risk_level, sector_bias, key_levels |
+| StatisticalMLAgent | stub/partial | OOS supervised model still TODO |
+
 ## TODOs
 
-- **FundamentalAgent:** yfinance info (growth, margins, FCF, D/E, P/E, P/S, balance-sheet); quality_score + valuation_note; missing data -> neutral/low confidence
-- **SentimentAgent:** yfinance headlines; lexicon polarity; credibility by source; pump heuristics (`manipulation_risk` only on coordinated hype)
 - **StatisticalMLAgent:** OOS supervised model on feature store; walk-forward only
-- **MacroAgent:** rates/credit/VIX proxies; theme beta overlays
 - **Weights:** implement 90d/1y OOS Sharpe reweight job (CLI hook)
 - **Sharpe vs SPY:** performance report job from `portfolio_snapshots` + SPY history
 
