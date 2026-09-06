@@ -9,6 +9,9 @@ from quant_system.models.signal import Signal
 from quant_system.models.ticket import TradeTicket
 from quant_system.tracker.api import Tracker
 
+# Flag sentiment only when pump heuristics fire AND credibility is meaningfully low.
+_SENTIMENT_CRED_FLAG_THRESHOLD = 0.4
+
 
 class Auditor:
     """Read decisions/signals/tickets and raise audit flags. Never mutates orders."""
@@ -20,17 +23,24 @@ class Auditor:
     def review_signals(self, signals: list[tuple[int, Signal]]) -> list[int]:
         flag_ids: list[int] = []
         for sid, sig in signals:
-            # Sentiment manipulation risk
+            # Sentiment manipulation risk — require risk flag + low cred + evidence.
+            # Do NOT flag empty/no-news stubs (manipulation_risk=false, cred~0.5).
             if sig.agent_id == "sentiment":
                 manip = bool(sig.supporting_data.get("manipulation_risk"))
-                cred = float(sig.supporting_data.get("credibility", 0) or 0)
-                if manip or cred < 0.3:
+                cred = float(sig.supporting_data.get("credibility", 0.5) or 0.5)
+                evidence = sig.supporting_data.get("manipulation_evidence") or []
+                if not evidence:
+                    # Fall back to hype_terms / scored headlines as weak evidence gate
+                    evidence = sig.supporting_data.get("hype_terms") or []
+                has_evidence = bool(evidence)
+                if manip and cred < _SENTIMENT_CRED_FLAG_THRESHOLD and has_evidence:
                     fid = self.tracker.insert_audit_flag(
                         flag_type="sentiment_risk",
                         severity="warning",
                         message=(
                             f"Sentiment signal {sid} for {sig.ticker}: "
-                            f"manipulation_risk={manip}, credibility={cred}"
+                            f"manipulation_risk={manip}, credibility={cred:.2f}, "
+                            f"evidence={evidence}"
                         ),
                         related_table="signals",
                         related_id=sid,
