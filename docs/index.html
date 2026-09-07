@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Quant Mission Ledger — Paper</title>
-  <meta name="description" content="Paper-only multi-agent quant tracker for quantum, space, and robotics themes." />
+  <title>APHELION — Paper Orbit Ledger</title>
+  <meta name="description" content="Paper-only $100 multi-agent quant book for quantum, robotics, and deep space themes. Deployed on Vercel." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -17,36 +17,66 @@
     <img class="hero-art" id="heroArt" src="./art/observatory.jpg" alt="" />
     <div class="hero-wash"></div>
     <div class="hero-inner">
-      <div class="hero-brand"><svg class="orbit-mark" width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
-  <circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.35"/>
-  <circle cx="20" cy="20" r="11" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.55"/>
-  <circle cx="20" cy="20" r="3.2" fill="currentColor"/>
-  <ellipse cx="20" cy="20" rx="18" ry="7" fill="none" stroke="currentColor" stroke-width="1" opacity="0.45" transform="rotate(-28 20 20)"/>
-</svg>
-<p class="kicker">Mission ledger · paper only</p></div>
-      <h1>Quantum · Space · Robotics</h1>
+      <div class="hero-brand">
+        <svg class="orbit-mark" width="44" height="44" viewBox="0 0 40 40" aria-hidden="true">
+          <circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.35"/>
+          <circle cx="20" cy="20" r="11" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.55"/>
+          <circle cx="20" cy="20" r="3.2" fill="currentColor"/>
+          <ellipse cx="20" cy="20" rx="18" ry="7" fill="none" stroke="currentColor" stroke-width="1" opacity="0.45" transform="rotate(-28 20 20)"/>
+        </svg>
+        <p class="kicker accent">Quantum · Robotics · Deep space</p>
+      </div>
+      <h1 class="hero-title">APHELION</h1>
+      <p class="hero-tagline">Names that compute, manipulate, or leave the well.</p>
       <p class="subtitle">
-        Multi-agent research book for a $100 paper account. Snapshot, holdings, agent work,
-        and watchlist — exported from Tracker SQLite.
+        Multi-agent paper book for a $100 starting equity account — research signals,
+        open positions, closed trades, and the running NAV. Paper only. No live capital.
       </p>
       <div class="badge-row" id="heroBadges"></div>
     </div>
   </header>
 
   <div class="wrap">
-    <div class="topbar">
+    <div class="frost-bar" id="frostBar">
+      <div class="frost-row">
+        <div class="frost-brand">
+          <svg class="orbit-mark sm" width="22" height="22" viewBox="0 0 40 40" aria-hidden="true">
+            <circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.35"/>
+            <circle cx="20" cy="20" r="11" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.55"/>
+            <circle cx="20" cy="20" r="3.2" fill="currentColor"/>
+            <ellipse cx="20" cy="20" rx="18" ry="7" fill="none" stroke="currentColor" stroke-width="1" opacity="0.45" transform="rotate(-28 20 20)"/>
+          </svg>
+          <div>
+            <p class="brand-name">Aphelion</p>
+            <p class="brand-status" id="paperStatus">Paper book · Vercel</p>
+          </div>
+        </div>
+        <div class="count-pills" id="countPills"></div>
+      </div>
       <nav class="nav" id="nav">
         <a href="#snapshot">Snapshot</a>
         <a href="#holdings">Holdings</a>
+        <a href="#closed">Closed</a>
         <a href="#agents">Agents</a>
         <a href="#research">Research</a>
-        <a href="#mission">Mission log</a>
         <a href="#watch">Watchlist</a>
+        <a href="#mission">Mission</a>
       </nav>
-      <div class="meta-line" id="exportedAt">Loading…</div>
     </div>
 
-    <div class="filters" id="filters" role="group" aria-label="Sector filter"></div>
+    <aside class="mission-brief panel" id="missionBrief">
+      <p class="kicker">Mission brief</p>
+      <p id="missionBriefText">Loading paper book…</p>
+    </aside>
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon" aria-hidden="true">⌕</span>
+        <input id="searchInput" type="search" placeholder="Search tickers, theses, reasons…" autocomplete="off" />
+      </div>
+      <div class="filters" id="filters" role="group" aria-label="Sector filter"></div>
+    </div>
+
     <div id="loadError" class="error-banner" hidden></div>
 
     <section id="snapshot">
@@ -55,60 +85,70 @@
           <p class="kicker">01 · Snapshot</p>
           <h2>Current totals</h2>
         </div>
-        <p class="hint">Equity, cash, daily PnL, and drawdown from the latest Tracker / Alpaca reconcile.</p>
+        <p class="hint">Paper book. Starting capital $100. Cash is residual after opens and closes.</p>
       </div>
       <div class="grid-stats" id="statGrid"></div>
-      <div class="panel chart-wrap">
-        <p class="kicker">Equity curve</p>
-        <div id="equityChart"></div>
+      <div class="snapshot-grid">
+        <div class="panel chart-wrap">
+          <div class="panel-head">
+            <p class="kicker">NAV since open</p>
+            <p class="meta-line" id="curveMeta"></p>
+          </div>
+          <div id="equityChart"></div>
+        </div>
+        <div class="panel" id="sleevePanel">
+          <p class="kicker">Sleeve mix</p>
+          <p class="hint tight">Open book, by market value</p>
+          <div id="sleeveMix"></div>
+        </div>
       </div>
     </section>
 
     <section id="holdings">
       <div class="section-head">
         <div>
-          <p class="kicker">02 · Holdings</p>
-          <h2>Open book</h2>
+          <p class="kicker">02 · Open book</p>
+          <h2>Bought, still held</h2>
         </div>
         <p class="hint">Positions with sector tags from universe themes.</p>
       </div>
-      <div class="panel table-scroll" id="holdingsTable"></div>
+      <div class="card-stack" id="holdingsCards"></div>
+    </section>
+
+    <section id="closed">
+      <div class="section-head">
+        <div>
+          <p class="kicker">03 · Closed book</p>
+          <h2>Sold, with both sides</h2>
+        </div>
+        <p class="hint">Exits from Tracker sell fills when trackable.</p>
+      </div>
+      <div class="card-stack" id="closedCards"></div>
     </section>
 
     <section id="agents">
       <div class="section-head">
         <div>
-          <p class="kicker">03 · Agents</p>
-          <h2>Today's research work</h2>
+          <p class="kicker">04 · Autonomous systems</p>
+          <h2>Agents</h2>
         </div>
-        <p class="hint">Per-agent signals for the UTC day — direction, confidence, truncated reasoning.</p>
+        <p class="hint">Today’s signals — click an agent for history sparkline and the full day list.</p>
       </div>
       <div class="agent-grid" id="agentGrid"></div>
+      <div class="panel agent-detail" id="agentDetail" hidden></div>
     </section>
 
     <section id="research">
       <div class="section-head">
         <div>
-          <p class="kicker">04 · Research</p>
+          <p class="kicker">05 · Research</p>
           <h2>Signals &amp; decisions</h2>
         </div>
-        <p class="hint">Tickets, holds, fills, and auditor flags from today.</p>
+        <p class="hint">Tickets, holds, fills, auditor flags, and top signals.</p>
       </div>
-      <div class="grid-stats" id="decisionStats" style="margin-bottom:1rem"></div>
-      <div class="panel table-scroll" id="researchTable"></div>
-      <div style="height:0.75rem"></div>
-      <div class="panel table-scroll" id="flagsTable"></div>
-    </section>
-
-    <section id="mission">
-      <div class="section-head">
-        <div>
-          <p class="kicker">05 · Mission log</p>
-          <h2>Timeline</h2>
-        </div>
-        <p class="hint">Recent decisions as a readable mission trail.</p>
-      </div>
-      <ul class="timeline" id="missionLog"></ul>
+      <div class="grid-stats" id="decisionStats"></div>
+      <div class="card-grid" id="researchCards"></div>
+      <div class="card-stack" id="flagsCards" style="margin-top:0.85rem"></div>
     </section>
 
     <section id="watch">
@@ -119,11 +159,22 @@
         </div>
         <p class="hint">Tickers outside the open book with the strongest agent signal today.</p>
       </div>
-      <div class="panel table-scroll" id="watchTable"></div>
+      <div class="card-stack" id="watchCards"></div>
+    </section>
+
+    <section id="mission">
+      <div class="section-head">
+        <div>
+          <p class="kicker">07 · Mission log</p>
+          <h2>What changed</h2>
+        </div>
+        <p class="hint">Recent decisions as a readable mission trail.</p>
+      </div>
+      <ol class="mission-list panel" id="missionLog"></ol>
     </section>
 
     <footer class="footer">
-      Paper trading only · No live capital · Data from <code>./data/latest.json</code>
+      Paper trading only · No live capital · Deployed on Vercel · Data from <code>./data/latest.json</code>
       · Schema: <a class="muted" href="./SCHEMA.md">SCHEMA.md</a>
     </footer>
   </div>

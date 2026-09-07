@@ -154,7 +154,7 @@ def cmd_reconcile(args: argparse.Namespace) -> int:
 
 
 def cmd_export_dashboard(args: argparse.Namespace) -> int:
-    """Export Tracker (+ optional Alpaca snapshot) to docs/data/latest.json for GitHub Pages."""
+    """Export Tracker (+ optional Alpaca snapshot) to docs/data/latest.json for the static Orbit viewer (Vercel)."""
     from pathlib import Path
 
     from quant_system.dashboard_export import export_dashboard
@@ -235,7 +235,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     ed = sub.add_parser(
         "export-dashboard",
-        help="Export Tracker snapshot to docs/data/latest.json (GitHub Pages viewer)",
+        help="Export Tracker snapshot to docs/data/latest.json (Orbit / Vercel viewer)",
     )
     ed.add_argument(
         "--docs",

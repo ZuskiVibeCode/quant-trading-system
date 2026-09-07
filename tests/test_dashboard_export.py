@@ -53,6 +53,8 @@ def test_export_schema_and_files(tmp_path, capsys):
     assert "supporting_data" in sig
     for aid in DEFAULT_AGENT_IDS:
         assert aid in payload["agents_today"]
+        assert aid in payload["agents_history"]
+        assert isinstance(payload["agents_history"][aid], list)
     blob = json.dumps(payload)
     assert "ALPACA_SECRET" not in blob
     assert "secret_key" not in blob

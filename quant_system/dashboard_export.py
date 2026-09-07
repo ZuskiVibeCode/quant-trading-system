@@ -1,4 +1,4 @@
-"""Export Tracker SQLite into docs/data/latest.json for GitHub Pages viewer.
+"""Export Tracker SQLite into docs/data/latest.json for the static Orbit viewer (Vercel).
 
 Frozen schema — keep keys stable; see docs/SCHEMA.md.
 Never write Alpaca secrets into the payload.
@@ -7,7 +7,7 @@ Never write Alpaca secrets into the payload.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +22,7 @@ REQUIRED_TOP_KEYS = (
     "closed",
     "equity_curve",
     "agents_today",
+    "agents_history",
     "decisions_today",
     "auditor_flags_today",
     "mission_log",
@@ -170,6 +171,43 @@ def _agents_today(signals: list[dict[str, Any]]) -> dict[str, Any]:
             "neutral": sum(1 for x in items if x["direction"] == "neutral"),
             "signals": items,
         }
+    return out
+
+
+def _agents_history(tracker: Tracker, *, days: int = 30) -> dict[str, list[dict[str, Any]]]:
+    """Daily signal buckets per agent for the last `days` UTC days (inclusive of today)."""
+    start = (datetime.now(timezone.utc) - timedelta(days=max(days - 1, 0))).strftime("%Y-%m-%d")
+    rows = tracker.conn.execute(
+        """
+        SELECT agent_id,
+               substr(created_at, 1, 10) AS day,
+               COUNT(*) AS signal_count,
+               AVG(confidence) AS avg_confidence,
+               SUM(CASE WHEN direction = 'long' THEN 1 ELSE 0 END) AS long_n,
+               SUM(CASE WHEN direction = 'short' THEN 1 ELSE 0 END) AS short_n,
+               SUM(CASE WHEN direction = 'neutral' THEN 1 ELSE 0 END) AS neutral_n
+        FROM signals
+        WHERE substr(created_at, 1, 10) >= ?
+        GROUP BY agent_id, day
+        ORDER BY day ASC, agent_id ASC
+        """,
+        (start,),
+    ).fetchall()
+
+    out: dict[str, list[dict[str, Any]]] = {a: [] for a in DEFAULT_AGENT_IDS}
+    for r in rows:
+        aid = r["agent_id"] or "unknown"
+        out.setdefault(aid, [])
+        out[aid].append(
+            {
+                "date": r["day"],
+                "signal_count": int(r["signal_count"] or 0),
+                "avg_confidence": float(r["avg_confidence"] or 0.0),
+                "long": int(r["long_n"] or 0),
+                "short": int(r["short_n"] or 0),
+                "neutral": int(r["neutral_n"] or 0),
+            }
+        )
     return out
 
 
@@ -440,6 +478,7 @@ def build_dashboard_payload(
         "closed": _build_closed(tracker, sector_of),
         "equity_curve": _equity_curve(tracker),
         "agents_today": _agents_today(signals),
+        "agents_history": _agents_history(tracker, days=30),
         "decisions_today": _decisions_today(decisions),
         "auditor_flags_today": flags,
         "mission_log": _mission_log(decisions),
@@ -476,6 +515,15 @@ def validate_payload(payload: dict[str, Any]) -> list[str]:
             block = agents[aid]
             if "signals" not in block or "count" not in block:
                 errors.append(f"agents_today.{aid} incomplete")
+    hist = payload.get("agents_history") or {}
+    if not isinstance(hist, dict):
+        errors.append("agents_history must be an object")
+    else:
+        for aid in DEFAULT_AGENT_IDS:
+            if aid not in hist:
+                errors.append(f"agents_history missing agent: {aid}")
+            elif not isinstance(hist[aid], list):
+                errors.append(f"agents_history.{aid} must be a list")
     # secret scan (structured + string markers; never ship credentials)
     def _walk(obj, path=""):
         if isinstance(obj, dict):
@@ -534,6 +582,9 @@ def export_dashboard(
             "exported_at": payload["meta"]["exported_at"],
             "agents_today_counts": {
                 k: v.get("count", 0) for k, v in payload["agents_today"].items()
+            },
+            "agents_history_days": {
+                k: len(v) for k, v in (payload.get("agents_history") or {}).items()
             },
             "holdings": len(payload["holdings"]),
             "equity": payload["snapshot"]["equity"],

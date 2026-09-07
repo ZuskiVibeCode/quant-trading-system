@@ -1,6 +1,6 @@
 # Dashboard JSON schema (`docs/data/latest.json`)
 
-Frozen contract for the GitHub Pages viewer. Produced by:
+Frozen contract for the static Orbit / Vercel viewer. Produced by:
 
 ```bash
 python -m quant_system export-dashboard
@@ -18,6 +18,7 @@ Optional: `--no-alpaca`, `--no-history`, `--docs PATH`.
 | `closed` | array | From sell fills when trackable; may be `[]` |
 | `equity_curve` | array | `{t, equity, cash, daily_pnl, drawdown, peak_equity}` from `portfolio_snapshots` |
 | `agents_today` | object | Per `agent_id`: `{agent_id, count, long, short, neutral, signals[]}` |
+| `agents_history` | object | Per `agent_id`: daily buckets `[{date, signal_count, avg_confidence, long, short, neutral}, …]` (~14–30 days) |
 | `decisions_today` | object | `tickets`, `holds`, `fills`, `order_submitted`, `failed`, `counts` |
 | `auditor_flags_today` | array | Flags with `created_at` on the UTC day |
 | `mission_log` | array | Timeline `{id, at, type, actor, ticker, summary}` |
@@ -30,6 +31,10 @@ Optional: `--no-alpaca`, `--no-history`, `--docs PATH`.
 `{ticker, direction, confidence, reasoning, supporting_data, created_at, signal_id}`
 
 `supporting_data` is a **summary** (selected scalar keys), not the full research blob.
+
+### `agents_history[agent_id][]`
+
+`{date, signal_count, avg_confidence, long, short, neutral}` — UTC day aggregates from Tracker `signals`.
 
 ## History
 

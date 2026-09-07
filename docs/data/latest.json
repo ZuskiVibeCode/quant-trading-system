@@ -1,6 +1,6 @@
 {
   "meta": {
-    "exported_at": "2026-09-07T13:34:01.399268Z",
+    "exported_at": "2026-09-07T14:02:35.905820Z",
     "account": "paper",
     "starting_equity": 100.0,
     "paper": true,
@@ -2753,6 +2753,98 @@
       ]
     }
   },
+  "agents_history": {
+    "momentum": [
+      {
+        "date": "2026-09-06",
+        "signal_count": 45,
+        "avg_confidence": 41.65055394641518,
+        "long": 10,
+        "short": 28,
+        "neutral": 7
+      },
+      {
+        "date": "2026-09-07",
+        "signal_count": 30,
+        "avg_confidence": 37.06578883570196,
+        "long": 4,
+        "short": 22,
+        "neutral": 4
+      }
+    ],
+    "fundamental": [
+      {
+        "date": "2026-09-06",
+        "signal_count": 45,
+        "avg_confidence": 32.25333333333334,
+        "long": 6,
+        "short": 5,
+        "neutral": 34
+      },
+      {
+        "date": "2026-09-07",
+        "signal_count": 30,
+        "avg_confidence": 15.0,
+        "long": 0,
+        "short": 0,
+        "neutral": 30
+      }
+    ],
+    "statistical_ml": [
+      {
+        "date": "2026-09-06",
+        "signal_count": 45,
+        "avg_confidence": 60.00488888888889,
+        "long": 9,
+        "short": 20,
+        "neutral": 16
+      },
+      {
+        "date": "2026-09-07",
+        "signal_count": 30,
+        "avg_confidence": 68.21466666666667,
+        "long": 4,
+        "short": 14,
+        "neutral": 12
+      }
+    ],
+    "sentiment": [
+      {
+        "date": "2026-09-06",
+        "signal_count": 45,
+        "avg_confidence": 41.136959115586755,
+        "long": 28,
+        "short": 0,
+        "neutral": 17
+      },
+      {
+        "date": "2026-09-07",
+        "signal_count": 30,
+        "avg_confidence": 59.76219860473989,
+        "long": 26,
+        "short": 0,
+        "neutral": 4
+      }
+    ],
+    "macro": [
+      {
+        "date": "2026-09-06",
+        "signal_count": 45,
+        "avg_confidence": 63.333333333333336,
+        "long": 30,
+        "short": 0,
+        "neutral": 15
+      },
+      {
+        "date": "2026-09-07",
+        "signal_count": 30,
+        "avg_confidence": 89.0,
+        "long": 30,
+        "short": 0,
+        "neutral": 0
+      }
+    ]
+  },
   "decisions_today": {
     "tickets": [
       {
@@ -5012,13 +5104,5 @@
       "NVDA",
       "TSLA"
     ]
-  },
-  "alpaca_snapshot": {
-    "cash": 100.0,
-    "equity": 100.0,
-    "buying_power": 19.8,
-    "open_orders_count": 4,
-    "positions": [],
-    "paper": true
   }
 }
