@@ -107,8 +107,154 @@ def _query_since(tracker: Tracker, table: str, since: str, limit: int = 2000) ->
     return [tracker._row_to_dict(r, json_fields=json_fields) for r in rows]
 
 
+def _parse_signal_ids(raw: Any) -> list[int]:
+    if raw is None:
+        return []
+    if isinstance(raw, list):
+        out: list[int] = []
+        for x in raw:
+            try:
+                out.append(int(x))
+            except (TypeError, ValueError):
+                continue
+        return out
+    if isinstance(raw, str):
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            return []
+        return _parse_signal_ids(data)
+    return []
+
+
+def _fill_brief(row: Any) -> dict[str, Any]:
+    return {
+        "id": int(row["id"]),
+        "ticket_id": int(row["ticket_id"]),
+        "ticker": str(row["ticker"]).upper(),
+        "side": row["side"],
+        "qty": float(row["qty"]),
+        "price": float(row["price"]),
+        "mode": row["mode"],
+        "created_at": row["created_at"],
+    }
+
+
+def _ticket_brief(row: Any) -> dict[str, Any]:
+    signal_ids = _parse_signal_ids(row["signal_ids"])
+    return {
+        "id": int(row["id"]),
+        "ticker": str(row["ticker"]).upper(),
+        "side": row["side"],
+        "qty": float(row["qty"]),
+        "order_type": row["order_type"],
+        "rationale": row["rationale"] or "",
+        "signal_ids": signal_ids,
+        "status": row["status"],
+        "limit_price": float(row["limit_price"]) if row["limit_price"] is not None else None,
+        "created_at": row["created_at"],
+    }
+
+
+def _signals_by_ids(tracker: Tracker, ids: list[int]) -> list[dict[str, Any]]:
+    if not ids:
+        return []
+    # Preserve ticket order; skip missing ids (never invent).
+    placeholders = ",".join("?" for _ in ids)
+    rows = tracker.conn.execute(
+        f"SELECT * FROM signals WHERE id IN ({placeholders})",
+        tuple(ids),
+    ).fetchall()
+    by_id = {
+        int(r["id"]): tracker._row_to_dict(r, json_fields=("supporting_data",)) for r in rows
+    }
+    out: list[dict[str, Any]] = []
+    for sid in ids:
+        s = by_id.get(int(sid))
+        if not s:
+            continue
+        out.append(
+            {
+                "signal_id": s.get("id"),
+                "agent_id": s.get("agent_id"),
+                "ticker": s.get("ticker"),
+                "direction": s.get("direction"),
+                "confidence": float(s.get("confidence") or 0),
+                "reasoning": s.get("reasoning") or "",
+                "supporting_data": _summarize_supporting(s.get("supporting_data")),
+                "created_at": s.get("created_at"),
+            }
+        )
+    return out
+
+
+def _ticket_row(tracker: Tracker, ticket_id: int | None) -> Any | None:
+    if ticket_id is None:
+        return None
+    return tracker.conn.execute(
+        "SELECT * FROM trade_tickets WHERE id = ?",
+        (int(ticket_id),),
+    ).fetchone()
+
+
+def _reasoning_bundle(tracker: Tracker, ticket_row: Any | None, fill_row: Any | None) -> dict[str, Any]:
+    ticket = _ticket_brief(ticket_row) if ticket_row is not None else None
+    fill = _fill_brief(fill_row) if fill_row is not None else None
+    signal_ids = (ticket or {}).get("signal_ids") or []
+    return {
+        "ticket": ticket,
+        "fill": fill,
+        "signals": _signals_by_ids(tracker, list(signal_ids)),
+    }
+
+
+def _best_entry_buy_fill(tracker: Tracker, ticker: str, before_fill_id: int | None = None) -> Any | None:
+    if before_fill_id is None:
+        return tracker.conn.execute(
+            """
+            SELECT * FROM fills
+            WHERE ticker = ? AND side = 'buy'
+            ORDER BY id DESC LIMIT 1
+            """,
+            (ticker,),
+        ).fetchone()
+    return tracker.conn.execute(
+        """
+        SELECT * FROM fills
+        WHERE ticker = ? AND side = 'buy' AND id < ?
+        ORDER BY id DESC LIMIT 1
+        """,
+        (ticker, before_fill_id),
+    ).fetchone()
+
+
+def _best_entry_buy_ticket(tracker: Tracker, ticker: str, *, prefer_qty: float | None = None) -> Any | None:
+    """Prefer filled buy ticket; else submitted. Prefer qty match when provided."""
+    rows = tracker.conn.execute(
+        """
+        SELECT * FROM trade_tickets
+        WHERE ticker = ? AND side = 'buy' AND status IN ('filled', 'submitted')
+        ORDER BY
+          CASE status WHEN 'filled' THEN 0 WHEN 'submitted' THEN 1 ELSE 2 END,
+          id ASC
+        """,
+        (ticker,),
+    ).fetchall()
+    if not rows:
+        return None
+    if prefer_qty is not None:
+        for r in rows:
+            if abs(float(r["qty"]) - float(prefer_qty)) < 1e-6:
+                return r
+    # latest filled, else earliest submitted
+    filled = [r for r in rows if r["status"] == "filled"]
+    if filled:
+        return filled[-1]
+    return rows[0]
+
+
 def _build_closed(tracker: Tracker, sector_of: dict[str, str]) -> list[dict[str, Any]]:
-    """Pair sells with prior avg_cost from buy fills when possible; else empty-ish list."""
+    """Pair sell fills with prior entry context + stored ticket/signal reasoning."""
     sells = tracker.conn.execute(
         "SELECT * FROM fills WHERE side = 'sell' ORDER BY id ASC"
     ).fetchall()
@@ -117,18 +263,29 @@ def _build_closed(tracker: Tracker, sector_of: dict[str, str]) -> list[dict[str,
     closed: list[dict[str, Any]] = []
     for s in sells:
         ticker = str(s["ticker"]).upper()
-        # best-effort: last buy avg before this sell
-        buy = tracker.conn.execute(
+        buy_avg = tracker.conn.execute(
             """
             SELECT AVG(price) AS avg_price FROM fills
             WHERE ticker = ? AND side = 'buy' AND id < ?
             """,
             (ticker, s["id"]),
         ).fetchone()
-        entry = float(buy["avg_price"]) if buy and buy["avg_price"] is not None else None
+        entry = float(buy_avg["avg_price"]) if buy_avg and buy_avg["avg_price"] is not None else None
         exit_px = float(s["price"])
         qty = float(s["qty"])
         pnl = None if entry is None else (exit_px - entry) * qty
+
+        entry_fill = _best_entry_buy_fill(tracker, ticker, before_fill_id=int(s["id"]))
+        entry_ticket_row = None
+        if entry_fill is not None:
+            entry_ticket_row = _ticket_row(tracker, int(entry_fill["ticket_id"]))
+        if entry_ticket_row is None:
+            entry_ticket_row = _best_entry_buy_ticket(tracker, ticker)
+
+        exit_ticket_row = _ticket_row(tracker, int(s["ticket_id"]))
+        buy = _reasoning_bundle(tracker, entry_ticket_row, entry_fill)
+        sell = _reasoning_bundle(tracker, exit_ticket_row, s)
+
         closed.append(
             {
                 "ticker": ticker,
@@ -138,10 +295,50 @@ def _build_closed(tracker: Tracker, sector_of: dict[str, str]) -> list[dict[str,
                 "pnl": pnl,
                 "sector": sector_of.get(ticker),
                 "closed_at": s["created_at"],
+                "opened_at": (buy.get("fill") or {}).get("created_at")
+                or (buy.get("ticket") or {}).get("created_at"),
                 "mode": s["mode"],
+                "fill_id": int(s["id"]),
+                "ticket_id": int(s["ticket_id"]),
+                "buy": buy,
+                "sell": sell,
             }
         )
     return closed
+
+
+def _enrich_holdings(
+    tracker: Tracker,
+    holdings: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Attach buy ticket / signals / fill reasoning to open positions (stored data only)."""
+    enriched: list[dict[str, Any]] = []
+    for h in holdings:
+        ticker = str(h["ticker"]).upper()
+        qty = float(h.get("qty") or 0)
+        entry_fill = _best_entry_buy_fill(tracker, ticker)
+        entry_ticket_row = None
+        if entry_fill is not None:
+            entry_ticket_row = _ticket_row(tracker, int(entry_fill["ticket_id"]))
+        if entry_ticket_row is None:
+            entry_ticket_row = _best_entry_buy_ticket(tracker, ticker, prefer_qty=qty)
+        buy = _reasoning_bundle(tracker, entry_ticket_row, entry_fill)
+        fills = [
+            _fill_brief(r)
+            for r in tracker.conn.execute(
+                "SELECT * FROM fills WHERE ticker = ? ORDER BY id ASC",
+                (ticker,),
+            ).fetchall()
+        ]
+        item = dict(h)
+        item["buy"] = buy
+        item["fills"] = fills
+        item["opened_at"] = (buy.get("fill") or {}).get("created_at") or (
+            buy.get("ticket") or {}
+        ).get("created_at")
+        enriched.append(item)
+    return enriched
+
 
 
 def _agents_today(signals: list[dict[str, Any]]) -> dict[str, Any]:
@@ -440,6 +637,8 @@ def build_dashboard_payload(
                 except (TypeError, ValueError, ZeroDivisionError):
                     pass
 
+    holdings = _enrich_holdings(tracker, holdings)
+
     signals = _query_since(tracker, "signals", day_start)
     decisions = _query_since(tracker, "decisions", day_start)
     flags = [
@@ -524,6 +723,31 @@ def validate_payload(payload: dict[str, Any]) -> list[str]:
                 errors.append(f"agents_history missing agent: {aid}")
             elif not isinstance(hist[aid], list):
                 errors.append(f"agents_history.{aid} must be a list")
+    closed = payload.get("closed")
+    if not isinstance(closed, list):
+        errors.append("closed must be a list")
+    else:
+        for i, c in enumerate(closed[:50]):
+            if not isinstance(c, dict):
+                errors.append(f"closed[{i}] must be an object")
+                continue
+            for req in ("ticker", "qty", "exit", "closed_at"):
+                if req not in c:
+                    errors.append(f"closed[{i}] missing {req}")
+            # reasoning bundles are optional for empty books, but when present must be objects
+            for side in ("buy", "sell"):
+                if side in c and c[side] is not None and not isinstance(c[side], dict):
+                    errors.append(f"closed[{i}].{side} must be an object")
+    holdings = payload.get("holdings")
+    if not isinstance(holdings, list):
+        errors.append("holdings must be a list")
+    else:
+        for i, h in enumerate(holdings[:50]):
+            if not isinstance(h, dict):
+                errors.append(f"holdings[{i}] must be an object")
+                continue
+            if "buy" in h and h["buy"] is not None and not isinstance(h["buy"], dict):
+                errors.append(f"holdings[{i}].buy must be an object")
     # secret scan (structured + string markers; never ship credentials)
     def _walk(obj, path=""):
         if isinstance(obj, dict):

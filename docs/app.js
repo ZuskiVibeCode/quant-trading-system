@@ -1,6 +1,8 @@
 /* APHELION Orbit viewer — loads ./data/latest.json (Vercel static) */
 (() => {
   const DATA_URL = "./data/latest.json";
+  // Compact single-file deploys may define INLINE_DATA before this script.
+  const HAS_INLINE = typeof INLINE_DATA !== "undefined" && INLINE_DATA;
   const SECTORS = ["all", "quantum", "robotics", "space"];
   const AGENT_ORDER = [
     "momentum",
@@ -325,28 +327,133 @@
       </div>`;
   }
 
+
+  function escapeHtml(s) {
+    return String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function signalListHtml(signals) {
+    if (!signals || !signals.length) {
+      return `<p class="empty tight">No linked agent signals in Tracker</p>`;
+    }
+    return `<ul class="reason-signals">${signals
+      .map(
+        (s) => `<li>
+          <div class="signal-top">
+            <span class="mono">${escapeHtml(s.agent_id || "agent")}</span>
+            <span>
+              <span class="dir ${escapeHtml(s.direction || "")}">${escapeHtml(s.direction || "—")}</span>
+              <span class="mono subtle"> ${Number(s.confidence || 0).toFixed(0)}</span>
+            </span>
+          </div>
+          <p class="signal-reason">${escapeHtml(s.reasoning || "")}</p>
+          <p class="meta-line">${fmtTime(s.created_at)}</p>
+        </li>`
+      )
+      .join("")}</ul>`;
+  }
+
+  function ticketBlockHtml(label, bundle) {
+    const ticket = bundle?.ticket;
+    const fill = bundle?.fill;
+    const signals = bundle?.signals || [];
+    if (!ticket && !fill && !signals.length) {
+      return `<div class="reason-block"><p class="kicker">${escapeHtml(label)}</p><p class="empty tight">No stored ticket / fill / signals</p></div>`;
+    }
+    return `<div class="reason-block">
+      <p class="kicker">${escapeHtml(label)}</p>
+      ${
+        ticket
+          ? `<p class="thesis">${escapeHtml(ticket.rationale || "")}</p>
+             <div class="meta-row">
+               <span>ticket #${ticket.id}</span>
+               <span>${escapeHtml(ticket.side || "")}</span>
+               <span>${Number(ticket.qty || 0).toFixed(4)} sh</span>
+               <span>${escapeHtml(ticket.status || "")}</span>
+               <span>${fmtTime(ticket.created_at)}</span>
+             </div>`
+          : `<p class="empty tight">No PM ticket linked</p>`
+      }
+      ${
+        fill
+          ? `<div class="meta-row" style="margin-top:0.45rem">
+               <span>fill #${fill.id}</span>
+               <span>${escapeHtml(fill.side)}</span>
+               <span>${Number(fill.qty).toFixed(4)} @ ${fmtUsd(fill.price)}</span>
+               <span>${escapeHtml(fill.mode || "")}</span>
+               <span>${fmtTime(fill.created_at)}</span>
+             </div>`
+          : `<p class="muted" style="margin-top:0.35rem;font-size:0.85rem">No fill row (may be reconcile-only)</p>`
+      }
+      <p class="kicker" style="margin-top:0.85rem">Agent signals</p>
+      ${signalListHtml(signals)}
+    </div>`;
+  }
+
+  function openPositionDetail(item, kind) {
+    const dlg = $("dialog");
+    const body = $("dialogBody");
+    const sec = item.sector || sectorOf(item.ticker);
+    const isClosed = kind === "closed";
+    const titleBits = isClosed
+      ? `Closed · ${fmtUsd(item.pnl)} PnL`
+      : `Open · avg ${fmtUsd(item.avg_cost)}`;
+    body.innerHTML = `
+      <p class="kicker">${isClosed ? "Closed position" : "Open position"}${sec ? ` · ${SECTOR_LABEL[sec] || sec}` : ""}</p>
+      <h3>${escapeHtml(item.ticker)} <span class="mono subtle" style="font-size:0.85rem">${escapeHtml(titleBits)}</span></h3>
+      <div class="meta-row" style="margin-top:0.5rem">
+        <span>${Number(item.qty || 0).toFixed(4)} sh</span>
+        ${isClosed ? `<span>in ${fmtUsd(item.entry)}</span><span>out ${fmtUsd(item.exit)}</span>` : `<span>last ${fmtUsd(item.last)}</span><span class="${pnlClass(item.unrealized)}">${fmtUsd(item.unrealized)}</span>`}
+        <span>${fmtTime(isClosed ? item.closed_at : item.updated_at || item.opened_at)}</span>
+      </div>
+      ${ticketBlockHtml(isClosed ? "Why bought" : "Buy reasoning", item.buy)}
+      ${isClosed ? ticketBlockHtml("Why sold", item.sell) : ""}
+      ${
+        !isClosed && Array.isArray(item.fills) && item.fills.length
+          ? `<div class="reason-block"><p class="kicker">Fills</p><ul class="reason-signals">${item.fills
+              .map(
+                (f) =>
+                  `<li><div class="meta-row"><span>#${f.id}</span><span>${escapeHtml(f.side)}</span><span>${Number(f.qty).toFixed(4)} @ ${fmtUsd(f.price)}</span><span>${fmtTime(f.created_at)}</span></div></li>`
+              )
+              .join("")}</ul></div>`
+          : ""
+      }`;
+    dlg.hidden = false;
+    dlg.classList.add("open");
+  }
+
   function renderHoldings() {
-    const rows = (DATA.holdings || []).filter(
-      (h) =>
+    const rows = (DATA.holdings || []).filter((h) => {
+      const thesis = h.buy?.ticket?.rationale || "";
+      const agents = (h.buy?.signals || []).map((s) => s.reasoning || "").join(" ");
+      return (
         matchesSector(h.sector || sectorOf(h.ticker)) &&
-        matchesQuery(h.ticker, h.sector, "")
-    );
+        matchesQuery(h.ticker, h.sector, thesis, agents)
+      );
+    });
     const host = $("holdingsCards");
     if (!rows.length) {
       host.innerHTML = `<p class="empty">No open holdings${filter !== "all" ? " in this sector" : ""}${query ? " matching search" : ""}</p>`;
       return;
     }
     host.innerHTML = rows
-      .map((h) => {
+      .map((h, idx) => {
         const sec = h.sector || sectorOf(h.ticker);
         const mv =
           h.last != null ? Number(h.last) * Number(h.qty) : Number(h.avg_cost) * Number(h.qty);
-        return `<button type="button" class="data-card" data-kind="holding" data-ticker="${h.ticker}">
+        const thesis = h.buy?.ticket?.rationale
+          ? trunc(h.buy.ticket.rationale, 140)
+          : `Open position · avg ${fmtUsd(h.avg_cost)}`;
+        return `<button type="button" class="data-card" data-kind="holding" data-idx="${idx}">
           <div class="top">
             <div>
               <span class="ticker">${h.ticker}</span>
               ${sec ? `<span class="sector-tag"> · ${SECTOR_LABEL[sec] || sec}</span>` : ""}
-              <p class="thesis">Open position · avg ${fmtUsd(h.avg_cost)}</p>
+              <p class="thesis">${escapeHtml(thesis)}</p>
             </div>
             <div class="side-stats">
               <span>${fmtUsd(mv)}</span>
@@ -357,33 +464,49 @@
             <span>${Number(h.qty).toFixed(4)} sh</span>
             <span>avg ${fmtUsd(h.avg_cost)}</span>
             <span>last ${fmtUsd(h.last)}</span>
-            <span>${fmtTime(h.updated_at)}</span>
+            <span>${fmtTime(h.updated_at || h.opened_at)}</span>
+            <span class="subtle">tap for reasoning</span>
           </div>
         </button>`;
       })
       .join("");
+    host.querySelectorAll(".data-card").forEach((el) => {
+      el.addEventListener("click", () => {
+        const i = Number(el.getAttribute("data-idx"));
+        openPositionDetail(rows[i], "holding");
+      });
+    });
   }
 
   function renderClosed() {
-    const rows = (DATA.closed || []).filter(
-      (h) =>
+    const rows = (DATA.closed || []).filter((h) => {
+      const buyR = h.buy?.ticket?.rationale || "";
+      const sellR = h.sell?.ticket?.rationale || "";
+      const agents = [...(h.buy?.signals || []), ...(h.sell?.signals || [])]
+        .map((s) => s.reasoning || "")
+        .join(" ");
+      return (
         matchesSector(h.sector || sectorOf(h.ticker)) &&
-        matchesQuery(h.ticker, h.sector, "")
-    );
+        matchesQuery(h.ticker, h.sector, buyR, sellR, agents)
+      );
+    });
     const host = $("closedCards");
     if (!rows.length) {
-      host.innerHTML = `<p class="empty">No closed trades${filter !== "all" ? " in this sector" : ""}</p>`;
+      host.innerHTML = `<p class="empty">No closed trades${filter !== "all" ? " in this sector" : ""}${query ? " matching search" : ""}</p>`;
       return;
     }
     host.innerHTML = rows
-      .map((h) => {
+      .map((h, idx) => {
         const sec = h.sector || sectorOf(h.ticker);
-        return `<button type="button" class="data-card">
+        const thesis = h.sell?.ticket?.rationale
+          ? trunc(h.sell.ticket.rationale, 140)
+          : `${h.mode || "fill"} · exit ${fmtUsd(h.exit)}`;
+        return `<button type="button" class="data-card" data-kind="closed" data-idx="${idx}">
           <div class="top">
             <div>
               <span class="ticker">${h.ticker}</span>
               ${sec ? `<span class="sector-tag"> · ${SECTOR_LABEL[sec] || sec}</span>` : ""}
-              <p class="thesis">${h.mode || "fill"} · exit ${fmtUsd(h.exit)}</p>
+              <p class="thesis">${escapeHtml(thesis)}</p>
             </div>
             <div class="side-stats">
               <span class="${pnlClass(h.pnl)}">${fmtUsd(h.pnl)}</span>
@@ -394,10 +517,17 @@
             <span>in ${fmtUsd(h.entry)}</span>
             <span>out ${fmtUsd(h.exit)}</span>
             <span>${fmtTime(h.closed_at)}</span>
+            <span class="subtle">tap for buy/sell why</span>
           </div>
         </button>`;
       })
       .join("");
+    host.querySelectorAll(".data-card").forEach((el) => {
+      el.addEventListener("click", () => {
+        const i = Number(el.getAttribute("data-idx"));
+        openPositionDetail(rows[i], "closed");
+      });
+    });
   }
 
   function filteredSignals(block) {
@@ -760,9 +890,13 @@
     wireNav();
     wireSearch();
     try {
-      const res = await fetch(DATA_URL, { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status} loading ${DATA_URL}`);
-      DATA = await res.json();
+      if (HAS_INLINE) {
+        DATA = INLINE_DATA;
+      } else {
+        const res = await fetch(DATA_URL, { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status} loading ${DATA_URL}`);
+        DATA = await res.json();
+      }
       setHeroArt();
       renderAll();
     } catch (err) {

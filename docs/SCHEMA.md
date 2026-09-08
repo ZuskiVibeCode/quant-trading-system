@@ -14,8 +14,8 @@ Optional: `--no-alpaca`, `--no-history`, `--docs PATH`.
 |-----|------|-------|
 | `meta` | object | `exported_at`, `account`, `starting_equity`, `paper` (always `true`), `day_start_utc` |
 | `snapshot` | object | `equity`, `cash`, `peak_equity`, `daily_pnl`, `drawdown`, `halted`, `day_halted`, `halt_reason` |
-| `holdings` | array | `{ticker, qty, avg_cost, last?, sector, unrealized?, updated_at?}` |
-| `closed` | array | From sell fills when trackable; may be `[]` |
+| `holdings` | array | Open lots + buy reasoning (see below) |
+| `closed` | array | Sell-fill closed legs + buy/sell reasoning (see below); may be `[]` |
 | `equity_curve` | array | `{t, equity, cash, daily_pnl, drawdown, peak_equity}` from `portfolio_snapshots` |
 | `agents_today` | object | Per `agent_id`: `{agent_id, count, long, short, neutral, signals[]}` |
 | `agents_history` | object | Per `agent_id`: daily buckets `[{date, signal_count, avg_confidence, long, short, neutral}, …]` (~14–30 days) |
@@ -35,6 +35,25 @@ Optional: `--no-alpaca`, `--no-history`, `--docs PATH`.
 ### `agents_history[agent_id][]`
 
 `{date, signal_count, avg_confidence, long, short, neutral}` — UTC day aggregates from Tracker `signals`.
+
+
+### `holdings[]` (open)
+
+`{ticker, qty, avg_cost, last?, sector, unrealized?, updated_at?, opened_at?, buy, fills[]}`
+
+- `buy`: `{ticket?, fill?, signals[]}` linked from Tracker `trade_tickets` / `fills` / `signals` (no invented narrative)
+- `fills[]`: all Tracker fills for the ticker `{id, ticket_id, ticker, side, qty, price, mode, created_at}`
+
+### `closed[]` (sold legs)
+
+Built from `fills` where `side='sell'`. Entry price is the average of prior buy fills for that ticker when available.
+
+`{ticker, qty, entry, exit, pnl, sector, closed_at, opened_at?, mode, fill_id, ticket_id, buy, sell}`
+
+- `buy` / `sell`: same shape as holdings `buy` — `{ticket?, fill?, signals[]}`
+- `ticket.rationale` is the Portfolio Manager ticket text; `signals[]` are the linked agent rows (`agent_id`, `direction`, `confidence`, `reasoning`, `supporting_data` summary, `created_at`, `signal_id`)
+
+Positions removed only via Alpaca reconcile (no sell fill) do **not** appear in `closed`.
 
 ## History
 
