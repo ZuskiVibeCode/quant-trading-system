@@ -6,6 +6,7 @@ Only record fills when the broker reports a real fill (filled_qty > 0).
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 from quant_system.config.loader import alpaca_credentials
@@ -77,6 +78,40 @@ def is_real_fill(order: Any) -> bool:
         "expired",
         "rejected",
     }
+
+
+def _await_alpaca_fill(client: Any, order: Any, *, timeout_s: float = 25.0, poll_s: float = 0.75) -> Any:
+    """Poll until fill/terminal or timeout. Paper market orders often return pending_new first."""
+    order_id = getattr(order, "id", None)
+    if order_id is None or client is None:
+        return order
+    latest = order
+    terminal = frozenset(
+        {
+            "filled",
+            "partially_filled",
+            "canceled",
+            "cancelled",
+            "expired",
+            "rejected",
+            "done_for_day",
+        }
+    )
+    polls = max(1, int(float(timeout_s) / float(poll_s)) + 1)
+    for i in range(polls):
+        if is_real_fill(latest):
+            return latest
+        status = _order_status_str(latest)
+        if status in terminal and status not in _FILL_STATUSES:
+            return latest
+        if i + 1 >= polls:
+            break
+        time.sleep(float(poll_s))
+        try:
+            latest = client.get_order_by_id(str(order_id))
+        except Exception:  # noqa: BLE001
+            return latest
+    return latest
 
 
 class ExecutionAgent:
@@ -210,6 +245,9 @@ class ExecutionAgent:
 
         try:
             order = self._alpaca.submit_order(req)
+            # Paper fractional market orders often ACK as pending_new/new before fill.
+            # Wait briefly so Tracker books the fill and subsequent tickets see real BP/cash.
+            order = _await_alpaca_fill(self._alpaca, order, timeout_s=25.0, poll_s=0.75)
         except Exception as exc:  # noqa: BLE001 — include APIError and network
             self.tracker.update_ticket_status(ticket.id, TicketStatus.FAILED)
             self.tracker.log_decision(
