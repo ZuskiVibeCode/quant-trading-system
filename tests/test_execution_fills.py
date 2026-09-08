@@ -48,6 +48,7 @@ def test_is_real_fill_filled():
 
 def test_accepted_order_does_not_record_fill_or_move_cash(tracker: Tracker, monkeypatch):
     monkeypatch.setenv("QUANT_ALLOW_ALPACA_IN_TESTS", "1")
+    monkeypatch.setattr("quant_system.execution.execution_agent.time.sleep", lambda *_a, **_k: None)
     monkeypatch.setenv("ALPACA_API_KEY", "PK_TEST")
     monkeypatch.setenv("ALPACA_SECRET_KEY", "SK_TEST")
     monkeypatch.setenv("ALPACA_PAPER", "true")
@@ -55,12 +56,14 @@ def test_accepted_order_does_not_record_fill_or_move_cash(tracker: Tracker, monk
     md = MockMarketData(prices={"IONQ": 10.0})
     agent = ExecutionAgent(tracker, md)
     mock_client = MagicMock()
-    mock_client.submit_order.return_value = SimpleNamespace(
+    accepted = SimpleNamespace(
         id="ord-accepted-1",
         status="accepted",
         filled_qty=0,
         filled_avg_price=None,
     )
+    mock_client.submit_order.return_value = accepted
+    mock_client.get_order_by_id.return_value = accepted
     agent._alpaca = mock_client
     agent.creds = {"api_key": "PK_TEST", "secret_key": "SK_TEST", "paper": True, "configured": True}
 
@@ -78,6 +81,36 @@ def test_accepted_order_does_not_record_fill_or_move_cash(tracker: Tracker, monk
     decisions = tracker.list_decisions(decision_type="order_submitted")
     assert decisions
     assert decisions[0]["payload"]["status"] == "accepted"
+
+
+
+def test_pending_new_then_filled_is_recorded(tracker: Tracker, monkeypatch):
+    monkeypatch.setenv("QUANT_ALLOW_ALPACA_IN_TESTS", "1")
+    monkeypatch.setenv("ALPACA_API_KEY", "PK_TEST")
+    monkeypatch.setenv("ALPACA_SECRET_KEY", "SK_TEST")
+    monkeypatch.setenv("ALPACA_PAPER", "true")
+    monkeypatch.setattr("quant_system.execution.execution_agent.time.sleep", lambda *_a, **_k: None)
+
+    md = MockMarketData(prices={"IONQ": 10.0})
+    agent = ExecutionAgent(tracker, md)
+    mock_client = MagicMock()
+    pending = SimpleNamespace(id="ord-1", status="pending_new", filled_qty=0, filled_avg_price=None)
+    filled = SimpleNamespace(id="ord-1", status="filled", filled_qty="1", filled_avg_price="10.0")
+    mock_client.submit_order.return_value = pending
+    mock_client.get_order_by_id.side_effect = [pending, filled]
+    agent._alpaca = mock_client
+    agent.creds = {"api_key": "PK_TEST", "secret_key": "SK_TEST", "paper": True, "configured": True}
+
+    ticket = _ticket(tracker)
+    cash_before = float(tracker.get_state("cash"))
+    result = agent.execute(ticket)
+
+    assert result is not None
+    assert result.get("status") == "filled"
+    assert "fill_id" in result
+    assert tracker.list_fills()
+    assert float(tracker.get_state("cash")) < cash_before
+
 
 
 def test_api_error_logs_and_returns_without_raising(tracker: Tracker, monkeypatch):
