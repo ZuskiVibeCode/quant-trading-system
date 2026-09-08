@@ -3,6 +3,10 @@
 
 Inlines CSS + JS + a slimmed latest.json (INLINE_DATA) and a compressed observatory hero.
 Keeps closed/holdings reasoning fields. Does not invent data.
+
+For MCP size-limited production deploys (~70KB), prefer
+scripts/build_production_index.py which embeds only slim buy/sell
+rationale+signals and never empty {"reasoning":""} stubs.
 """
 
 from __future__ import annotations
