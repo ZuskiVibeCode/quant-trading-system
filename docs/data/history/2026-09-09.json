@@ -1,6 +1,6 @@
 {
   "meta": {
-    "exported_at": "2026-09-09T20:04:24.807911Z",
+    "exported_at": "2026-09-09T20:05:12.713955Z",
     "account": "paper",
     "starting_equity": 100.0,
     "paper": true,
@@ -3157,7 +3157,7 @@
   },
   "alpaca_snapshot": {
     "cash": 3.78,
-    "equity": 94.55,
+    "equity": 94.56,
     "buying_power": 3.78,
     "open_orders_count": 0,
     "positions": [
