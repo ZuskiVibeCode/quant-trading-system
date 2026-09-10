@@ -3,7 +3,7 @@ paper_mode: true
 
 # Hard risk limits (enforced in PortfolioManager + ExecutionAgent)
 max_position_pct: 0.20          # 20% of equity per position
-max_daily_loss_pct: 0.05        # 5% daily loss -> halt day
+max_daily_loss_pct: 0.10        # 10% daily loss -> halt day
 max_drawdown_pct: 0.15          # 15% drawdown -> halt + alert
 
 # Agent weighting policy (OOS only; no in-sample reweight)

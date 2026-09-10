@@ -14,7 +14,7 @@ class RiskConfig(BaseModel):
     starting_equity: float = 100.0
     paper_mode: bool = True
     max_position_pct: float = 0.20
-    max_daily_loss_pct: float = 0.05
+    max_daily_loss_pct: float = 0.10
     max_drawdown_pct: float = 0.15
     initial_weight: str = "equal"
     weight_floor: float = 0.05

@@ -5,7 +5,7 @@ def test_universe_and_risk():
     cfg = load_config()
     assert cfg.risk.starting_equity == 100.0
     assert cfg.risk.max_position_pct == 0.20
-    assert cfg.risk.max_daily_loss_pct == 0.05
+    assert cfg.risk.max_daily_loss_pct == 0.10
     assert cfg.risk.max_drawdown_pct == 0.15
     assert cfg.universe.benchmark == "SPY"
     tickers = cfg.universe.tickers
