@@ -156,7 +156,7 @@ pytest -q
 
 | Agent | Status | Notes |
 |-------|--------|-------|
-| MomentumAgent | live | MA/RSI/MACD/ATR/RS vs benchmark |
+| MomentumAgent | live | MA/RSI/MACD/ATR/RS vs benchmark; relative volume, demand imbalance, BB/KC squeeze |
 | FundamentalAgent | live | yfinance info → quality_score + valuation_note; missing → neutral/low conf |
 | SentimentAgent | live | headline polarity + credibility; `manipulation_risk` only on coordinated hype |
 | MacroAgent | live | VIX (^VIX), dollar (UUP / DX-Y.NYB), rates (TLT / ^TNX), SPY trend → risk-on/off/neutral; `supporting_data`: regime, macro_risk_level, sector_bias, key_levels |

@@ -46,6 +46,9 @@ def test_momentum_emits_frozen_signal(env):
     assert 0 <= sig.confidence <= 100
     assert sig.direction.value in ("long", "short", "neutral")
     assert "ma20" in sig.supporting_data or "raw_score" in sig.supporting_data
+    assert "relative_volume" in sig.supporting_data
+    assert "demand_imbalance" in sig.supporting_data
+    assert "squeeze_on" in sig.supporting_data
     sid = tracker.insert_signal(sig)
     assert sid >= 1
 
