@@ -1,17 +1,17 @@
 {
   "meta": {
-    "exported_at": "2026-09-11T13:41:39.346366Z",
+    "exported_at": "2026-09-11T19:43:32.453202Z",
     "account": "paper",
     "starting_equity": 100.0,
     "paper": true,
     "day_start_utc": "2026-09-11T00:00:00.000000Z"
   },
   "snapshot": {
-    "equity": 93.71,
+    "equity": 93.6,
     "cash": 0.16,
     "peak_equity": 100.0,
-    "daily_pnl": -6.290000000000006,
-    "drawdown": 0.06290000000000007,
+    "daily_pnl": -6.400000000000006,
+    "drawdown": 0.06400000000000006,
     "halted": false,
     "day_halted": false,
     "halt_reason": null
@@ -24,7 +24,7 @@
       "last": null,
       "sector": "quantum",
       "unrealized": null,
-      "updated_at": "2026-09-11T13:41:20.845482Z"
+      "updated_at": "2026-09-11T19:42:56.231011Z"
     },
     {
       "ticker": "ISRG",
@@ -33,7 +33,7 @@
       "last": null,
       "sector": "robotics",
       "unrealized": null,
-      "updated_at": "2026-09-11T13:41:20.845482Z"
+      "updated_at": "2026-09-11T19:42:56.231011Z"
     },
     {
       "ticker": "LUNR",
@@ -42,7 +42,7 @@
       "last": null,
       "sector": "space",
       "unrealized": null,
-      "updated_at": "2026-09-11T13:41:20.845482Z"
+      "updated_at": "2026-09-11T19:42:56.231011Z"
     },
     {
       "ticker": "PATH",
@@ -51,7 +51,7 @@
       "last": null,
       "sector": "robotics",
       "unrealized": null,
-      "updated_at": "2026-09-11T13:41:20.845482Z"
+      "updated_at": "2026-09-11T19:42:56.231011Z"
     },
     {
       "ticker": "RGTI",
@@ -60,7 +60,7 @@
       "last": null,
       "sector": "quantum",
       "unrealized": null,
-      "updated_at": "2026-09-11T13:41:20.845482Z"
+      "updated_at": "2026-09-11T19:42:56.231011Z"
     },
     {
       "ticker": "TER",
@@ -69,7 +69,7 @@
       "last": null,
       "sector": "robotics",
       "unrealized": null,
-      "updated_at": "2026-09-11T13:41:20.845482Z"
+      "updated_at": "2026-09-11T19:42:56.231011Z"
     }
   ],
   "closed": [
@@ -148,16 +148,294 @@
       "daily_pnl": -6.290000000000006,
       "drawdown": 0.06290000000000007,
       "peak_equity": 100.0
+    },
+    {
+      "t": "2026-09-11T19:42:56.232011Z",
+      "equity": 93.6,
+      "cash": 0.16,
+      "daily_pnl": -6.400000000000006,
+      "drawdown": 0.06400000000000006,
+      "peak_equity": 100.0
     }
   ],
   "agents_today": {
     "momentum": {
       "agent_id": "momentum",
-      "count": 15,
-      "long": 3,
-      "short": 11,
-      "neutral": 1,
+      "count": 30,
+      "long": 5,
+      "short": 21,
+      "neutral": 4,
       "signals": [
+        {
+          "ticker": "TSLA",
+          "direction": "long",
+          "confidence": 64.07422494975569,
+          "reasoning": "MA20 > MA50 (short-term uptrend); MA50 < MA200 (intermediate downtrend); MACD histogram positive; 20d RS vs SPY: +9.46%; RVOL 0.64x vs 20d avg; Demand imbalance positive (+0.11)",
+          "supporting_data": {
+            "last_close": 366.4898986816406,
+            "ma20": 355.18249359130857,
+            "ma50": 354.5191967773437,
+            "ma200": 378.9486493307447,
+            "rsi14": 54.84043889471051,
+            "macd_hist": 1.9297043405064516,
+            "atr14": 14.272138323102679,
+            "atr_pct": 0.03894278771241245
+          },
+          "created_at": "2026-09-11T19:42:47.943566Z",
+          "signal_id": 1121
+        },
+        {
+          "ticker": "NVDA",
+          "direction": "neutral",
+          "confidence": 58.90077171292083,
+          "reasoning": "MA20 > MA50 (short-term uptrend); MA50 > MA200 (intermediate uptrend); MACD histogram negative; 20d RS vs SPY: -1.17%; RVOL 0.52x vs 20d avg; Demand imbalance negative (-0.18)",
+          "supporting_data": {
+            "last_close": 218.7050018310547,
+            "ma20": 219.96157531738282,
+            "ma50": 212.3644534301758,
+            "ma200": 204.90504504007006,
+            "rsi14": 50.29091727855615,
+            "macd_hist": -0.4805958148968297,
+            "atr14": 7.661507321779232,
+            "atr_pct": 0.035031239604193395
+          },
+          "created_at": "2026-09-11T19:42:46.400032Z",
+          "signal_id": 1116
+        },
+        {
+          "ticker": "TER",
+          "direction": "long",
+          "confidence": 70.46192531350871,
+          "reasoning": "MA20 > MA50 (short-term uptrend); MA50 > MA200 (intermediate uptrend); MACD histogram positive; 20d RS vs SPY: -5.90%; RVOL 0.55x vs 20d avg; Demand imbalance balanced (-0.07)",
+          "supporting_data": {
+            "last_close": 379.3800048828125,
+            "ma20": 372.5961441040039,
+            "ma50": 365.6866375732422,
+            "ma200": 364.86397516159786,
+            "rsi14": 53.04124061256626,
+            "macd_hist": 1.9047822222019066,
+            "atr14": 17.440066782643044,
+            "atr_pct": 0.04596991554162203
+          },
+          "created_at": "2026-09-11T19:42:44.788644Z",
+          "signal_id": 1111
+        },
+        {
+          "ticker": "PATH",
+          "direction": "neutral",
+          "confidence": 49.77609793913895,
+          "reasoning": "MA20 > MA50 (short-term uptrend); MA50 > MA200 (intermediate uptrend); RSI soft (39.4); MACD histogram negative; 20d RS vs SPY: -15.37%; RVOL 0.41x vs 20d avg; Demand imbalance balanced (-0.01)",
+          "supporting_data": {
+            "last_close": 13.84000015258789,
+            "ma20": 16.281999826431274,
+            "ma50": 14.12779993057251,
+            "ma200": 12.139444442022414,
+            "rsi14": 39.39367490520211,
+            "macd_hist": -0.6267123996092394,
+            "atr14": 1.0238568442208427,
+            "atr_pct": 0.07397809486507813
+          },
+          "created_at": "2026-09-11T19:42:43.105841Z",
+          "signal_id": 1106
+        },
+        {
+          "ticker": "ISRG",
+          "direction": "short",
+          "confidence": 22.519254908073133,
+          "reasoning": "MA20 < MA50 (short-term downtrend); MA50 < MA200 (intermediate downtrend); MACD histogram negative; 20d RS vs SPY: -5.80%; RVOL 0.89x vs 20d avg; Demand imbalance balanced (-0.08)",
+          "supporting_data": {
+            "last_close": 371.3575134277344,
+            "ma20": 373.6133758544922,
+            "ma50": 377.5039489746094,
+            "ma200": 416.6143442789714,
+            "rsi14": 49.34697176599315,
+            "macd_hist": -0.9641775025775461,
+            "atr14": 11.064283098493304,
+            "atr_pct": 0.02979415441569192
+          },
+          "created_at": "2026-09-11T19:42:41.481754Z",
+          "signal_id": 1101
+        },
+        {
+          "ticker": "LHX",
+          "direction": "short",
+          "confidence": 13.594908571964304,
+          "reasoning": "MA20 < MA50 (short-term downtrend); MA50 < MA200 (intermediate downtrend); RSI oversold (25.6); MACD histogram negative; Near/below 20d low breakdown; 20d RS vs SPY: -12.68%; RVOL 0.85x on breakdown (neutral volume); Demand imbalance strong (-0.39; sellers in control)",
+          "supporting_data": {
+            "last_close": 245.9499969482422,
+            "ma20": 263.3871536254883,
+            "ma50": 278.20011047363283,
+            "ma200": 304.0783483111669,
+            "rsi14": 25.594615057034318,
+            "macd_hist": -1.1157746623906277,
+            "atr14": 5.487315526414022,
+            "atr_pct": 0.022310695647492832
+          },
+          "created_at": "2026-09-11T19:42:39.917306Z",
+          "signal_id": 1096
+        },
+        {
+          "ticker": "BA",
+          "direction": "short",
+          "confidence": 32.02368975676441,
+          "reasoning": "MA20 < MA50 (short-term downtrend); MA50 > MA200 (intermediate uptrend); RSI soft (45.0); MACD histogram negative; 20d RS vs SPY: -6.96%; RVOL 0.62x vs 20d avg; Demand imbalance strong (-0.37; sellers in control)",
+          "supporting_data": {
+            "last_close": 210.49000549316406,
+            "ma20": 213.15149993896483,
+            "ma50": 218.71979919433593,
+            "ma200": 218.66936529250373,
+            "rsi14": 44.96426135520069,
+            "macd_hist": -0.24313932073925093,
+            "atr14": 4.187141418457031,
+            "atr_pct": 0.019892352649461136
+          },
+          "created_at": "2026-09-11T19:42:38.439339Z",
+          "signal_id": 1091
+        },
+        {
+          "ticker": "LUNR",
+          "direction": "short",
+          "confidence": 28.948418124924896,
+          "reasoning": "MA20 > MA50 (short-term uptrend); MA50 < MA200 (intermediate downtrend); RSI soft (40.4); MACD histogram negative; 20d RS vs SPY: -16.09%; RVOL 0.48x vs 20d avg; Demand imbalance negative (-0.11)",
+          "supporting_data": {
+            "last_close": 14.444999694824219,
+            "ma20": 16.426249980926514,
+            "ma50": 15.535499992370605,
+            "ma200": 22.04218255905878,
+            "rsi14": 40.37795782527611,
+            "macd_hist": -0.16154843735734215,
+            "atr14": 0.8365428107125419,
+            "atr_pct": 0.057912276108408864
+          },
+          "created_at": "2026-09-11T19:42:37.066402Z",
+          "signal_id": 1086
+        },
+        {
+          "ticker": "ASTS",
+          "direction": "short",
+          "confidence": 23.935886325665805,
+          "reasoning": "MA20 < MA50 (short-term downtrend); MA50 < MA200 (intermediate downtrend); RSI soft (44.5); MACD histogram positive; 20d RS vs SPY: -14.44%; RVOL 0.59x vs 20d avg; Demand imbalance negative (-0.10)",
+          "supporting_data": {
+            "last_close": 60.0099983215332,
+            "ma20": 63.16299991607666,
+            "ma50": 65.04039947509766,
+            "ma200": 78.46896813407777,
+            "rsi14": 44.54817336969574,
+            "macd_hist": 0.07963962966759208,
+            "atr14": 3.898571286882673,
+            "atr_pct": 0.064965362371686
+          },
+          "created_at": "2026-09-11T19:42:35.719373Z",
+          "signal_id": 1081
+        },
+        {
+          "ticker": "RKLB",
+          "direction": "short",
+          "confidence": 9.139341946159384,
+          "reasoning": "MA20 < MA50 (short-term downtrend); MA50 < MA200 (intermediate downtrend); RSI soft (39.0); MACD histogram negative; 20d RS vs SPY: -19.10%; RVOL 0.77x vs 20d avg; Demand imbalance negative (-0.20)",
+          "supporting_data": {
+            "last_close": 63.475799560546875,
+            "ma20": 68.40729007720947,
+            "ma50": 72.31751602172852,
+            "ma200": 85.52091904292031,
+            "rsi14": 39.00031032966871,
+            "macd_hist": -0.09934214482283954,
+            "atr14": 2.8810713631766185,
+            "atr_pct": 0.04538850054859863
+          },
+          "created_at": "2026-09-11T19:42:34.239264Z",
+          "signal_id": 1076
+        },
+        {
+          "ticker": "GOOGL",
+          "direction": "short",
+          "confidence": 25.115695577329447,
+          "reasoning": "MA20 < MA50 (short-term downtrend); MA50 < MA200 (intermediate downtrend); MACD histogram negative; 20d RS vs SPY: -0.47%; RVOL 0.70x vs 20d avg; Demand imbalance negative (-0.14); BB inside KC \u2014 volatility squeeze (coil)",
+          "supporting_data": {
+            "last_close": 338.7749938964844,
+            "ma20": 340.9040802001953,
+            "ma50": 346.9832495117187,
+            "ma200": 347.8833802238343,
+            "rsi14": 47.14431480792306,
+            "macd_hist": -0.3837943413518854,
+            "atr14": 7.317815350105434,
+            "atr_pct": 0.02160081317082528
+          },
+          "created_at": "2026-09-11T19:42:32.871161Z",
+          "signal_id": 1071
+        },
+        {
+          "ticker": "IBM",
+          "direction": "neutral",
+          "confidence": 47.6214593942416,
+          "reasoning": "MA20 < MA50 (short-term downtrend); MA50 < MA200 (intermediate downtrend); RSI constructive (56.7); MACD histogram positive; Near/above 20d high breakout; 20d RS vs SPY: +4.04%; Empty breakout \u2014 low RVOL (0.64x), fade; Demand imbalance balanced (-0.05); BB inside KC \u2014 volatility squeeze (coil)",
+          "supporting_data": {
+            "last_close": 242.7899932861328,
+            "ma20": 234.36299896240234,
+            "ma50": 237.09308135986328,
+            "ma200": 243.9770754859561,
+            "rsi14": 56.71577447570884,
+            "macd_hist": 0.9850152204850451,
+            "atr14": 6.3142852783203125,
+            "atr_pct": 0.026007189146707552
+          },
+          "created_at": "2026-09-11T19:42:31.311641Z",
+          "signal_id": 1066
+        },
+        {
+          "ticker": "QUBT",
+          "direction": "short",
+          "confidence": 20.702688409760107,
+          "reasoning": "MA20 < MA50 (short-term downtrend); MA50 < MA200 (intermediate downtrend); MACD histogram negative; 20d RS vs SPY: -8.83%; RVOL 0.56x vs 20d avg; Demand imbalance balanced (+0.00)",
+          "supporting_data": {
+            "last_close": 7.985000133514404,
+            "ma20": 8.295750069618226,
+            "ma50": 8.367000017166138,
+            "ma200": 8.917301594264924,
+            "rsi14": 45.07351985097895,
+            "macd_hist": -0.027691225338687647,
+            "atr14": 0.37242841720581055,
+            "atr_pct": 0.046641003253420764
+          },
+          "created_at": "2026-09-11T19:42:29.338486Z",
+          "signal_id": 1061
+        },
+        {
+          "ticker": "RGTI",
+          "direction": "short",
+          "confidence": 31.52769011467657,
+          "reasoning": "MA20 > MA50 (short-term uptrend); MA50 < MA200 (intermediate downtrend); RSI soft (45.0); MACD histogram negative; 20d RS vs SPY: -15.79%; RVOL 0.69x vs 20d avg; Demand imbalance balanced (-0.05)",
+          "supporting_data": {
+            "last_close": 15.372599601745605,
+            "ma20": 16.24688000679016,
+            "ma50": 16.144352073669435,
+            "ma200": 17.62394929310632,
+            "rsi14": 44.9868696139165,
+            "macd_hist": -0.08165670100878075,
+            "atr14": 0.8471429007393974,
+            "atr_pct": 0.055107328798390205
+          },
+          "created_at": "2026-09-11T19:42:27.538980Z",
+          "signal_id": 1056
+        },
+        {
+          "ticker": "IONQ",
+          "direction": "short",
+          "confidence": 31.167117351523885,
+          "reasoning": "MA20 > MA50 (short-term uptrend); MA50 < MA200 (intermediate downtrend); RSI soft (41.3); MACD histogram negative; 20d RS vs SPY: -16.39%; RVOL 0.70x vs 20d avg; Demand imbalance balanced (+0.08)",
+          "supporting_data": {
+            "last_close": 36.8650016784668,
+            "ma20": 40.867749977111814,
+            "ma50": 40.10229991912842,
+            "ma200": 44.47773813822913,
+            "rsi14": 41.30923561421764,
+            "macd_hist": -0.37678732377045776,
+            "atr14": 2.3741354261125838,
+            "atr_pct": 0.06440079528056387
+          },
+          "created_at": "2026-09-11T19:42:23.759455Z",
+          "signal_id": 1051
+        },
         {
           "ticker": "TSLA",
           "direction": "long",
@@ -432,11 +710,266 @@
     },
     "fundamental": {
       "agent_id": "fundamental",
-      "count": 15,
+      "count": 30,
       "long": 4,
       "short": 0,
-      "neutral": 11,
+      "neutral": 26,
       "signals": [
+        {
+          "ticker": "TSLA",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "supporting_data": {
+            "quality_score": 50.0,
+            "valuation_note": "insufficient data",
+            "raw_score": 0.0,
+            "coverage": 0,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:49.037833Z",
+          "signal_id": 1122
+        },
+        {
+          "ticker": "NVDA",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "supporting_data": {
+            "quality_score": 50.0,
+            "valuation_note": "insufficient data",
+            "raw_score": 0.0,
+            "coverage": 0,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:47.566225Z",
+          "signal_id": 1117
+        },
+        {
+          "ticker": "TER",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "supporting_data": {
+            "quality_score": 50.0,
+            "valuation_note": "insufficient data",
+            "raw_score": 0.0,
+            "coverage": 0,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:46.022834Z",
+          "signal_id": 1112
+        },
+        {
+          "ticker": "PATH",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "supporting_data": {
+            "quality_score": 50.0,
+            "valuation_note": "insufficient data",
+            "raw_score": 0.0,
+            "coverage": 0,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:44.326972Z",
+          "signal_id": 1107
+        },
+        {
+          "ticker": "ISRG",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "supporting_data": {
+            "quality_score": 50.0,
+            "valuation_note": "insufficient data",
+            "raw_score": 0.0,
+            "coverage": 0,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:42.685187Z",
+          "signal_id": 1102
+        },
+        {
+          "ticker": "LHX",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "supporting_data": {
+            "quality_score": 50.0,
+            "valuation_note": "insufficient data",
+            "raw_score": 0.0,
+            "coverage": 0,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:41.075005Z",
+          "signal_id": 1097
+        },
+        {
+          "ticker": "BA",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "supporting_data": {
+            "quality_score": 50.0,
+            "valuation_note": "insufficient data",
+            "raw_score": 0.0,
+            "coverage": 0,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:39.668567Z",
+          "signal_id": 1092
+        },
+        {
+          "ticker": "LUNR",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "supporting_data": {
+            "quality_score": 50.0,
+            "valuation_note": "insufficient data",
+            "raw_score": 0.0,
+            "coverage": 0,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:38.176401Z",
+          "signal_id": 1087
+        },
+        {
+          "ticker": "ASTS",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "supporting_data": {
+            "quality_score": 50.0,
+            "valuation_note": "insufficient data",
+            "raw_score": 0.0,
+            "coverage": 0,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:36.827136Z",
+          "signal_id": 1082
+        },
+        {
+          "ticker": "RKLB",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "supporting_data": {
+            "quality_score": 50.0,
+            "valuation_note": "insufficient data",
+            "raw_score": 0.0,
+            "coverage": 0,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:35.422444Z",
+          "signal_id": 1077
+        },
+        {
+          "ticker": "GOOGL",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "supporting_data": {
+            "quality_score": 50.0,
+            "valuation_note": "insufficient data",
+            "raw_score": 0.0,
+            "coverage": 0,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:34.003238Z",
+          "signal_id": 1072
+        },
+        {
+          "ticker": "IBM",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "supporting_data": {
+            "quality_score": 50.0,
+            "valuation_note": "insufficient data",
+            "raw_score": 0.0,
+            "coverage": 0,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:32.573126Z",
+          "signal_id": 1067
+        },
+        {
+          "ticker": "QUBT",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "supporting_data": {
+            "quality_score": 50.0,
+            "valuation_note": "insufficient data",
+            "raw_score": 0.0,
+            "coverage": 0,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:30.834832Z",
+          "signal_id": 1062
+        },
+        {
+          "ticker": "RGTI",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "supporting_data": {
+            "quality_score": 50.0,
+            "valuation_note": "insufficient data",
+            "raw_score": 0.0,
+            "coverage": 0,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:28.727507Z",
+          "signal_id": 1057
+        },
+        {
+          "ticker": "IONQ",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "supporting_data": {
+            "quality_score": 50.0,
+            "valuation_note": "insufficient data",
+            "raw_score": 0.0,
+            "coverage": 0,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:24.878309Z",
+          "signal_id": 1052
+        },
         {
           "ticker": "TSLA",
           "direction": "neutral",
@@ -696,11 +1229,281 @@
     },
     "statistical_ml": {
       "agent_id": "statistical_ml",
-      "count": 15,
-      "long": 1,
-      "short": 7,
-      "neutral": 7,
+      "count": 30,
+      "long": 2,
+      "short": 15,
+      "neutral": 13,
       "signals": [
+        {
+          "ticker": "TSLA",
+          "direction": "long",
+          "confidence": 66.3,
+          "reasoning": "price near MA20 (z=1.04); positive 20d momentum +7.8%; cross-sectional mom rank top (100%); vol regime=normal",
+          "supporting_data": {
+            "statistical_edge_score": 18.0,
+            "vol_regime": "normal",
+            "stub": false,
+            "benchmark": "SPY",
+            "predicted_direction": "long",
+            "uncertainty_note": "confidence band ~[51, 82]; vol_regime=normal; bars=252",
+            "raw_score": 18.0,
+            "bars": 252
+          },
+          "created_at": "2026-09-11T19:42:49.043365Z",
+          "signal_id": 1123
+        },
+        {
+          "ticker": "NVDA",
+          "direction": "neutral",
+          "confidence": 47.4,
+          "reasoning": "price near MA20 (z=-0.21); flat 20d momentum -2.8%; cross-sectional mom rank top (85%); vol regime=normal",
+          "supporting_data": {
+            "statistical_edge_score": 4.0,
+            "vol_regime": "normal",
+            "stub": false,
+            "benchmark": "SPY",
+            "predicted_direction": "neutral",
+            "uncertainty_note": "confidence band ~[30, 65]; vol_regime=normal; bars=252",
+            "raw_score": 4.0,
+            "bars": 252
+          },
+          "created_at": "2026-09-11T19:42:47.571829Z",
+          "signal_id": 1118
+        },
+        {
+          "ticker": "TER",
+          "direction": "neutral",
+          "confidence": 50.910000000000004,
+          "reasoning": "price near MA20 (z=0.26); negative 20d momentum -7.6%; cross-sectional mom rank mid (77%); low vol regime",
+          "supporting_data": {
+            "statistical_edge_score": -6.6000000000000005,
+            "vol_regime": "low",
+            "stub": false,
+            "benchmark": "SPY",
+            "predicted_direction": "neutral",
+            "uncertainty_note": "confidence band ~[34, 68]; vol_regime=low; bars=252",
+            "raw_score": -6.6000000000000005,
+            "bars": 252
+          },
+          "created_at": "2026-09-11T19:42:46.028482Z",
+          "signal_id": 1113
+        },
+        {
+          "ticker": "PATH",
+          "direction": "neutral",
+          "confidence": 47.4,
+          "reasoning": "oversold vs MA20 (z=-1.50); residual_to_MA20=-15.0%; strong 20d down-momentum -17.0%; 60d trend up +31.6%; cross-sectional mom rank mid (42%); vol regime=normal",
+          "supporting_data": {
+            "statistical_edge_score": 4.0,
+            "vol_regime": "normal",
+            "stub": false,
+            "benchmark": "SPY",
+            "predicted_direction": "neutral",
+            "uncertainty_note": "confidence band ~[30, 65]; vol_regime=normal; bars=252",
+            "raw_score": 4.0,
+            "bars": 252
+          },
+          "created_at": "2026-09-11T19:42:44.334736Z",
+          "signal_id": 1108
+        },
+        {
+          "ticker": "ISRG",
+          "direction": "neutral",
+          "confidence": 44.97,
+          "reasoning": "price near MA20 (z=-0.18); negative 20d momentum -7.5%; cross-sectional mom rank top (82%); low vol regime",
+          "supporting_data": {
+            "statistical_edge_score": -2.2,
+            "vol_regime": "low",
+            "stub": false,
+            "benchmark": "SPY",
+            "predicted_direction": "neutral",
+            "uncertainty_note": "confidence band ~[27, 63]; vol_regime=low; bars=252",
+            "raw_score": -2.2,
+            "bars": 252
+          },
+          "created_at": "2026-09-11T19:42:42.690432Z",
+          "signal_id": 1103
+        },
+        {
+          "ticker": "LHX",
+          "direction": "short",
+          "confidence": 67.65,
+          "reasoning": "oversold vs MA20 (z=-1.63); residual_to_MA20=-6.6%; strong 20d down-momentum -14.3%; 60d trend down -20.4%; cross-sectional mom rank mid (60%); low vol regime",
+          "supporting_data": {
+            "statistical_edge_score": -19.0,
+            "vol_regime": "low",
+            "stub": false,
+            "benchmark": "SPY",
+            "predicted_direction": "short",
+            "uncertainty_note": "confidence band ~[53, 83]; vol_regime=low; bars=252",
+            "raw_score": -19.0,
+            "bars": 252
+          },
+          "created_at": "2026-09-11T19:42:41.080416Z",
+          "signal_id": 1098
+        },
+        {
+          "ticker": "BA",
+          "direction": "neutral",
+          "confidence": 53.88,
+          "reasoning": "price near MA20 (z=-0.37); strong 20d down-momentum -8.6%; cross-sectional mom rank top (80%); low vol regime",
+          "supporting_data": {
+            "statistical_edge_score": -8.8,
+            "vol_regime": "low",
+            "stub": false,
+            "benchmark": "SPY",
+            "predicted_direction": "neutral",
+            "uncertainty_note": "confidence band ~[37, 71]; vol_regime=low; bars=252",
+            "raw_score": -8.8,
+            "bars": 252
+          },
+          "created_at": "2026-09-11T19:42:39.673297Z",
+          "signal_id": 1093
+        },
+        {
+          "ticker": "LUNR",
+          "direction": "short",
+          "confidence": 77.1,
+          "reasoning": "price near MA20 (z=-1.08); strong 20d down-momentum -17.7%; 60d trend down -38.2%; cross-sectional mom rank mid (30%); vol regime=normal",
+          "supporting_data": {
+            "statistical_edge_score": -26.0,
+            "vol_regime": "normal",
+            "stub": false,
+            "benchmark": "SPY",
+            "predicted_direction": "short",
+            "uncertainty_note": "confidence band ~[63, 91]; vol_regime=normal; bars=252",
+            "raw_score": -26.0,
+            "bars": 252
+          },
+          "created_at": "2026-09-11T19:42:38.181894Z",
+          "signal_id": 1088
+        },
+        {
+          "ticker": "ASTS",
+          "direction": "short",
+          "confidence": 77.1,
+          "reasoning": "price near MA20 (z=-0.76); strong 20d down-momentum -16.1%; 60d trend down -27.0%; cross-sectional mom rank mid (50%); vol regime=normal",
+          "supporting_data": {
+            "statistical_edge_score": -26.0,
+            "vol_regime": "normal",
+            "stub": false,
+            "benchmark": "SPY",
+            "predicted_direction": "short",
+            "uncertainty_note": "confidence band ~[63, 91]; vol_regime=normal; bars=252",
+            "raw_score": -26.0,
+            "bars": 252
+          },
+          "created_at": "2026-09-11T19:42:36.832405Z",
+          "signal_id": 1083
+        },
+        {
+          "ticker": "RKLB",
+          "direction": "short",
+          "confidence": 88.0,
+          "reasoning": "price near MA20 (z=-0.77); strong 20d down-momentum -20.8%; 60d trend down -39.3%; cross-sectional mom rank bottom (10%); low vol regime",
+          "supporting_data": {
+            "statistical_edge_score": -37.400000000000006,
+            "vol_regime": "low",
+            "stub": false,
+            "benchmark": "SPY",
+            "predicted_direction": "short",
+            "uncertainty_note": "confidence band ~[76, 100]; vol_regime=low; bars=252",
+            "raw_score": -37.400000000000006,
+            "bars": 252
+          },
+          "created_at": "2026-09-11T19:42:35.427573Z",
+          "signal_id": 1078
+        },
+        {
+          "ticker": "GOOGL",
+          "direction": "neutral",
+          "confidence": 53.88,
+          "reasoning": "price near MA20 (z=-0.45); flat 20d momentum -2.1%; cross-sectional mom rank top (90%); low vol regime",
+          "supporting_data": {
+            "statistical_edge_score": 8.8,
+            "vol_regime": "low",
+            "stub": false,
+            "benchmark": "SPY",
+            "predicted_direction": "neutral",
+            "uncertainty_note": "confidence band ~[37, 71]; vol_regime=low; bars=252",
+            "raw_score": 8.8,
+            "bars": 252
+          },
+          "created_at": "2026-09-11T19:42:34.008781Z",
+          "signal_id": 1073
+        },
+        {
+          "ticker": "IBM",
+          "direction": "short",
+          "confidence": 69.324,
+          "reasoning": "deeply overbought vs MA20 (z=2.48); residual_to_MA20=+3.6%; flat 20d momentum +2.4%; momentum dampened (extreme MA residual); cross-sectional mom rank top (100%); cross-sectional dampened (extreme MA residual); low vol regime",
+          "supporting_data": {
+            "statistical_edge_score": -20.24,
+            "vol_regime": "low",
+            "stub": false,
+            "benchmark": "SPY",
+            "predicted_direction": "short",
+            "uncertainty_note": "confidence band ~[54, 84]; vol_regime=low; bars=252",
+            "raw_score": -20.24,
+            "bars": 252
+          },
+          "created_at": "2026-09-11T19:42:32.578662Z",
+          "signal_id": 1068
+        },
+        {
+          "ticker": "QUBT",
+          "direction": "short",
+          "confidence": 77.1,
+          "reasoning": "price near MA20 (z=-0.83); strong 20d down-momentum -10.5%; 60d trend down -21.1%; cross-sectional mom rank mid (70%); vol regime=normal",
+          "supporting_data": {
+            "statistical_edge_score": -26.0,
+            "vol_regime": "normal",
+            "stub": false,
+            "benchmark": "SPY",
+            "predicted_direction": "short",
+            "uncertainty_note": "confidence band ~[63, 91]; vol_regime=normal; bars=252",
+            "raw_score": -26.0,
+            "bars": 252
+          },
+          "created_at": "2026-09-11T19:42:30.841163Z",
+          "signal_id": 1063
+        },
+        {
+          "ticker": "RGTI",
+          "direction": "short",
+          "confidence": 77.1,
+          "reasoning": "price near MA20 (z=-0.72); strong 20d down-momentum -17.4%; 60d trend down -25.5%; cross-sectional mom rank mid (40%); vol regime=normal",
+          "supporting_data": {
+            "statistical_edge_score": -26.0,
+            "vol_regime": "normal",
+            "stub": false,
+            "benchmark": "SPY",
+            "predicted_direction": "short",
+            "uncertainty_note": "confidence band ~[63, 91]; vol_regime=normal; bars=252",
+            "raw_score": -26.0,
+            "bars": 252
+          },
+          "created_at": "2026-09-11T19:42:28.733014Z",
+          "signal_id": 1058
+        },
+        {
+          "ticker": "IONQ",
+          "direction": "short",
+          "confidence": 74.4,
+          "reasoning": "oversold vs MA20 (z=-1.33); residual_to_MA20=-9.8%; strong 20d down-momentum -18.0%; 60d trend down -34.2%; cross-sectional mom rank bottom (20%); vol regime=normal",
+          "supporting_data": {
+            "statistical_edge_score": -24.0,
+            "vol_regime": "normal",
+            "stub": false,
+            "benchmark": "SPY",
+            "predicted_direction": "short",
+            "uncertainty_note": "confidence band ~[60, 89]; vol_regime=normal; bars=252",
+            "raw_score": -24.0,
+            "bars": 252
+          },
+          "created_at": "2026-09-11T19:42:26.474132Z",
+          "signal_id": 1053
+        },
         {
           "ticker": "TSLA",
           "direction": "long",
@@ -975,11 +1778,281 @@
     },
     "sentiment": {
       "agent_id": "sentiment",
-      "count": 15,
-      "long": 12,
+      "count": 30,
+      "long": 24,
       "short": 0,
-      "neutral": 3,
+      "neutral": 6,
       "signals": [
+        {
+          "ticker": "TSLA",
+          "direction": "long",
+          "confidence": 68.0295,
+          "reasoning": "Scored 10 headline(s); weighted polarity +0.65; avg source credibility 0.66; 'Is SpaceX a Buy or a Trap for Retail Investors?' (Motley Fool, pol=+1.00); 'Morgan Stanley Sees $80 Billion Tesla Semi Opportunity as Diesel Hits Record $6.' (Benzinga Prediction Markets, pol=+1.00); 'Tesla to introduce Semi electric truck in Europe' (Investing.com, pol=+1.00); no pump/manipulation heuristics triggered",
+          "supporting_data": {
+            "manipulation_risk": false,
+            "credibility": 0.6599999999999999,
+            "headline_count": 10,
+            "weighted_polarity": 0.6515151515151515,
+            "avg_source_credibility": 0.6599999999999999,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:49.239758Z",
+          "signal_id": 1124
+        },
+        {
+          "ticker": "NVDA",
+          "direction": "long",
+          "confidence": 59.34364285714287,
+          "reasoning": "Scored 10 headline(s); weighted polarity +0.34; avg source credibility 0.77; 'Is SpaceX a Buy or a Trap for Retail Investors?' (Motley Fool, pol=+1.00); 'Nvidia Rebounds After Rivals Open a 10-Point Weekly Gap' (GuruFocus.com, pol=+1.00); 'I Almost Didn't Buy This 6%+ Yielder Because of Industry Headwinds. Here's Why I' (Motley Fool, pol=+1.00); no pump/manipulation heuristics triggered",
+          "supporting_data": {
+            "manipulation_risk": false,
+            "credibility": 0.77,
+            "headline_count": 10,
+            "weighted_polarity": 0.3376623376623377,
+            "avg_source_credibility": 0.77,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:47.781374Z",
+          "signal_id": 1119
+        },
+        {
+          "ticker": "TER",
+          "direction": "long",
+          "confidence": 69.3082345890411,
+          "reasoning": "Scored 10 headline(s); weighted polarity +0.62; avg source credibility 0.73; 'Top Wide-Moat Stocks to Buy for Long-Term Wealth and Stability' (Zacks, pol=+1.00); 'Teradyne Rides on Strong UltraFLEXplus Demand: Can It Beat KLAC & COHU?' (Zacks, pol=+1.00); 'Can AEHR Turn AI Processor Tests Into Long-Term Revenue Streams?' (Zacks, pol=+1.00); no pump/manipulation heuristics triggered",
+          "supporting_data": {
+            "manipulation_risk": false,
+            "credibility": 0.73,
+            "headline_count": 10,
+            "weighted_polarity": 0.6198630136986302,
+            "avg_source_credibility": 0.73,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:46.233422Z",
+          "signal_id": 1114
+        },
+        {
+          "ticker": "PATH",
+          "direction": "long",
+          "confidence": 62.97490178571429,
+          "reasoning": "Scored 10 headline(s); weighted polarity +0.61; avg source credibility 0.56; 'Is UiPath Stock A Buy After Falling Despite A Raised Outlook?' (Trefis, pol=+1.00); 'Motive raises $1.3 billion from General Catalyst' (FreightWaves, pol=+1.00); 'Dips In UiPath Stock Have Mostly Kept Falling, Will This One Too?' (Trefis, pol=-1.00); no pump/manipulation heuristics triggered",
+          "supporting_data": {
+            "manipulation_risk": false,
+            "credibility": 0.56,
+            "headline_count": 10,
+            "weighted_polarity": 0.6116071428571429,
+            "avg_source_credibility": 0.56,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:44.579875Z",
+          "signal_id": 1109
+        },
+        {
+          "ticker": "ISRG",
+          "direction": "long",
+          "confidence": 61.19869230769232,
+          "reasoning": "Scored 10 headline(s); weighted polarity +0.38; avg source credibility 0.78; 'How Much Can ISRG Stock Still Move Against You?' (Trefis, pol=-1.00); 'Brokers Suggest Investing in Intuitive Surgical (ISRG): Read This Before Placing' (Zacks, pol=+1.00); 'ISRG Stock Trading at its Cheapest in 10 Years: Should You Buy Now?' (Zacks, pol=+1.00); no pump/manipulation heuristics triggered",
+          "supporting_data": {
+            "manipulation_risk": false,
+            "credibility": 0.78,
+            "headline_count": 10,
+            "weighted_polarity": 0.3760683760683762,
+            "avg_source_credibility": 0.78,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:42.949229Z",
+          "signal_id": 1104
+        },
+        {
+          "ticker": "LHX",
+          "direction": "long",
+          "confidence": 72.78707608695652,
+          "reasoning": "Scored 10 headline(s); weighted polarity +0.75; avg source credibility 0.69; 'RKLB Stock: What's Behind The 39% Drop?' (Trefis, pol=+1.00); 'Palantir Technologies Showcases Sovereign AI Wins With NVIDIA, Cisco and FAA' (MarketBeat, pol=+1.00); 'How Is L3Harris Technologies\u2019 Stock Performance Compared to Other Aerospace & De' (Barchart, pol=+1.00); no pump/manipulation heuristics triggered",
+          "supporting_data": {
+            "manipulation_risk": false,
+            "credibility": 0.6900000000000001,
+            "headline_count": 10,
+            "weighted_polarity": 0.7463768115942029,
+            "avg_source_credibility": 0.6900000000000001,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:41.326148Z",
+          "signal_id": 1099
+        },
+        {
+          "ticker": "BA",
+          "direction": "long",
+          "confidence": 52.88641901408451,
+          "reasoning": "Scored 10 headline(s); weighted polarity +0.22; avg source credibility 0.71; 'How Top Fidelity Manager Beats The Herd With 'Overanalyzed' Stocks' (Investor's Business Daily, pol=+1.00); 'Amazon\u2019s Aviation Network Faces a Sobering Test after the Miami Crash' (Insider Monkey, pol=-1.00); 'AeroVironment's Record Backlog and Earnings Beat Fuel Recovery Case' (MarketBeat, pol=+1.00); no pump/manipulation heuristics triggered",
+          "supporting_data": {
+            "manipulation_risk": false,
+            "credibility": 0.71,
+            "headline_count": 10,
+            "weighted_polarity": 0.21830985915492962,
+            "avg_source_credibility": 0.71,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:39.903924Z",
+          "signal_id": 1094
+        },
+        {
+          "ticker": "LUNR",
+          "direction": "long",
+          "confidence": 64.45346641791046,
+          "reasoning": "Scored 10 headline(s); weighted polarity +0.55; avg source credibility 0.67; 'Trump Declares the Moon Belongs to the U.S. Here Are 5 Space Stocks to Watch' (24/7 Wall St., pol=+1.00); 'Management Reiterates Optimistic FY26 Guidance for Intuitive Machines (LUNR)' (Insider Monkey, pol=+1.00); 'Boeing vs. Intuitive Machines: Which Aerospace Stock Is a Better Buy in 2026?' (Motley Fool, pol=+1.00); no pump/manipulation heuristics triggered",
+          "supporting_data": {
+            "manipulation_risk": false,
+            "credibility": 0.67,
+            "headline_count": 10,
+            "weighted_polarity": 0.5487562189054728,
+            "avg_source_credibility": 0.67,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:38.427627Z",
+          "signal_id": 1089
+        },
+        {
+          "ticker": "ASTS",
+          "direction": "long",
+          "confidence": 50.324464285714285,
+          "reasoning": "Scored 10 headline(s); weighted polarity +0.16; avg source credibility 0.70; 'AST SpaceMobile vs. Jabil: Which Connectivity Stock is a Better Buy?' (Zacks, pol=+1.00); 'Price Prediction: Rocket Lab\u2019s Next Leg Higher Could Be Massive, 95% Upside Ahea' (24/7 Wall St., pol=+1.00); 'ASTS Stock Declines 24.4% in Six Months: Time to be Cautious?' (Zacks, pol=-0.33); no pump/manipulation heuristics triggered",
+          "supporting_data": {
+            "manipulation_risk": false,
+            "credibility": 0.7,
+            "headline_count": 10,
+            "weighted_polarity": 0.15952380952380954,
+            "avg_source_credibility": 0.7,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:37.051275Z",
+          "signal_id": 1084
+        },
+        {
+          "ticker": "RKLB",
+          "direction": "long",
+          "confidence": 53.4103306451613,
+          "reasoning": "Scored 10 headline(s); weighted polarity +0.30; avg source credibility 0.62; 'RKLB Stock: What's Behind The 39% Drop?' (Trefis, pol=+1.00); 'Rocket Lab Has Something SpaceX Doesn\u2019t. The Case to Buy the Stock.' (Barrons.com, pol=+1.00); 'Price Prediction: Rocket Lab\u2019s Next Leg Higher Could Be Massive, 95% Upside Ahea' (24/7 Wall St., pol=+1.00); no pump/manipulation heuristics triggered",
+          "supporting_data": {
+            "manipulation_risk": false,
+            "credibility": 0.62,
+            "headline_count": 10,
+            "weighted_polarity": 0.2983870967741936,
+            "avg_source_credibility": 0.62,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:35.704523Z",
+          "signal_id": 1079
+        },
+        {
+          "ticker": "GOOGL",
+          "direction": "neutral",
+          "confidence": 42.961856557377054,
+          "reasoning": "Scored 10 headline(s); weighted polarity +0.02; avg source credibility 0.61; 'Oracle earnings: Do concentration risks fall on Oracle or the big AI firms?' (Yahoo Finance Video, pol=-1.00); 'Cramer Warned Google Was Coming for Adobe, and Now Gemini Is Inside Hollywood\u2019s ' (24/7 Wall St., pol=+1.00); 'Oracle Margin Pressure, Modest Guidance Raise Leave Morgan Stanley Needing More ' (MT Newswires, pol=+1.00); no pump/manipulation heuristics triggered",
+          "supporting_data": {
+            "manipulation_risk": false,
+            "credibility": 0.6100000000000001,
+            "headline_count": 10,
+            "weighted_polarity": 0.024590163934426243,
+            "avg_source_credibility": 0.6100000000000001,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:34.227825Z",
+          "signal_id": 1074
+        },
+        {
+          "ticker": "IBM",
+          "direction": "long",
+          "confidence": 55.544065068493154,
+          "reasoning": "Scored 10 headline(s); weighted polarity +0.27; avg source credibility 0.73; 'Has Oracle Become A Weaker Business, Or Just A Cheaper Stock?' (Trefis, pol=+1.00); 'Can IBM's Latest Innovation Hub Advance Quantum Computing Ecosystem?' (Zacks, pol=+1.00); 'The Inflation Nightmare Will Hit the Stock Market\u2014Sooner or Later' (Barrons.com, pol=+1.00); no pump/manipulation heuristics triggered",
+          "supporting_data": {
+            "manipulation_risk": false,
+            "credibility": 0.73,
+            "headline_count": 10,
+            "weighted_polarity": 0.271689497716895,
+            "avg_source_credibility": 0.73,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:32.859318Z",
+          "signal_id": 1069
+        },
+        {
+          "ticker": "QUBT",
+          "direction": "neutral",
+          "confidence": 45.905926056338025,
+          "reasoning": "Scored 10 headline(s); weighted polarity -0.04; avg source credibility 0.71; 'Rising Losses Weigh on Rigetti's Outlook: Sell or Hold RGTI Stock Now?' (Zacks, pol=-1.00); 'Quantum Stocks Fall as Rate-Hike Odds Climb: IonQ Sinks 4%, Rigetti and D-Wave P' (24/7 Wall St., pol=-1.00); 'D-Wave, Rigetti and IonQ Stocks Rally on $100 Million Quantum Boost' (GuruFocus.com, pol=+1.00); no pump/manipulation heuristics triggered",
+          "supporting_data": {
+            "manipulation_risk": false,
+            "credibility": 0.71,
+            "headline_count": 10,
+            "weighted_polarity": -0.03990610328638495,
+            "avg_source_credibility": 0.71,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:31.299011Z",
+          "signal_id": 1064
+        },
+        {
+          "ticker": "RGTI",
+          "direction": "neutral",
+          "confidence": 51.15579878048781,
+          "reasoning": "Scored 10 headline(s); weighted polarity +0.10; avg source credibility 0.82; 'Not IonQ, Not Rigetti Computing. This Quantum Computing Stock Could Be September' (Motley Fool, pol=+1.00); 'Rigetti Computing CEO Sells 120,000 Shares for $1.9 Million After Signing an Agr' (Motley Fool, pol=-1.00); 'Rigetti Secures $100 Million CHIPS Award to Advance Quantum Scaling' (Zacks, pol=+1.00); no pump/manipulation heuristics triggered",
+          "supporting_data": {
+            "manipulation_risk": false,
+            "credibility": 0.82,
+            "headline_count": 10,
+            "weighted_polarity": 0.10365853658536586,
+            "avg_source_credibility": 0.82,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:29.327288Z",
+          "signal_id": 1059
+        },
+        {
+          "ticker": "IONQ",
+          "direction": "long",
+          "confidence": 58.993945945945946,
+          "reasoning": "Scored 10 headline(s); weighted polarity +0.35; avg source credibility 0.74; 'If I Could Only Buy 1 Quantum Computing Stock, This Would Be It' (Motley Fool, pol=+1.00); 'Not IonQ, Not Rigetti Computing. This Quantum Computing Stock Could Be September' (Motley Fool, pol=+1.00); '2 Growth Stocks with All-Star Potential and 1 We Question' (StockStory, pol=+1.00); no pump/manipulation heuristics triggered",
+          "supporting_data": {
+            "manipulation_risk": false,
+            "credibility": 0.74,
+            "headline_count": 10,
+            "weighted_polarity": 0.35135135135135137,
+            "avg_source_credibility": 0.74,
+            "benchmark": "SPY",
+            "fetch_error": null,
+            "stub": false
+          },
+          "created_at": "2026-09-11T19:42:26.968878Z",
+          "signal_id": 1054
+        },
         {
           "ticker": "TSLA",
           "direction": "long",
@@ -1254,11 +2327,281 @@
     },
     "macro": {
       "agent_id": "macro",
-      "count": 15,
-      "long": 15,
+      "count": 30,
+      "long": 30,
       "short": 0,
       "neutral": 0,
       "signals": [
+        {
+          "ticker": "TSLA",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)",
+          "supporting_data": {
+            "regime": "risk_on",
+            "macro_risk_level": "low",
+            "sector_bias": "pro_cyclical",
+            "theme": "robotics",
+            "sector_tilt": 1.0,
+            "raw_score": 2.25,
+            "coverage": 4,
+            "benchmark": "SPY"
+          },
+          "created_at": "2026-09-11T19:42:49.243671Z",
+          "signal_id": 1125
+        },
+        {
+          "ticker": "NVDA",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)",
+          "supporting_data": {
+            "regime": "risk_on",
+            "macro_risk_level": "low",
+            "sector_bias": "pro_cyclical",
+            "theme": "robotics",
+            "sector_tilt": 1.0,
+            "raw_score": 2.25,
+            "coverage": 4,
+            "benchmark": "SPY"
+          },
+          "created_at": "2026-09-11T19:42:47.785274Z",
+          "signal_id": 1120
+        },
+        {
+          "ticker": "TER",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)",
+          "supporting_data": {
+            "regime": "risk_on",
+            "macro_risk_level": "low",
+            "sector_bias": "pro_cyclical",
+            "theme": "robotics",
+            "sector_tilt": 1.0,
+            "raw_score": 2.25,
+            "coverage": 4,
+            "benchmark": "SPY"
+          },
+          "created_at": "2026-09-11T19:42:46.237757Z",
+          "signal_id": 1115
+        },
+        {
+          "ticker": "PATH",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)",
+          "supporting_data": {
+            "regime": "risk_on",
+            "macro_risk_level": "low",
+            "sector_bias": "pro_cyclical",
+            "theme": "robotics",
+            "sector_tilt": 1.0,
+            "raw_score": 2.25,
+            "coverage": 4,
+            "benchmark": "SPY"
+          },
+          "created_at": "2026-09-11T19:42:44.583357Z",
+          "signal_id": 1110
+        },
+        {
+          "ticker": "ISRG",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)",
+          "supporting_data": {
+            "regime": "risk_on",
+            "macro_risk_level": "low",
+            "sector_bias": "pro_cyclical",
+            "theme": "robotics",
+            "sector_tilt": 1.0,
+            "raw_score": 2.25,
+            "coverage": 4,
+            "benchmark": "SPY"
+          },
+          "created_at": "2026-09-11T19:42:42.954445Z",
+          "signal_id": 1105
+        },
+        {
+          "ticker": "LHX",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (space); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)",
+          "supporting_data": {
+            "regime": "risk_on",
+            "macro_risk_level": "low",
+            "sector_bias": "pro_cyclical",
+            "theme": "space",
+            "sector_tilt": 1.0,
+            "raw_score": 2.25,
+            "coverage": 4,
+            "benchmark": "SPY"
+          },
+          "created_at": "2026-09-11T19:42:41.329625Z",
+          "signal_id": 1100
+        },
+        {
+          "ticker": "BA",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (space); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)",
+          "supporting_data": {
+            "regime": "risk_on",
+            "macro_risk_level": "low",
+            "sector_bias": "pro_cyclical",
+            "theme": "space",
+            "sector_tilt": 1.0,
+            "raw_score": 2.25,
+            "coverage": 4,
+            "benchmark": "SPY"
+          },
+          "created_at": "2026-09-11T19:42:39.908411Z",
+          "signal_id": 1095
+        },
+        {
+          "ticker": "LUNR",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (space); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)",
+          "supporting_data": {
+            "regime": "risk_on",
+            "macro_risk_level": "low",
+            "sector_bias": "pro_cyclical",
+            "theme": "space",
+            "sector_tilt": 1.0,
+            "raw_score": 2.25,
+            "coverage": 4,
+            "benchmark": "SPY"
+          },
+          "created_at": "2026-09-11T19:42:38.431181Z",
+          "signal_id": 1090
+        },
+        {
+          "ticker": "ASTS",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (space); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)",
+          "supporting_data": {
+            "regime": "risk_on",
+            "macro_risk_level": "low",
+            "sector_bias": "pro_cyclical",
+            "theme": "space",
+            "sector_tilt": 1.0,
+            "raw_score": 2.25,
+            "coverage": 4,
+            "benchmark": "SPY"
+          },
+          "created_at": "2026-09-11T19:42:37.056433Z",
+          "signal_id": 1085
+        },
+        {
+          "ticker": "RKLB",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (space); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)",
+          "supporting_data": {
+            "regime": "risk_on",
+            "macro_risk_level": "low",
+            "sector_bias": "pro_cyclical",
+            "theme": "space",
+            "sector_tilt": 1.0,
+            "raw_score": 2.25,
+            "coverage": 4,
+            "benchmark": "SPY"
+          },
+          "created_at": "2026-09-11T19:42:35.709796Z",
+          "signal_id": 1080
+        },
+        {
+          "ticker": "GOOGL",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (quantum); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)",
+          "supporting_data": {
+            "regime": "risk_on",
+            "macro_risk_level": "low",
+            "sector_bias": "pro_cyclical",
+            "theme": "quantum",
+            "sector_tilt": 1.0,
+            "raw_score": 2.25,
+            "coverage": 4,
+            "benchmark": "SPY"
+          },
+          "created_at": "2026-09-11T19:42:34.231444Z",
+          "signal_id": 1075
+        },
+        {
+          "ticker": "IBM",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (quantum); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)",
+          "supporting_data": {
+            "regime": "risk_on",
+            "macro_risk_level": "low",
+            "sector_bias": "pro_cyclical",
+            "theme": "quantum",
+            "sector_tilt": 1.0,
+            "raw_score": 2.25,
+            "coverage": 4,
+            "benchmark": "SPY"
+          },
+          "created_at": "2026-09-11T19:42:32.864044Z",
+          "signal_id": 1070
+        },
+        {
+          "ticker": "QUBT",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (quantum); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)",
+          "supporting_data": {
+            "regime": "risk_on",
+            "macro_risk_level": "low",
+            "sector_bias": "pro_cyclical",
+            "theme": "quantum",
+            "sector_tilt": 1.0,
+            "raw_score": 2.25,
+            "coverage": 4,
+            "benchmark": "SPY"
+          },
+          "created_at": "2026-09-11T19:42:31.303920Z",
+          "signal_id": 1065
+        },
+        {
+          "ticker": "RGTI",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (quantum); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)",
+          "supporting_data": {
+            "regime": "risk_on",
+            "macro_risk_level": "low",
+            "sector_bias": "pro_cyclical",
+            "theme": "quantum",
+            "sector_tilt": 1.0,
+            "raw_score": 2.25,
+            "coverage": 4,
+            "benchmark": "SPY"
+          },
+          "created_at": "2026-09-11T19:42:29.331071Z",
+          "signal_id": 1060
+        },
+        {
+          "ticker": "IONQ",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (quantum); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)",
+          "supporting_data": {
+            "regime": "risk_on",
+            "macro_risk_level": "low",
+            "sector_bias": "pro_cyclical",
+            "theme": "quantum",
+            "sector_tilt": 1.0,
+            "raw_score": 2.25,
+            "coverage": 4,
+            "benchmark": "SPY"
+          },
+          "created_at": "2026-09-11T19:42:27.528270Z",
+          "signal_id": 1055
+        },
         {
           "ticker": "TSLA",
           "direction": "long",
@@ -1644,6 +2987,1029 @@
       }
     ],
     "holds": [
+      {
+        "id": 1431,
+        "decision_type": "hold",
+        "actor": "portfolio_manager",
+        "ticker": "TSLA",
+        "reasoning": "HOLD TSLA: insufficient budget/room (budget=0.15, max_pos=18.71)",
+        "payload": {
+          "ticker": "TSLA",
+          "rationale": "HOLD TSLA: insufficient budget/room (budget=0.15, max_pos=18.71)",
+          "signal_ids": [
+            1121,
+            1122,
+            1123,
+            1124,
+            1125
+          ],
+          "data_snapshot": {
+            "weighted_score": 0.5748074498995115,
+            "blended_confidence": 60.480744989951134,
+            "equity": 93.5259914149313,
+            "cash": 0.16,
+            "contributions": [
+              {
+                "signal_id": 1121,
+                "agent_id": "momentum",
+                "direction": "long",
+                "confidence": 64.07422494975569,
+                "weight": 0.2,
+                "contrib": 0.12814844989951138
+              },
+              {
+                "signal_id": 1122,
+                "agent_id": "fundamental",
+                "direction": "neutral",
+                "confidence": 15.0,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1123,
+                "agent_id": "statistical_ml",
+                "direction": "long",
+                "confidence": 66.3,
+                "weight": 0.2,
+                "contrib": 0.1326
+              },
+              {
+                "signal_id": 1124,
+                "agent_id": "sentiment",
+                "direction": "long",
+                "confidence": 68.0295,
+                "weight": 0.2,
+                "contrib": 0.136059
+              },
+              {
+                "signal_id": 1125,
+                "agent_id": "macro",
+                "direction": "long",
+                "confidence": 89.0,
+                "weight": 0.2,
+                "contrib": 0.17800000000000002
+              }
+            ],
+            "price": 366.4750061035156
+          },
+          "created_at": "2026-09-11T19:42:49.254376Z"
+        },
+        "created_at": "2026-09-11T19:42:49.254376Z"
+      },
+      {
+        "id": 1430,
+        "decision_type": "hold",
+        "actor": "portfolio_manager",
+        "ticker": "NVDA",
+        "reasoning": "HOLD NVDA: score=0.297, blended_conf=53.9 (min=55.0)",
+        "payload": {
+          "ticker": "NVDA",
+          "rationale": "HOLD NVDA: score=0.297, blended_conf=53.9 (min=55.0)",
+          "signal_ids": [
+            1116,
+            1117,
+            1118,
+            1119,
+            1120
+          ],
+          "data_snapshot": {
+            "weighted_score": 0.29668728571428576,
+            "blended_confidence": 53.928882914012746,
+            "equity": 93.5259914149313,
+            "cash": 0.16,
+            "contributions": [
+              {
+                "signal_id": 1116,
+                "agent_id": "momentum",
+                "direction": "neutral",
+                "confidence": 58.90077171292083,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1117,
+                "agent_id": "fundamental",
+                "direction": "neutral",
+                "confidence": 15.0,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1118,
+                "agent_id": "statistical_ml",
+                "direction": "neutral",
+                "confidence": 47.4,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1119,
+                "agent_id": "sentiment",
+                "direction": "long",
+                "confidence": 59.34364285714287,
+                "weight": 0.2,
+                "contrib": 0.11868728571428573
+              },
+              {
+                "signal_id": 1120,
+                "agent_id": "macro",
+                "direction": "long",
+                "confidence": 89.0,
+                "weight": 0.2,
+                "contrib": 0.17800000000000002
+              }
+            ]
+          },
+          "created_at": "2026-09-11T19:42:49.253646Z"
+        },
+        "created_at": "2026-09-11T19:42:49.253646Z"
+      },
+      {
+        "id": 1429,
+        "decision_type": "hold",
+        "actor": "portfolio_manager",
+        "ticker": "TER",
+        "reasoning": "HOLD TER: insufficient budget/room (budget=0.15, max_pos=18.71)",
+        "payload": {
+          "ticker": "TER",
+          "rationale": "HOLD TER: insufficient budget/room (budget=0.15, max_pos=18.71)",
+          "signal_ids": [
+            1111,
+            1112,
+            1113,
+            1114,
+            1115
+          ],
+          "data_snapshot": {
+            "weighted_score": 0.4575403198050997,
+            "blended_confidence": 58.936031980509966,
+            "equity": 93.5259914149313,
+            "cash": 0.16,
+            "contributions": [
+              {
+                "signal_id": 1111,
+                "agent_id": "momentum",
+                "direction": "long",
+                "confidence": 70.46192531350871,
+                "weight": 0.2,
+                "contrib": 0.14092385062701743
+              },
+              {
+                "signal_id": 1112,
+                "agent_id": "fundamental",
+                "direction": "neutral",
+                "confidence": 15.0,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1113,
+                "agent_id": "statistical_ml",
+                "direction": "neutral",
+                "confidence": 50.910000000000004,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1114,
+                "agent_id": "sentiment",
+                "direction": "long",
+                "confidence": 69.3082345890411,
+                "weight": 0.2,
+                "contrib": 0.1386164691780822
+              },
+              {
+                "signal_id": 1115,
+                "agent_id": "macro",
+                "direction": "long",
+                "confidence": 89.0,
+                "weight": 0.2,
+                "contrib": 0.17800000000000002
+              }
+            ],
+            "price": 379.3800048828125
+          },
+          "created_at": "2026-09-11T19:42:49.253167Z"
+        },
+        "created_at": "2026-09-11T19:42:49.253167Z"
+      },
+      {
+        "id": 1428,
+        "decision_type": "hold",
+        "actor": "portfolio_manager",
+        "ticker": "PATH",
+        "reasoning": "HOLD PATH: score=0.304, blended_conf=52.8 (min=55.0)",
+        "payload": {
+          "ticker": "PATH",
+          "rationale": "HOLD PATH: score=0.304, blended_conf=52.8 (min=55.0)",
+          "signal_ids": [
+            1106,
+            1107,
+            1108,
+            1109,
+            1110
+          ],
+          "data_snapshot": {
+            "weighted_score": 0.3039498035714286,
+            "blended_confidence": 52.830199944970644,
+            "equity": 93.5259914149313,
+            "cash": 0.16,
+            "contributions": [
+              {
+                "signal_id": 1106,
+                "agent_id": "momentum",
+                "direction": "neutral",
+                "confidence": 49.77609793913895,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1107,
+                "agent_id": "fundamental",
+                "direction": "neutral",
+                "confidence": 15.0,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1108,
+                "agent_id": "statistical_ml",
+                "direction": "neutral",
+                "confidence": 47.4,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1109,
+                "agent_id": "sentiment",
+                "direction": "long",
+                "confidence": 62.97490178571429,
+                "weight": 0.2,
+                "contrib": 0.12594980357142857
+              },
+              {
+                "signal_id": 1110,
+                "agent_id": "macro",
+                "direction": "long",
+                "confidence": 89.0,
+                "weight": 0.2,
+                "contrib": 0.17800000000000002
+              }
+            ]
+          },
+          "created_at": "2026-09-11T19:42:49.252713Z"
+        },
+        "created_at": "2026-09-11T19:42:49.252713Z"
+      },
+      {
+        "id": 1427,
+        "decision_type": "hold",
+        "actor": "portfolio_manager",
+        "ticker": "ISRG",
+        "reasoning": "HOLD ISRG: score=0.255, blended_conf=46.5 (min=55.0)",
+        "payload": {
+          "ticker": "ISRG",
+          "rationale": "HOLD ISRG: score=0.255, blended_conf=46.5 (min=55.0)",
+          "signal_ids": [
+            1101,
+            1102,
+            1103,
+            1104,
+            1105
+          ],
+          "data_snapshot": {
+            "weighted_score": 0.25535887479923836,
+            "blended_confidence": 46.537589443153095,
+            "equity": 93.5259914149313,
+            "cash": 0.16,
+            "contributions": [
+              {
+                "signal_id": 1101,
+                "agent_id": "momentum",
+                "direction": "short",
+                "confidence": 22.519254908073133,
+                "weight": 0.2,
+                "contrib": -0.045038509816146266
+              },
+              {
+                "signal_id": 1102,
+                "agent_id": "fundamental",
+                "direction": "neutral",
+                "confidence": 15.0,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1103,
+                "agent_id": "statistical_ml",
+                "direction": "neutral",
+                "confidence": 44.97,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1104,
+                "agent_id": "sentiment",
+                "direction": "long",
+                "confidence": 61.19869230769232,
+                "weight": 0.2,
+                "contrib": 0.12239738461538463
+              },
+              {
+                "signal_id": 1105,
+                "agent_id": "macro",
+                "direction": "long",
+                "confidence": 89.0,
+                "weight": 0.2,
+                "contrib": 0.17800000000000002
+              }
+            ]
+          },
+          "created_at": "2026-09-11T19:42:49.252303Z"
+        },
+        "created_at": "2026-09-11T19:42:49.252303Z"
+      },
+      {
+        "id": 1426,
+        "decision_type": "hold",
+        "actor": "portfolio_manager",
+        "ticker": "LHX",
+        "reasoning": "HOLD LHX: score=0.161, blended_conf=51.6 (min=55.0)",
+        "payload": {
+          "ticker": "LHX",
+          "rationale": "HOLD LHX: score=0.161, blended_conf=51.6 (min=55.0)",
+          "signal_ids": [
+            1096,
+            1097,
+            1098,
+            1099,
+            1100
+          ],
+          "data_snapshot": {
+            "weighted_score": 0.16108433502998443,
+            "blended_confidence": 51.60639693178416,
+            "equity": 93.5259914149313,
+            "cash": 0.16,
+            "contributions": [
+              {
+                "signal_id": 1096,
+                "agent_id": "momentum",
+                "direction": "short",
+                "confidence": 13.594908571964304,
+                "weight": 0.2,
+                "contrib": -0.02718981714392861
+              },
+              {
+                "signal_id": 1097,
+                "agent_id": "fundamental",
+                "direction": "neutral",
+                "confidence": 15.0,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1098,
+                "agent_id": "statistical_ml",
+                "direction": "short",
+                "confidence": 67.65,
+                "weight": 0.2,
+                "contrib": -0.13530000000000003
+              },
+              {
+                "signal_id": 1099,
+                "agent_id": "sentiment",
+                "direction": "long",
+                "confidence": 72.78707608695652,
+                "weight": 0.2,
+                "contrib": 0.14557415217391304
+              },
+              {
+                "signal_id": 1100,
+                "agent_id": "macro",
+                "direction": "long",
+                "confidence": 89.0,
+                "weight": 0.2,
+                "contrib": 0.17800000000000002
+              }
+            ]
+          },
+          "created_at": "2026-09-11T19:42:49.251956Z"
+        },
+        "created_at": "2026-09-11T19:42:49.251956Z"
+      },
+      {
+        "id": 1425,
+        "decision_type": "hold",
+        "actor": "portfolio_manager",
+        "ticker": "BA",
+        "reasoning": "HOLD BA: score=0.220, blended_conf=48.6 (min=55.0)",
+        "payload": {
+          "ticker": "BA",
+          "rationale": "HOLD BA: score=0.220, blended_conf=48.6 (min=55.0)",
+          "signal_ids": [
+            1091,
+            1092,
+            1093,
+            1094,
+            1095
+          ],
+          "data_snapshot": {
+            "weighted_score": 0.2197254585146402,
+            "blended_confidence": 48.558021754169786,
+            "equity": 93.5259914149313,
+            "cash": 0.16,
+            "contributions": [
+              {
+                "signal_id": 1091,
+                "agent_id": "momentum",
+                "direction": "short",
+                "confidence": 32.02368975676441,
+                "weight": 0.2,
+                "contrib": -0.06404737951352883
+              },
+              {
+                "signal_id": 1092,
+                "agent_id": "fundamental",
+                "direction": "neutral",
+                "confidence": 15.0,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1093,
+                "agent_id": "statistical_ml",
+                "direction": "neutral",
+                "confidence": 53.88,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1094,
+                "agent_id": "sentiment",
+                "direction": "long",
+                "confidence": 52.88641901408451,
+                "weight": 0.2,
+                "contrib": 0.10577283802816902
+              },
+              {
+                "signal_id": 1095,
+                "agent_id": "macro",
+                "direction": "long",
+                "confidence": 89.0,
+                "weight": 0.2,
+                "contrib": 0.17800000000000002
+              }
+            ]
+          },
+          "created_at": "2026-09-11T19:42:49.251558Z"
+        },
+        "created_at": "2026-09-11T19:42:49.251558Z"
+      },
+      {
+        "id": 1424,
+        "decision_type": "hold",
+        "actor": "portfolio_manager",
+        "ticker": "LUNR",
+        "reasoning": "HOLD LUNR: score=0.095, blended_conf=54.9 (min=55.0)",
+        "payload": {
+          "ticker": "LUNR",
+          "rationale": "HOLD LUNR: score=0.095, blended_conf=54.9 (min=55.0)",
+          "signal_ids": [
+            1086,
+            1087,
+            1088,
+            1089,
+            1090
+          ],
+          "data_snapshot": {
+            "weighted_score": 0.09481009658597117,
+            "blended_confidence": 54.90037690856707,
+            "equity": 93.5259914149313,
+            "cash": 0.16,
+            "contributions": [
+              {
+                "signal_id": 1086,
+                "agent_id": "momentum",
+                "direction": "short",
+                "confidence": 28.948418124924896,
+                "weight": 0.2,
+                "contrib": -0.057896836249849794
+              },
+              {
+                "signal_id": 1087,
+                "agent_id": "fundamental",
+                "direction": "neutral",
+                "confidence": 15.0,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1088,
+                "agent_id": "statistical_ml",
+                "direction": "short",
+                "confidence": 77.1,
+                "weight": 0.2,
+                "contrib": -0.1542
+              },
+              {
+                "signal_id": 1089,
+                "agent_id": "sentiment",
+                "direction": "long",
+                "confidence": 64.45346641791046,
+                "weight": 0.2,
+                "contrib": 0.12890693283582094
+              },
+              {
+                "signal_id": 1090,
+                "agent_id": "macro",
+                "direction": "long",
+                "confidence": 89.0,
+                "weight": 0.2,
+                "contrib": 0.17800000000000002
+              }
+            ]
+          },
+          "created_at": "2026-09-11T19:42:49.251228Z"
+        },
+        "created_at": "2026-09-11T19:42:49.251228Z"
+      },
+      {
+        "id": 1423,
+        "decision_type": "hold",
+        "actor": "portfolio_manager",
+        "ticker": "ASTS",
+        "reasoning": "HOLD ASTS: score=0.077, blended_conf=51.1 (min=55.0)",
+        "payload": {
+          "ticker": "ASTS",
+          "rationale": "HOLD ASTS: score=0.077, blended_conf=51.1 (min=55.0)",
+          "signal_ids": [
+            1081,
+            1082,
+            1083,
+            1084,
+            1085
+          ],
+          "data_snapshot": {
+            "weighted_score": 0.07657715592009699,
+            "blended_confidence": 51.07207012227602,
+            "equity": 93.5259914149313,
+            "cash": 0.16,
+            "contributions": [
+              {
+                "signal_id": 1081,
+                "agent_id": "momentum",
+                "direction": "short",
+                "confidence": 23.935886325665805,
+                "weight": 0.2,
+                "contrib": -0.047871772651331614
+              },
+              {
+                "signal_id": 1082,
+                "agent_id": "fundamental",
+                "direction": "neutral",
+                "confidence": 15.0,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1083,
+                "agent_id": "statistical_ml",
+                "direction": "short",
+                "confidence": 77.1,
+                "weight": 0.2,
+                "contrib": -0.1542
+              },
+              {
+                "signal_id": 1084,
+                "agent_id": "sentiment",
+                "direction": "long",
+                "confidence": 50.324464285714285,
+                "weight": 0.2,
+                "contrib": 0.10064892857142858
+              },
+              {
+                "signal_id": 1085,
+                "agent_id": "macro",
+                "direction": "long",
+                "confidence": 89.0,
+                "weight": 0.2,
+                "contrib": 0.17800000000000002
+              }
+            ]
+          },
+          "created_at": "2026-09-11T19:42:49.250779Z"
+        },
+        "created_at": "2026-09-11T19:42:49.250779Z"
+      },
+      {
+        "id": 1422,
+        "decision_type": "hold",
+        "actor": "portfolio_manager",
+        "ticker": "RKLB",
+        "reasoning": "HOLD RKLB: score=0.091, blended_conf=50.9 (min=55.0)",
+        "payload": {
+          "ticker": "RKLB",
+          "rationale": "HOLD RKLB: score=0.091, blended_conf=50.9 (min=55.0)",
+          "signal_ids": [
+            1076,
+            1077,
+            1078,
+            1079,
+            1080
+          ],
+          "data_snapshot": {
+            "weighted_score": 0.09054197739800383,
+            "blended_confidence": 50.90993451826414,
+            "equity": 93.5259914149313,
+            "cash": 0.16,
+            "contributions": [
+              {
+                "signal_id": 1076,
+                "agent_id": "momentum",
+                "direction": "short",
+                "confidence": 9.139341946159384,
+                "weight": 0.2,
+                "contrib": -0.018278683892318768
+              },
+              {
+                "signal_id": 1077,
+                "agent_id": "fundamental",
+                "direction": "neutral",
+                "confidence": 15.0,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1078,
+                "agent_id": "statistical_ml",
+                "direction": "short",
+                "confidence": 88.0,
+                "weight": 0.2,
+                "contrib": -0.17600000000000002
+              },
+              {
+                "signal_id": 1079,
+                "agent_id": "sentiment",
+                "direction": "long",
+                "confidence": 53.4103306451613,
+                "weight": 0.2,
+                "contrib": 0.1068206612903226
+              },
+              {
+                "signal_id": 1080,
+                "agent_id": "macro",
+                "direction": "long",
+                "confidence": 89.0,
+                "weight": 0.2,
+                "contrib": 0.17800000000000002
+              }
+            ]
+          },
+          "created_at": "2026-09-11T19:42:49.250383Z"
+        },
+        "created_at": "2026-09-11T19:42:49.250383Z"
+      },
+      {
+        "id": 1421,
+        "decision_type": "hold",
+        "actor": "portfolio_manager",
+        "ticker": "GOOGL",
+        "reasoning": "HOLD GOOGL: score=0.128, blended_conf=45.2 (min=55.0)",
+        "payload": {
+          "ticker": "GOOGL",
+          "rationale": "HOLD GOOGL: score=0.128, blended_conf=45.2 (min=55.0)",
+          "signal_ids": [
+            1071,
+            1072,
+            1073,
+            1074,
+            1075
+          ],
+          "data_snapshot": {
+            "weighted_score": 0.12776860884534114,
+            "blended_confidence": 45.191510426941306,
+            "equity": 93.5259914149313,
+            "cash": 0.16,
+            "contributions": [
+              {
+                "signal_id": 1071,
+                "agent_id": "momentum",
+                "direction": "short",
+                "confidence": 25.115695577329447,
+                "weight": 0.2,
+                "contrib": -0.05023139115465889
+              },
+              {
+                "signal_id": 1072,
+                "agent_id": "fundamental",
+                "direction": "neutral",
+                "confidence": 15.0,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1073,
+                "agent_id": "statistical_ml",
+                "direction": "neutral",
+                "confidence": 53.88,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1074,
+                "agent_id": "sentiment",
+                "direction": "neutral",
+                "confidence": 42.961856557377054,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1075,
+                "agent_id": "macro",
+                "direction": "long",
+                "confidence": 89.0,
+                "weight": 0.2,
+                "contrib": 0.17800000000000002
+              }
+            ]
+          },
+          "created_at": "2026-09-11T19:42:49.249826Z"
+        },
+        "created_at": "2026-09-11T19:42:49.249826Z"
+      },
+      {
+        "id": 1420,
+        "decision_type": "hold",
+        "actor": "portfolio_manager",
+        "ticker": "IBM",
+        "reasoning": "HOLD IBM: insufficient budget/room (budget=0.15, max_pos=18.71)",
+        "payload": {
+          "ticker": "IBM",
+          "rationale": "HOLD IBM: insufficient budget/room (budget=0.15, max_pos=18.71)",
+          "signal_ids": [
+            1066,
+            1067,
+            1068,
+            1069,
+            1070
+          ],
+          "data_snapshot": {
+            "weighted_score": 0.15044013013698634,
+            "blended_confidence": 55.29790489254695,
+            "equity": 93.5259914149313,
+            "cash": 0.16,
+            "contributions": [
+              {
+                "signal_id": 1066,
+                "agent_id": "momentum",
+                "direction": "neutral",
+                "confidence": 47.6214593942416,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1067,
+                "agent_id": "fundamental",
+                "direction": "neutral",
+                "confidence": 15.0,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1068,
+                "agent_id": "statistical_ml",
+                "direction": "short",
+                "confidence": 69.324,
+                "weight": 0.2,
+                "contrib": -0.138648
+              },
+              {
+                "signal_id": 1069,
+                "agent_id": "sentiment",
+                "direction": "long",
+                "confidence": 55.544065068493154,
+                "weight": 0.2,
+                "contrib": 0.11108813013698632
+              },
+              {
+                "signal_id": 1070,
+                "agent_id": "macro",
+                "direction": "long",
+                "confidence": 89.0,
+                "weight": 0.2,
+                "contrib": 0.17800000000000002
+              }
+            ],
+            "price": 242.7899932861328
+          },
+          "created_at": "2026-09-11T19:42:49.249357Z"
+        },
+        "created_at": "2026-09-11T19:42:49.249357Z"
+      },
+      {
+        "id": 1419,
+        "decision_type": "hold",
+        "actor": "portfolio_manager",
+        "ticker": "QUBT",
+        "reasoning": "HOLD QUBT: score=-0.018, blended_conf=49.5 (min=55.0)",
+        "payload": {
+          "ticker": "QUBT",
+          "rationale": "HOLD QUBT: score=-0.018, blended_conf=49.5 (min=55.0)",
+          "signal_ids": [
+            1061,
+            1062,
+            1063,
+            1064,
+            1065
+          ],
+          "data_snapshot": {
+            "weighted_score": -0.017605376819520208,
+            "blended_confidence": 49.54172289321963,
+            "equity": 93.5259914149313,
+            "cash": 0.16,
+            "contributions": [
+              {
+                "signal_id": 1061,
+                "agent_id": "momentum",
+                "direction": "short",
+                "confidence": 20.702688409760107,
+                "weight": 0.2,
+                "contrib": -0.041405376819520216
+              },
+              {
+                "signal_id": 1062,
+                "agent_id": "fundamental",
+                "direction": "neutral",
+                "confidence": 15.0,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1063,
+                "agent_id": "statistical_ml",
+                "direction": "short",
+                "confidence": 77.1,
+                "weight": 0.2,
+                "contrib": -0.1542
+              },
+              {
+                "signal_id": 1064,
+                "agent_id": "sentiment",
+                "direction": "neutral",
+                "confidence": 45.905926056338025,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1065,
+                "agent_id": "macro",
+                "direction": "long",
+                "confidence": 89.0,
+                "weight": 0.2,
+                "contrib": 0.17800000000000002
+              }
+            ]
+          },
+          "created_at": "2026-09-11T19:42:49.248551Z"
+        },
+        "created_at": "2026-09-11T19:42:49.248551Z"
+      },
+      {
+        "id": 1418,
+        "decision_type": "hold",
+        "actor": "portfolio_manager",
+        "ticker": "RGTI",
+        "reasoning": "HOLD RGTI: score=-0.039, blended_conf=52.8 (min=55.0)",
+        "payload": {
+          "ticker": "RGTI",
+          "rationale": "HOLD RGTI: score=-0.039, blended_conf=52.8 (min=55.0)",
+          "signal_ids": [
+            1056,
+            1057,
+            1058,
+            1059,
+            1060
+          ],
+          "data_snapshot": {
+            "weighted_score": -0.039255380229353126,
+            "blended_confidence": 52.756697779032876,
+            "equity": 93.5259914149313,
+            "cash": 0.16,
+            "contributions": [
+              {
+                "signal_id": 1056,
+                "agent_id": "momentum",
+                "direction": "short",
+                "confidence": 31.52769011467657,
+                "weight": 0.2,
+                "contrib": -0.06305538022935314
+              },
+              {
+                "signal_id": 1057,
+                "agent_id": "fundamental",
+                "direction": "neutral",
+                "confidence": 15.0,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1058,
+                "agent_id": "statistical_ml",
+                "direction": "short",
+                "confidence": 77.1,
+                "weight": 0.2,
+                "contrib": -0.1542
+              },
+              {
+                "signal_id": 1059,
+                "agent_id": "sentiment",
+                "direction": "neutral",
+                "confidence": 51.15579878048781,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1060,
+                "agent_id": "macro",
+                "direction": "long",
+                "confidence": 89.0,
+                "weight": 0.2,
+                "contrib": 0.17800000000000002
+              }
+            ]
+          },
+          "created_at": "2026-09-11T19:42:49.247568Z"
+        },
+        "created_at": "2026-09-11T19:42:49.247568Z"
+      },
+      {
+        "id": 1417,
+        "decision_type": "hold",
+        "actor": "portfolio_manager",
+        "ticker": "IONQ",
+        "reasoning": "HOLD IONQ: score=0.085, blended_conf=53.7 (min=55.0)",
+        "payload": {
+          "ticker": "IONQ",
+          "rationale": "HOLD IONQ: score=0.085, blended_conf=53.7 (min=55.0)",
+          "signal_ids": [
+            1051,
+            1052,
+            1053,
+            1054,
+            1055
+          ],
+          "data_snapshot": {
+            "weighted_score": 0.08485365718884413,
+            "blended_confidence": 53.71221265949397,
+            "equity": 93.5259914149313,
+            "cash": 0.16,
+            "contributions": [
+              {
+                "signal_id": 1051,
+                "agent_id": "momentum",
+                "direction": "short",
+                "confidence": 31.167117351523885,
+                "weight": 0.2,
+                "contrib": -0.062334234703047775
+              },
+              {
+                "signal_id": 1052,
+                "agent_id": "fundamental",
+                "direction": "neutral",
+                "confidence": 15.0,
+                "weight": 0.2,
+                "contrib": 0.0
+              },
+              {
+                "signal_id": 1053,
+                "agent_id": "statistical_ml",
+                "direction": "short",
+                "confidence": 74.4,
+                "weight": 0.2,
+                "contrib": -0.14880000000000002
+              },
+              {
+                "signal_id": 1054,
+                "agent_id": "sentiment",
+                "direction": "long",
+                "confidence": 58.993945945945946,
+                "weight": 0.2,
+                "contrib": 0.1179878918918919
+              },
+              {
+                "signal_id": 1055,
+                "agent_id": "macro",
+                "direction": "long",
+                "confidence": 89.0,
+                "weight": 0.2,
+                "contrib": 0.17800000000000002
+              }
+            ]
+          },
+          "created_at": "2026-09-11T19:42:49.246139Z"
+        },
+        "created_at": "2026-09-11T19:42:49.246139Z"
+      },
       {
         "id": 1330,
         "decision_type": "hold",
@@ -2479,334 +4845,334 @@
     ],
     "counts": {
       "tickets": 4,
-      "holds": 11,
+      "holds": 26,
       "fills": 1,
       "order_submitted": 1,
       "failed": 3,
-      "other": 78
+      "other": 156
     }
   },
   "auditor_flags_today": [],
   "mission_log": [
     {
-      "id": 1340,
-      "at": "2026-09-11T13:41:20.849678Z",
+      "id": 1433,
+      "at": "2026-09-11T19:42:56.234157Z",
       "type": "reconcile",
       "actor": "tracker",
       "ticker": null,
       "summary": "Reconciled portfolio state from alpaca"
     },
     {
-      "id": 1339,
-      "at": "2026-09-11T13:41:00.008444Z",
+      "id": 1432,
+      "at": "2026-09-11T19:42:49.255106Z",
       "type": "run_end",
       "actor": "pipeline",
       "ticker": null,
-      "summary": "run-once complete: 75 signals, 4 fills, 0 errors"
+      "summary": "run-once complete: 75 signals, 0 fills, 0 errors"
     },
     {
-      "id": 1338,
-      "at": "2026-09-11T13:41:00.006809Z",
-      "type": "order_failed",
-      "actor": "execution_agent",
-      "ticker": "TSLA",
-      "summary": "Alpaca order rejected/failed: {\"buying_power\":\"0.16\",\"code\":40310000,\"cost_basis\":\"3.64\",\"message\":\"insufficient buying power\"}"
-    },
-    {
-      "id": 1337,
-      "at": "2026-09-11T13:40:59.861232Z",
-      "type": "order_failed",
-      "actor": "execution_agent",
-      "ticker": "NVDA",
-      "summary": "Alpaca order rejected/failed: {\"buying_power\":\"0.16\",\"code\":40310000,\"cost_basis\":\"3.63\",\"message\":\"insufficient buying power\"}"
-    },
-    {
-      "id": 1336,
-      "at": "2026-09-11T13:40:59.757656Z",
-      "type": "order_failed",
-      "actor": "execution_agent",
-      "ticker": "TER",
-      "summary": "Alpaca order rejected/failed: {\"buying_power\":\"0.16\",\"code\":40310000,\"cost_basis\":\"2.62\",\"message\":\"insufficient buying power\"}"
-    },
-    {
-      "id": 1335,
-      "at": "2026-09-11T13:40:59.652478Z",
-      "type": "alpaca_order",
-      "actor": "execution_agent",
-      "ticker": "ISRG",
-      "summary": "Alpaca paper order filled (filled)"
-    },
-    {
-      "id": 1334,
-      "at": "2026-09-11T13:40:59.643821Z",
-      "type": "fill",
-      "actor": "execution_agent",
-      "ticker": "ISRG",
-      "summary": "Filled buy 0.00983 ISRG @ 368.128 (alpaca)"
-    },
-    {
-      "id": 1333,
-      "at": "2026-09-11T13:40:58.412817Z",
-      "type": "ticket",
+      "id": 1431,
+      "at": "2026-09-11T19:42:49.254376Z",
+      "type": "hold",
       "actor": "portfolio_manager",
       "ticker": "TSLA",
-      "summary": "BUY 0.009862 TSLA @~367.03; weighted_score=0.536; blended_conf=65.1; max_pos=20%"
+      "summary": "HOLD TSLA: insufficient budget/room (budget=0.15, max_pos=18.71)"
     },
     {
-      "id": 1332,
-      "at": "2026-09-11T13:40:58.411708Z",
-      "type": "ticket",
+      "id": 1430,
+      "at": "2026-09-11T19:42:49.253646Z",
+      "type": "hold",
       "actor": "portfolio_manager",
       "ticker": "NVDA",
-      "summary": "BUY 0.016456 NVDA @~219.95; weighted_score=0.599; blended_conf=70.5; max_pos=20%"
+      "summary": "HOLD NVDA: score=0.297, blended_conf=53.9 (min=55.0)"
     },
     {
-      "id": 1331,
-      "at": "2026-09-11T13:40:58.410922Z",
-      "type": "ticket",
+      "id": 1429,
+      "at": "2026-09-11T19:42:49.253167Z",
+      "type": "hold",
       "actor": "portfolio_manager",
       "ticker": "TER",
-      "summary": "BUY 0.006818 TER @~381.83; weighted_score=0.642; blended_conf=73.2; max_pos=20%"
+      "summary": "HOLD TER: insufficient budget/room (budget=0.15, max_pos=18.71)"
     },
     {
-      "id": 1330,
-      "at": "2026-09-11T13:40:58.410017Z",
+      "id": 1428,
+      "at": "2026-09-11T19:42:49.252713Z",
       "type": "hold",
       "actor": "portfolio_manager",
       "ticker": "PATH",
-      "summary": "HOLD PATH: insufficient budget/room (budget=0.28, max_pos=18.76)"
+      "summary": "HOLD PATH: score=0.304, blended_conf=52.8 (min=55.0)"
     },
     {
-      "id": 1329,
-      "at": "2026-09-11T13:40:58.408983Z",
-      "type": "ticket",
+      "id": 1427,
+      "at": "2026-09-11T19:42:49.252303Z",
+      "type": "hold",
       "actor": "portfolio_manager",
       "ticker": "ISRG",
-      "summary": "BUY 0.00983 ISRG @~368.21; weighted_score=0.445; blended_conf=63.2; max_pos=20%"
+      "summary": "HOLD ISRG: score=0.255, blended_conf=46.5 (min=55.0)"
     },
     {
-      "id": 1328,
-      "at": "2026-09-11T13:40:58.408194Z",
+      "id": 1426,
+      "at": "2026-09-11T19:42:49.251956Z",
       "type": "hold",
       "actor": "portfolio_manager",
       "ticker": "LHX",
-      "summary": "HOLD LHX: score=0.143, blended_conf=52.4 (min=55.0)"
+      "summary": "HOLD LHX: score=0.161, blended_conf=51.6 (min=55.0)"
     },
     {
-      "id": 1327,
-      "at": "2026-09-11T13:40:58.406960Z",
+      "id": 1425,
+      "at": "2026-09-11T19:42:49.251558Z",
       "type": "hold",
       "actor": "portfolio_manager",
       "ticker": "BA",
-      "summary": "HOLD BA: score=0.114, blended_conf=47.4 (min=55.0)"
+      "summary": "HOLD BA: score=0.220, blended_conf=48.6 (min=55.0)"
     },
     {
-      "id": 1326,
-      "at": "2026-09-11T13:40:58.406389Z",
+      "id": 1424,
+      "at": "2026-09-11T19:42:49.251228Z",
       "type": "hold",
       "actor": "portfolio_manager",
       "ticker": "LUNR",
-      "summary": "HOLD LUNR: insufficient budget/room (budget=-0.93, max_pos=18.76)"
+      "summary": "HOLD LUNR: score=0.095, blended_conf=54.9 (min=55.0)"
     },
     {
-      "id": 1325,
-      "at": "2026-09-11T13:40:58.405513Z",
+      "id": 1423,
+      "at": "2026-09-11T19:42:49.250779Z",
       "type": "hold",
       "actor": "portfolio_manager",
       "ticker": "ASTS",
-      "summary": "HOLD ASTS: score=0.076, blended_conf=51.1 (min=55.0)"
+      "summary": "HOLD ASTS: score=0.077, blended_conf=51.1 (min=55.0)"
     },
     {
-      "id": 1324,
-      "at": "2026-09-11T13:40:58.404861Z",
+      "id": 1422,
+      "at": "2026-09-11T19:42:49.250383Z",
       "type": "hold",
       "actor": "portfolio_manager",
       "ticker": "RKLB",
-      "summary": "HOLD RKLB: score=0.083, blended_conf=49.9 (min=55.0)"
+      "summary": "HOLD RKLB: score=0.091, blended_conf=50.9 (min=55.0)"
     },
     {
-      "id": 1323,
-      "at": "2026-09-11T13:40:58.404081Z",
+      "id": 1421,
+      "at": "2026-09-11T19:42:49.249826Z",
       "type": "hold",
       "actor": "portfolio_manager",
       "ticker": "GOOGL",
-      "summary": "HOLD GOOGL: score=0.128, blended_conf=45.9 (min=55.0)"
+      "summary": "HOLD GOOGL: score=0.128, blended_conf=45.2 (min=55.0)"
     },
     {
-      "id": 1322,
-      "at": "2026-09-11T13:40:58.403037Z",
+      "id": 1420,
+      "at": "2026-09-11T19:42:49.249357Z",
       "type": "hold",
       "actor": "portfolio_manager",
       "ticker": "IBM",
-      "summary": "HOLD IBM: score=0.198, blended_conf=47.9 (min=55.0)"
+      "summary": "HOLD IBM: insufficient budget/room (budget=0.15, max_pos=18.71)"
     },
     {
-      "id": 1321,
-      "at": "2026-09-11T13:40:58.401837Z",
+      "id": 1419,
+      "at": "2026-09-11T19:42:49.248551Z",
       "type": "hold",
       "actor": "portfolio_manager",
       "ticker": "QUBT",
-      "summary": "HOLD QUBT: score=-0.010, blended_conf=48.8 (min=55.0)"
+      "summary": "HOLD QUBT: score=-0.018, blended_conf=49.5 (min=55.0)"
     },
     {
-      "id": 1320,
-      "at": "2026-09-11T13:40:58.401266Z",
+      "id": 1418,
+      "at": "2026-09-11T19:42:49.247568Z",
       "type": "hold",
       "actor": "portfolio_manager",
       "ticker": "RGTI",
-      "summary": "HOLD RGTI: score=0.073, blended_conf=53.5 (min=55.0)"
+      "summary": "HOLD RGTI: score=-0.039, blended_conf=52.8 (min=55.0)"
     },
     {
-      "id": 1319,
-      "at": "2026-09-11T13:40:58.400268Z",
+      "id": 1417,
+      "at": "2026-09-11T19:42:49.246139Z",
       "type": "hold",
       "actor": "portfolio_manager",
       "ticker": "IONQ",
-      "summary": "HOLD IONQ: score=0.069, blended_conf=52.0 (min=55.0)"
+      "summary": "HOLD IONQ: score=0.085, blended_conf=53.7 (min=55.0)"
     },
     {
-      "id": 1318,
-      "at": "2026-09-11T13:40:58.396901Z",
+      "id": 1416,
+      "at": "2026-09-11T19:42:49.243671Z",
       "type": "signal",
       "actor": "macro",
       "ticker": "TSLA",
-      "summary": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (16.1); Dollar stable (-0.5% 20d); Rates stable (-1.0%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)"
+      "summary": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)"
     },
     {
-      "id": 1317,
-      "at": "2026-09-11T13:40:58.391492Z",
+      "id": 1415,
+      "at": "2026-09-11T19:42:49.239758Z",
       "type": "signal",
       "actor": "sentiment",
       "ticker": "TSLA",
-      "summary": "Scored 10 headline(s); weighted polarity +0.19; avg source credibility 0.68; 'Tesla\u2019s Drag on XLY Was Softened by Amazon\u2019s Gain; QQQ Felt Almost Nothing' (24/7 Wall St., pol=+1.00); 'South Korean import sales rise 9% in August' (Just Auto, pol=+1.00); 'Tesla\u2019s Electric Semi Could"
+      "summary": "Scored 10 headline(s); weighted polarity +0.65; avg source credibility 0.66; 'Is SpaceX a Buy or a Trap for Retail Investors?' (Motley Fool, pol=+1.00); 'Morgan Stanley Sees $80 Billion Tesla Semi Opportunity as Diesel Hits Record $6.' (Benzinga Prediction Markets, pol=+1.00); 'T"
     },
     {
-      "id": 1316,
-      "at": "2026-09-11T13:40:58.167883Z",
+      "id": 1414,
+      "at": "2026-09-11T19:42:49.043365Z",
       "type": "signal",
       "actor": "statistical_ml",
       "ticker": "TSLA",
-      "summary": "price near MA20 (z=1.07); positive 20d momentum +7.9%; cross-sectional mom rank top (100%); vol regime=normal"
+      "summary": "price near MA20 (z=1.04); positive 20d momentum +7.8%; cross-sectional mom rank top (100%); vol regime=normal"
     },
     {
-      "id": 1315,
-      "at": "2026-09-11T13:40:58.160171Z",
+      "id": 1413,
+      "at": "2026-09-11T19:42:49.037833Z",
       "type": "signal",
       "actor": "fundamental",
       "ticker": "TSLA",
-      "summary": "Strong revenue growth (25.5%); Negative earnings growth (-3.0%); Thin profit margin (3.7%); Thin operating margin (1.4%); Positive FCF (4,835,999,744); FCF/rev 4.7%; Low leverage (D/E 0.18x); Strong current ratio (1.94); Low ROE (4.7%)"
+      "summary": "Insufficient fundamental data available; emitting neutral with low confidence."
     },
     {
-      "id": 1314,
-      "at": "2026-09-11T13:40:57.556452Z",
+      "id": 1412,
+      "at": "2026-09-11T19:42:47.943566Z",
       "type": "signal",
       "actor": "momentum",
       "ticker": "TSLA",
-      "summary": "MA20 > MA50 (short-term uptrend); MA50 < MA200 (intermediate downtrend); MACD histogram positive; 20d RS vs SPY: +9.61%; RVOL 0.09x vs 20d avg; Demand imbalance balanced (+0.09)"
+      "summary": "MA20 > MA50 (short-term uptrend); MA50 < MA200 (intermediate downtrend); MACD histogram positive; 20d RS vs SPY: +9.46%; RVOL 0.64x vs 20d avg; Demand imbalance positive (+0.11)"
     },
     {
-      "id": 1313,
-      "at": "2026-09-11T13:40:57.000943Z",
+      "id": 1411,
+      "at": "2026-09-11T19:42:47.785274Z",
       "type": "signal",
       "actor": "macro",
       "ticker": "NVDA",
-      "summary": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (16.1); Dollar stable (-0.5% 20d); Rates stable (-1.0%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)"
+      "summary": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)"
     },
     {
-      "id": 1312,
-      "at": "2026-09-11T13:40:56.995316Z",
+      "id": 1410,
+      "at": "2026-09-11T19:42:47.781374Z",
       "type": "signal",
       "actor": "sentiment",
       "ticker": "NVDA",
-      "summary": "Scored 10 headline(s); weighted polarity +0.38; avg source credibility 0.71; 'Treasury yields rise as investors raise bets on Fed rate hike: AlphaCheck' (Yahoo Finance, pol=+1.00); 'NVIDIA\u2019s Export Ban Backfires as Chinese Competitors Raise Prices 50%' (24/7 Wall St., pol=+1.00);"
+      "summary": "Scored 10 headline(s); weighted polarity +0.34; avg source credibility 0.77; 'Is SpaceX a Buy or a Trap for Retail Investors?' (Motley Fool, pol=+1.00); 'Nvidia Rebounds After Rivals Open a 10-Point Weekly Gap' (GuruFocus.com, pol=+1.00); 'I Almost Didn't Buy This 6%+ Yielder Bec"
     },
     {
-      "id": 1311,
-      "at": "2026-09-11T13:40:56.716577Z",
+      "id": 1409,
+      "at": "2026-09-11T19:42:47.571829Z",
       "type": "signal",
       "actor": "statistical_ml",
       "ticker": "NVDA",
-      "summary": "price near MA20 (z=-0.01); flat 20d momentum -2.3%; cross-sectional mom rank top (92%); vol regime=normal"
+      "summary": "price near MA20 (z=-0.21); flat 20d momentum -2.8%; cross-sectional mom rank top (85%); vol regime=normal"
     },
     {
-      "id": 1310,
-      "at": "2026-09-11T13:40:56.708795Z",
+      "id": 1408,
+      "at": "2026-09-11T19:42:47.566225Z",
       "type": "signal",
       "actor": "fundamental",
       "ticker": "NVDA",
-      "summary": "Strong revenue growth (105.9%); Strong earnings growth (127.8%); High profit margin (63.7%); Strong operating margin (66.2%); Positive FCF (41,809,874,944); FCF/rev 13.8%; Low leverage (D/E 0.17x); Strong current ratio (4.59); High ROE (117.2%)"
+      "summary": "Insufficient fundamental data available; emitting neutral with low confidence."
     },
     {
-      "id": 1309,
-      "at": "2026-09-11T13:40:55.595237Z",
+      "id": 1407,
+      "at": "2026-09-11T19:42:46.400032Z",
       "type": "signal",
       "actor": "momentum",
       "ticker": "NVDA",
-      "summary": "MA20 > MA50 (short-term uptrend); MA50 > MA200 (intermediate uptrend); MACD histogram negative; 20d RS vs SPY: -0.56%; RVOL 0.09x vs 20d avg; Demand imbalance negative (-0.20)"
+      "summary": "MA20 > MA50 (short-term uptrend); MA50 > MA200 (intermediate uptrend); MACD histogram negative; 20d RS vs SPY: -1.17%; RVOL 0.52x vs 20d avg; Demand imbalance negative (-0.18)"
     },
     {
-      "id": 1308,
-      "at": "2026-09-11T13:40:55.417162Z",
+      "id": 1406,
+      "at": "2026-09-11T19:42:46.237757Z",
       "type": "signal",
       "actor": "macro",
       "ticker": "TER",
-      "summary": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (16.1); Dollar stable (-0.5% 20d); Rates stable (-1.0%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)"
+      "summary": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)"
     },
     {
-      "id": 1307,
-      "at": "2026-09-11T13:40:55.412907Z",
+      "id": 1405,
+      "at": "2026-09-11T19:42:46.233422Z",
       "type": "signal",
       "actor": "sentiment",
       "ticker": "TER",
       "summary": "Scored 10 headline(s); weighted polarity +0.62; avg source credibility 0.73; 'Top Wide-Moat Stocks to Buy for Long-Term Wealth and Stability' (Zacks, pol=+1.00); 'Teradyne Rides on Strong UltraFLEXplus Demand: Can It Beat KLAC & COHU?' (Zacks, pol=+1.00); 'Can AEHR Turn AI Proces"
     },
     {
-      "id": 1306,
-      "at": "2026-09-11T13:40:55.207714Z",
+      "id": 1404,
+      "at": "2026-09-11T19:42:46.028482Z",
       "type": "signal",
       "actor": "statistical_ml",
       "ticker": "TER",
-      "summary": "price near MA20 (z=0.34); negative 20d momentum -7.0%; cross-sectional mom rank top (85%); low vol regime"
+      "summary": "price near MA20 (z=0.26); negative 20d momentum -7.6%; cross-sectional mom rank mid (77%); low vol regime"
     },
     {
-      "id": 1305,
-      "at": "2026-09-11T13:40:55.199450Z",
+      "id": 1403,
+      "at": "2026-09-11T19:42:46.022834Z",
       "type": "signal",
       "actor": "fundamental",
       "ticker": "TER",
-      "summary": "Strong revenue growth (103.9%); Strong earnings growth (385.8%); High profit margin (25.8%); Strong operating margin (33.2%); Positive FCF (437,381,248); FCF/rev 9.8%; Elevated leverage (D/E 2.88x); Strong current ratio (2.12); High ROE (36.5%)"
+      "summary": "Insufficient fundamental data available; emitting neutral with low confidence."
     },
     {
-      "id": 1304,
-      "at": "2026-09-11T13:40:54.528207Z",
+      "id": 1402,
+      "at": "2026-09-11T19:42:44.788644Z",
       "type": "signal",
       "actor": "momentum",
       "ticker": "TER",
-      "summary": "MA20 > MA50 (short-term uptrend); MA50 > MA200 (intermediate uptrend); MACD histogram positive; 20d RS vs SPY: -5.26%; RVOL 0.21x vs 20d avg; Demand imbalance balanced (-0.09)"
+      "summary": "MA20 > MA50 (short-term uptrend); MA50 > MA200 (intermediate uptrend); MACD histogram positive; 20d RS vs SPY: -5.90%; RVOL 0.55x vs 20d avg; Demand imbalance balanced (-0.07)"
     },
     {
-      "id": 1303,
-      "at": "2026-09-11T13:40:54.355969Z",
+      "id": 1401,
+      "at": "2026-09-11T19:42:44.583357Z",
       "type": "signal",
       "actor": "macro",
       "ticker": "PATH",
-      "summary": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (16.1); Dollar stable (-0.5% 20d); Rates stable (-1.0%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)"
+      "summary": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)"
     },
     {
-      "id": 1302,
-      "at": "2026-09-11T13:40:54.351635Z",
+      "id": 1400,
+      "at": "2026-09-11T19:42:44.579875Z",
       "type": "signal",
       "actor": "sentiment",
       "ticker": "PATH",
-      "summary": "Scored 10 headline(s); weighted polarity +0.62; avg source credibility 0.57; 'Motive raises $1.3 billion from General Catalyst' (FreightWaves, pol=+1.00); 'Dips In UiPath Stock Have Mostly Kept Falling, Will This One Too?' (Trefis, pol=-1.00); 'UiPath (PATH) Q2 2027 Earnings Call"
+      "summary": "Scored 10 headline(s); weighted polarity +0.61; avg source credibility 0.56; 'Is UiPath Stock A Buy After Falling Despite A Raised Outlook?' (Trefis, pol=+1.00); 'Motive raises $1.3 billion from General Catalyst' (FreightWaves, pol=+1.00); 'Dips In UiPath Stock Have Mostly Kept F"
     },
     {
-      "id": 1301,
-      "at": "2026-09-11T13:40:54.075346Z",
+      "id": 1399,
+      "at": "2026-09-11T19:42:44.334736Z",
       "type": "signal",
       "actor": "statistical_ml",
       "ticker": "PATH",
-      "summary": "oversold vs MA20 (z=-1.40); residual_to_MA20=-13.9%; strong 20d down-momentum -15.9%; 60d trend up +33.4%; cross-sectional mom rank mid (50%); vol regime=normal"
+      "summary": "oversold vs MA20 (z=-1.50); residual_to_MA20=-15.0%; strong 20d down-momentum -17.0%; 60d trend up +31.6%; cross-sectional mom rank mid (42%); vol regime=normal"
+    },
+    {
+      "id": 1398,
+      "at": "2026-09-11T19:42:44.326972Z",
+      "type": "signal",
+      "actor": "fundamental",
+      "ticker": "PATH",
+      "summary": "Insufficient fundamental data available; emitting neutral with low confidence."
+    },
+    {
+      "id": 1397,
+      "at": "2026-09-11T19:42:43.105841Z",
+      "type": "signal",
+      "actor": "momentum",
+      "ticker": "PATH",
+      "summary": "MA20 > MA50 (short-term uptrend); MA50 > MA200 (intermediate uptrend); RSI soft (39.4); MACD histogram negative; 20d RS vs SPY: -15.37%; RVOL 0.41x vs 20d avg; Demand imbalance balanced (-0.01)"
+    },
+    {
+      "id": 1396,
+      "at": "2026-09-11T19:42:42.954445Z",
+      "type": "signal",
+      "actor": "macro",
+      "ticker": "ISRG",
+      "summary": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low realized vol (9% ann)"
+    },
+    {
+      "id": 1395,
+      "at": "2026-09-11T19:42:42.949229Z",
+      "type": "signal",
+      "actor": "sentiment",
+      "ticker": "ISRG",
+      "summary": "Scored 10 headline(s); weighted polarity +0.38; avg source credibility 0.78; 'How Much Can ISRG Stock Still Move Against You?' (Trefis, pol=-1.00); 'Brokers Suggest Investing in Intuitive Surgical (ISRG): Read This Before Placing' (Zacks, pol=+1.00); 'ISRG Stock Trading at its Ch"
+    },
+    {
+      "id": 1394,
+      "at": "2026-09-11T19:42:42.690432Z",
+      "type": "signal",
+      "actor": "statistical_ml",
+      "ticker": "ISRG",
+      "summary": "price near MA20 (z=-0.18); negative 20d momentum -7.5%; cross-sectional mom rank top (82%); low vol regime"
     }
   ],
   "watchlist": [
@@ -2817,8 +5183,8 @@
         "agent_id": "macro",
         "direction": "long",
         "confidence": 89.0,
-        "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (quantum); VIX contained (16.1); Dollar stable (-0.5% 20d); Rates stable (-1.0%); Benchmark above MA50>MA200 (uptrend); Low rea",
-        "created_at": "2026-09-11T13:40:41.637737Z"
+        "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (quantum); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low rea",
+        "created_at": "2026-09-11T19:42:31.303920Z"
       }
     },
     {
@@ -2828,8 +5194,8 @@
         "agent_id": "macro",
         "direction": "long",
         "confidence": 89.0,
-        "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (quantum); VIX contained (16.1); Dollar stable (-0.5% 20d); Rates stable (-1.0%); Benchmark above MA50>MA200 (uptrend); Low rea",
-        "created_at": "2026-09-11T13:40:43.043160Z"
+        "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (quantum); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low rea",
+        "created_at": "2026-09-11T19:42:32.864044Z"
       }
     },
     {
@@ -2839,8 +5205,8 @@
         "agent_id": "macro",
         "direction": "long",
         "confidence": 89.0,
-        "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (quantum); VIX contained (16.1); Dollar stable (-0.5% 20d); Rates stable (-1.0%); Benchmark above MA50>MA200 (uptrend); Low rea",
-        "created_at": "2026-09-11T13:40:44.599948Z"
+        "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (quantum); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low rea",
+        "created_at": "2026-09-11T19:42:34.231444Z"
       }
     },
     {
@@ -2850,8 +5216,8 @@
         "agent_id": "macro",
         "direction": "long",
         "confidence": 89.0,
-        "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (space); VIX contained (16.1); Dollar stable (-0.5% 20d); Rates stable (-1.0%); Benchmark above MA50>MA200 (uptrend); Low reali",
-        "created_at": "2026-09-11T13:40:46.055251Z"
+        "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (space); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low reali",
+        "created_at": "2026-09-11T19:42:35.709796Z"
       }
     },
     {
@@ -2861,8 +5227,8 @@
         "agent_id": "macro",
         "direction": "long",
         "confidence": 89.0,
-        "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (space); VIX contained (16.1); Dollar stable (-0.5% 20d); Rates stable (-1.0%); Benchmark above MA50>MA200 (uptrend); Low reali",
-        "created_at": "2026-09-11T13:40:47.533055Z"
+        "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (space); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low reali",
+        "created_at": "2026-09-11T19:42:37.056433Z"
       }
     },
     {
@@ -2872,8 +5238,8 @@
         "agent_id": "macro",
         "direction": "long",
         "confidence": 89.0,
-        "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (space); VIX contained (16.1); Dollar stable (-0.5% 20d); Rates stable (-1.0%); Benchmark above MA50>MA200 (uptrend); Low reali",
-        "created_at": "2026-09-11T13:40:50.506715Z"
+        "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (space); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low reali",
+        "created_at": "2026-09-11T19:42:39.908411Z"
       }
     },
     {
@@ -2883,8 +5249,8 @@
         "agent_id": "macro",
         "direction": "long",
         "confidence": 89.0,
-        "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (space); VIX contained (16.1); Dollar stable (-0.5% 20d); Rates stable (-1.0%); Benchmark above MA50>MA200 (uptrend); Low reali",
-        "created_at": "2026-09-11T13:40:51.926069Z"
+        "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (space); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low reali",
+        "created_at": "2026-09-11T19:42:41.329625Z"
       }
     },
     {
@@ -2905,8 +5271,8 @@
         "agent_id": "macro",
         "direction": "long",
         "confidence": 89.0,
-        "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (16.1); Dollar stable (-0.5% 20d); Rates stable (-1.0%); Benchmark above MA50>MA200 (uptrend); Low re",
-        "created_at": "2026-09-11T13:40:58.396901Z"
+        "reasoning": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (15.9); Dollar stable (-0.4% 20d); Rates stable (-1.7%); Benchmark above MA50>MA200 (uptrend); Low re",
+        "created_at": "2026-09-11T19:42:49.243671Z"
       }
     }
   ],
@@ -2935,7 +5301,7 @@
   },
   "alpaca_snapshot": {
     "cash": 0.16,
-    "equity": 93.95,
+    "equity": 93.57,
     "buying_power": 0.16,
     "open_orders_count": 0,
     "positions": [
