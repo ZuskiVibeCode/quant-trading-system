@@ -38,12 +38,31 @@ Floor **5%**, cap **40%**, **OOS only**.
 
 ### Universe (`config/universe.yaml`)
 
-| Theme | Tickers |
-|-------|---------|
-| Quantum | IONQ, RGTI, QUBT, IBM, GOOGL, QBTS, QSI, MSFT, AMD, HON |
-| Space | RKLB, ASTS, LUNR, BA, LHX, RDW, BKSY, IRDM, NOC, LMT |
-| Robotics | ISRG, PATH, TER, NVDA, TSLA, CGNX, SYM, ROK, AVAV, ABB |
-| Benchmark | SPY |
+Active set (~10/theme) is researched each cycle. Bench names promote when an active name goes **cold**.
+
+| Theme | Active | Bench |
+|-------|--------|-------|
+| Quantum | IONQ, RGTI, QUBT, IBM, GOOGL, QBTS, QSI, MSFT, AMD, HON | AMZN, META, ORCL, ACN, CRWD |
+| Space | RKLB, ASTS, LUNR, BA, LHX, RDW, BKSY, IRDM, NOC, LMT | SPCE, PL, JOBY, KTOS, HEI |
+| Robotics | ISRG, PATH, TER, NVDA, TSLA, CGNX, SYM, ROK, AVAV, ABB | ADSK, EMR, ZBRA, DE, ROP |
+| Benchmark | SPY | — |
+
+#### Cold / active researcher
+
+Stocks that look awful for a stretch go **cold** for `cold_days` (default 15 calendar days) with a `checkup_date`, while a same-theme bench name is promoted into the active set. Active target stays ~10/theme. **Never colds a currently held position.** Paper research only.
+
+Tunables under `rotation:` in `config/universe.yaml`:
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `lookback_cycles` | 10 | Need this many recent `run_start` cycles with signals before colding |
+| `min_median_confidence` | 35 | Median confidence below this (and weak long fraction) → awful |
+| `max_long_fraction` | 0.35 | Fraction of long directions below this → awful |
+| `cold_days` | 15 | Calendar days until checkup |
+| `max_new_cold_per_theme_per_cycle` | 1 | Cap new colds per theme per cycle |
+| `active_target_per_theme` | 10 | Target active size when promoting |
+
+State lives in Tracker `system_state` key `research_rotation`. Digest / dashboard export add optional `rotation` + `cold` fields (additive schema).
 
 ## Quick start
 
@@ -129,7 +148,7 @@ Daily digest routines should run `export-dashboard` after `run-once` / `digest`,
 quant_system/
   models/          # Frozen Signal, TradeTicket, HoldDecision
   tracker/         # SQLite schema + Tracker API (FIRST)
-  research/        # 5 research agents (signals only)
+  research/        # 5 research agents + cold/active rotation
   execution/       # PortfolioManager + ExecutionAgent
   oversight/       # Auditor (flags only)
   market_data/     # MarketData interface + yfinance + mock

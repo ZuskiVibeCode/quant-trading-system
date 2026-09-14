@@ -493,7 +493,7 @@ class Tracker:
 
     def digest(self, limit: int = 20) -> dict[str, Any]:
         """Aggregate view for CLI digest command."""
-        return {
+        out: dict[str, Any] = {
             "halted": self.is_halted(),
             "halt_reason": self.get_state("halt_reason", ""),
             "day_halted": self.is_day_halted(),
@@ -509,6 +509,15 @@ class Tracker:
             "latest_snapshot": self.latest_snapshot(),
             "db_path": self.db_path,
         }
+        try:
+            from quant_system.research.rotation import rotation_digest_section
+
+            out["rotation"] = rotation_digest_section(self)
+            out["cold"] = out["rotation"].get("cold", [])
+        except Exception:  # noqa: BLE001 — digest must not fail if rotation unavailable
+            out["rotation"] = {"active": {}, "cold": [], "settings": {}}
+            out["cold"] = []
+        return out
 
     @staticmethod
     def _row_to_dict(row: sqlite3.Row, json_fields: tuple[str, ...] = ()) -> dict[str, Any]:

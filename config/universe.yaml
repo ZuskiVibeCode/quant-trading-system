@@ -1,38 +1,68 @@
+# Active set is researched each cycle (~10/theme). Bench names promote when
+# an active name goes cold. See README "Cold / active researcher".
 themes:
   quantum:
-    - IONQ
-    - RGTI
-    - QUBT
-    - IBM
-    - GOOGL
-    - QBTS
-    - QSI
-    - MSFT
-    - AMD
-    - HON
+    active:
+      - IONQ
+      - RGTI
+      - QUBT
+      - IBM
+      - GOOGL
+      - QBTS
+      - QSI
+      - MSFT
+      - AMD
+      - HON
+    bench:
+      - AMZN
+      - META
+      - ORCL
+      - ACN
+      - CRWD
   space:
-    - RKLB
-    - ASTS
-    - LUNR
-    - BA
-    - LHX
-    - RDW
-    - BKSY
-    - IRDM
-    - NOC
-    - LMT
+    active:
+      - RKLB
+      - ASTS
+      - LUNR
+      - BA
+      - LHX
+      - RDW
+      - BKSY
+      - IRDM
+      - NOC
+      - LMT
+    bench:
+      - SPCE
+      - PL
+      - JOBY
+      - KTOS
+      - HEI
   robotics:
-    - ISRG
-    - PATH
-    - TER
-    - NVDA
-    - TSLA
-    - CGNX
-    - SYM
-    - ROK
-    - AVAV
-    - ABB
+    active:
+      - ISRG
+      - PATH
+      - TER
+      - NVDA
+      - TSLA
+      - CGNX
+      - SYM
+      - ROK
+      - AVAV
+      - ABB
+    bench:
+      - ADSK
+      - EMR
+      - ZBRA
+      - DE
+      - ROP
 
 benchmark: SPY
 
-# Flat ticker list derived at load time from themes
+# Cold/active rotation tunables (paper research only; never colds holdings)
+rotation:
+  lookback_cycles: 10
+  min_median_confidence: 35.0
+  max_long_fraction: 0.35
+  cold_days: 15
+  max_new_cold_per_theme_per_cycle: 1
+  active_target_per_theme: 10

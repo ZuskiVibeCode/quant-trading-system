@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class RiskConfig(BaseModel):
@@ -27,16 +27,86 @@ class RiskConfig(BaseModel):
     min_order_notional: float = 1.0
 
 
+class ThemeMembers(BaseModel):
+    """Per-theme active research set + bench candidates for promotion."""
+
+    active: list[str] = Field(default_factory=list)
+    bench: list[str] = Field(default_factory=list)
+
+    @field_validator("active", "bench", mode="before")
+    @classmethod
+    def _upper_list(cls, v: Any) -> list[str]:
+        if v is None:
+            return []
+        return [str(t).strip().upper() for t in v]
+
+
+class RotationConfig(BaseModel):
+    """Cold/active researcher tunables."""
+
+    lookback_cycles: int = 10
+    min_median_confidence: float = 35.0
+    max_long_fraction: float = 0.35
+    cold_days: int = 15
+    max_new_cold_per_theme_per_cycle: int = 1
+    active_target_per_theme: int = 10
+
+
 class UniverseConfig(BaseModel):
-    themes: dict[str, list[str]] = Field(default_factory=dict)
+    themes: dict[str, ThemeMembers] = Field(default_factory=dict)
     benchmark: str = "SPY"
+    rotation: RotationConfig = Field(default_factory=RotationConfig)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_themes(cls, data: Any) -> Any:
+        """Backward compatible: flat theme lists become active with empty bench."""
+        if not isinstance(data, dict):
+            return data
+        themes = data.get("themes")
+        if not isinstance(themes, dict):
+            return data
+        normalized: dict[str, Any] = {}
+        for name, val in themes.items():
+            if isinstance(val, list):
+                normalized[name] = {"active": val, "bench": []}
+            elif isinstance(val, dict):
+                # accept legacy keys or missing bench
+                if "active" in val or "bench" in val:
+                    normalized[name] = {
+                        "active": val.get("active") or [],
+                        "bench": val.get("bench") or [],
+                    }
+                elif "tickers" in val and isinstance(val["tickers"], list):
+                    normalized[name] = {"active": val["tickers"], "bench": []}
+                else:
+                    normalized[name] = {"active": [], "bench": []}
+            else:
+                normalized[name] = {"active": [], "bench": []}
+        out = dict(data)
+        out["themes"] = normalized
+        return out
 
     @property
     def tickers(self) -> list[str]:
+        """Seed/default active tickers (deduped, theme order). Not runtime cold state."""
         out: list[str] = []
         seen: set[str] = set()
-        for names in self.themes.values():
-            for t in names:
+        for members in self.themes.values():
+            for t in members.active:
+                u = t.upper()
+                if u not in seen:
+                    seen.add(u)
+                    out.append(u)
+        return out
+
+    @property
+    def all_candidates(self) -> list[str]:
+        """Full active + bench candidate pool (deduped)."""
+        out: list[str] = []
+        seen: set[str] = set()
+        for members in self.themes.values():
+            for t in list(members.active) + list(members.bench):
                 u = t.upper()
                 if u not in seen:
                     seen.add(u)
@@ -45,10 +115,19 @@ class UniverseConfig(BaseModel):
 
     def theme_for(self, ticker: str) -> str | None:
         u = ticker.upper()
-        for theme, names in self.themes.items():
-            if u in {n.upper() for n in names}:
+        for theme, members in self.themes.items():
+            pool = {n.upper() for n in members.active} | {n.upper() for n in members.bench}
+            if u in pool:
                 return theme
         return None
+
+    def active_seed(self, theme: str) -> list[str]:
+        members = self.themes.get(theme)
+        return list(members.active) if members else []
+
+    def bench_seed(self, theme: str) -> list[str]:
+        members = self.themes.get(theme)
+        return list(members.bench) if members else []
 
 
 class AppConfig(BaseModel):
