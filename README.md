@@ -40,9 +40,9 @@ Floor **5%**, cap **40%**, **OOS only**.
 
 | Theme | Tickers |
 |-------|---------|
-| Quantum | IONQ, RGTI, QUBT, IBM, GOOGL |
-| Space | RKLB, ASTS, LUNR, BA, LHX |
-| Robotics | ISRG, PATH, TER, NVDA, TSLA |
+| Quantum | IONQ, RGTI, QUBT, IBM, GOOGL, QBTS, QSI, MSFT, AMD, HON |
+| Space | RKLB, ASTS, LUNR, BA, LHX, RDW, BKSY, IRDM, NOC, LMT |
+| Robotics | ISRG, PATH, TER, NVDA, TSLA, CGNX, SYM, ROK, AVAV, ABB |
 | Benchmark | SPY |
 
 ## Quick start

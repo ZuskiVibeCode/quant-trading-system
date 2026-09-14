@@ -9,6 +9,10 @@ def test_universe_and_risk():
     assert cfg.risk.max_drawdown_pct == 0.15
     assert cfg.universe.benchmark == "SPY"
     tickers = cfg.universe.tickers
-    for t in ["IONQ", "RKLB", "NVDA", "TSLA", "IBM"]:
+    assert len(tickers) == 30
+    for t in ["IONQ", "RKLB", "NVDA", "TSLA", "IBM", "QBTS", "RDW", "CGNX"]:
         assert t in tickers
     assert cfg.universe.theme_for("IONQ") == "quantum"
+    assert cfg.universe.theme_for("QBTS") == "quantum"
+    assert cfg.universe.theme_for("RDW") == "space"
+    assert cfg.universe.theme_for("CGNX") == "robotics"

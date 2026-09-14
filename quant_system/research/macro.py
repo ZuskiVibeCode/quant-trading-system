@@ -15,9 +15,9 @@ from quant_system.research.base import ResearchAgent
 _THEME_TICKERS: dict[str, str] = {
     t: theme
     for theme, tickers in {
-        "quantum": ("IONQ", "RGTI", "QUBT", "IBM", "GOOGL"),
-        "space": ("RKLB", "ASTS", "LUNR", "BA", "LHX"),
-        "robotics": ("ISRG", "PATH", "TER", "NVDA", "TSLA"),
+        "quantum": ("IONQ", "RGTI", "QUBT", "IBM", "GOOGL", "QBTS", "QSI", "MSFT", "AMD", "HON"),
+        "space": ("RKLB", "ASTS", "LUNR", "BA", "LHX", "RDW", "BKSY", "IRDM", "NOC", "LMT"),
+        "robotics": ("ISRG", "PATH", "TER", "NVDA", "TSLA", "CGNX", "SYM", "ROK", "AVAV", "ABB"),
     }.items()
     for t in tickers
 }

@@ -25,11 +25,11 @@ def build_market_data(*, mock: bool = False, mock_prices: dict[str, float] | Non
     return YFinanceMarketData()
 
 
-def build_agents(market_data: MarketData) -> list:
+def build_agents(market_data: MarketData, universe: list[str] | None = None) -> list:
     return [
         MomentumAgent(market_data),
         FundamentalAgent(market_data),
-        StatisticalMLAgent(market_data),
+        StatisticalMLAgent(market_data, universe=universe),
         SentimentAgent(market_data),
         MacroAgent(market_data),
     ]
@@ -47,12 +47,12 @@ def run_once(
     cfg = config or load_config()
     md = market_data or build_market_data(mock=mock)
     tr = tracker or Tracker()
-    agents = build_agents(md)
+    universe = tickers or cfg.universe.tickers
+    agents = build_agents(md, universe=universe)
     pm = PortfolioManager(tr, md, cfg)
     ex = ExecutionAgent(tr, md)
     auditor = Auditor(tr, cfg)
 
-    universe = tickers or cfg.universe.tickers
     benchmark = cfg.universe.benchmark
     errors: list[str] = []
     stored: list[tuple[int, Any]] = []

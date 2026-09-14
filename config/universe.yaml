@@ -5,18 +5,33 @@ themes:
     - QUBT
     - IBM
     - GOOGL
+    - QBTS
+    - QSI
+    - MSFT
+    - AMD
+    - HON
   space:
     - RKLB
     - ASTS
     - LUNR
     - BA
     - LHX
+    - RDW
+    - BKSY
+    - IRDM
+    - NOC
+    - LMT
   robotics:
     - ISRG
     - PATH
     - TER
     - NVDA
     - TSLA
+    - CGNX
+    - SYM
+    - ROK
+    - AVAV
+    - ABB
 
 benchmark: SPY
 
