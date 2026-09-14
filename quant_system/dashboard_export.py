@@ -348,7 +348,10 @@ def build_dashboard_payload(
     account: str = "paper",
 ) -> dict[str, Any]:
     cfg = load_config()
-    themes = {k: [t.upper() for t in v] for k, v in cfg.universe.themes.items()}
+    themes = {
+        k: [t.upper() for t in (v.active if hasattr(v, "active") else v)]
+        for k, v in cfg.universe.themes.items()
+    }
     sector_of = _sector_map(themes)
     day_start = _utc_day_start()
 
@@ -450,6 +453,16 @@ def build_dashboard_payload(
         # strip any accidental secret-looking keys
         safe = {k: v for k, v in alpaca.items() if "key" not in k.lower() and "secret" not in k.lower()}
         payload["alpaca_snapshot"] = safe
+    # Additive cold/active rotation (optional for older consumers)
+    try:
+        from quant_system.research.rotation import rotation_digest_section
+
+        rot = rotation_digest_section(tracker, cfg)
+        payload["rotation"] = rot
+        payload["cold"] = rot.get("cold", [])
+    except Exception:  # noqa: BLE001
+        payload["rotation"] = {"active": {}, "cold": [], "settings": {}}
+        payload["cold"] = []
     return payload
 
 

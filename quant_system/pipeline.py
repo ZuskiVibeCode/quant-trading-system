@@ -14,6 +14,10 @@ from quant_system.oversight.auditor import Auditor
 from quant_system.research.fundamental import FundamentalAgent
 from quant_system.research.macro import MacroAgent
 from quant_system.research.momentum import MomentumAgent
+from quant_system.research.rotation import (
+    select_research_universe,
+    update_rotation_after_cycle,
+)
 from quant_system.research.sentiment import SentimentAgent
 from quant_system.research.statistical_ml import StatisticalMLAgent
 from quant_system.tracker.api import Tracker
@@ -35,6 +39,19 @@ def build_agents(market_data: MarketData, universe: list[str] | None = None) -> 
     ]
 
 
+def _log_rotation_events(tracker: Tracker, events: dict[str, Any]) -> None:
+    for etype, items in (events or {}).items():
+        for item in items or []:
+            ticker = (item or {}).get("ticker")
+            tracker.log_decision(
+                decision_type=f"rotation_{etype}",
+                actor="research_rotation",
+                ticker=ticker,
+                reasoning=f"rotation {etype}: {item}",
+                payload=item if isinstance(item, dict) else {"event": item},
+            )
+
+
 def run_once(
     *,
     tracker: Tracker | None = None,
@@ -47,7 +64,15 @@ def run_once(
     cfg = config or load_config()
     md = market_data or build_market_data(mock=mock)
     tr = tracker or Tracker()
-    universe = tickers or cfg.universe.tickers
+
+    # Explicit tickers override rotation; otherwise research active (+ checkup-due cold).
+    if tickers is not None:
+        universe = list(tickers)
+        rotation_enabled = False
+    else:
+        universe = select_research_universe(tr, cfg)
+        rotation_enabled = True
+
     agents = build_agents(md, universe=universe)
     pm = PortfolioManager(tr, md, cfg)
     ex = ExecutionAgent(tr, md)
@@ -60,8 +85,16 @@ def run_once(
     tr.log_decision(
         decision_type="run_start",
         actor="pipeline",
-        reasoning=f"run-once start; mode={ex.mode}; tickers={len(universe)}; halted={tr.is_halted()}",
-        payload={"tickers": universe, "mode": ex.mode, "paper": cfg.risk.paper_mode},
+        reasoning=(
+            f"run-once start; mode={ex.mode}; tickers={len(universe)}; "
+            f"halted={tr.is_halted()}; rotation={rotation_enabled}"
+        ),
+        payload={
+            "tickers": universe,
+            "mode": ex.mode,
+            "paper": cfg.risk.paper_mode,
+            "rotation": rotation_enabled,
+        },
         data_snapshot={"equity": tr.get_state("equity"), "cash": tr.get_state("cash")},
     )
 
@@ -105,6 +138,23 @@ def run_once(
             if result:
                 fills.append(result)
 
+    positions = tr.list_positions()
+    rotation_events: dict[str, Any] | None = None
+    if rotation_enabled:
+        signals_summary = [
+            {
+                "ticker": getattr(sig, "ticker", None),
+                "direction": getattr(getattr(sig, "direction", None), "value", getattr(sig, "direction", None)),
+                "confidence": getattr(sig, "confidence", None),
+                "agent_id": getattr(sig, "agent_id", None),
+            }
+            for _sid, sig in stored
+        ]
+        rotation_events = update_rotation_after_cycle(
+            tr, cfg, signals_summary=signals_summary, holdings=positions
+        )
+        _log_rotation_events(tr, rotation_events)
+
     summary = {
         "signals": len(stored),
         "decisions": len(decisions),
@@ -114,7 +164,9 @@ def run_once(
         "halted": tr.is_halted(),
         "equity": float(tr.get_state("equity", "100")),
         "cash": float(tr.get_state("cash", "100")),
-        "positions": tr.list_positions(),
+        "positions": positions,
+        "research_tickers": universe,
+        "rotation": rotation_events,
     }
     auditor.review_run(summary)
     tr.log_decision(
@@ -129,6 +181,8 @@ def run_once(
             "fills": len(fills),
             "errors": errors,
             "mode": ex.mode,
+            "research_tickers": universe,
+            "rotation": rotation_events,
         },
         data_snapshot={
             "equity": summary["equity"],

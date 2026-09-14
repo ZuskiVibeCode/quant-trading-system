@@ -24,6 +24,8 @@ Optional: `--no-alpaca`, `--no-history`, `--docs PATH`.
 | `watchlist` | array | Universe tickers not held + top agent signal |
 | `sectors` | object | Theme → ticker list from `config/universe.yaml` |
 | `alpaca_snapshot` | object? | Optional public cash/equity/positions only — **never secrets** |
+| `rotation` | object? | **Additive.** `{active: theme→tickers, cold: [...], settings}` from cold/active researcher |
+| `cold` | array? | **Additive.** Compact `[{ticker, checkup_date, reason, theme}]` (same as `rotation.cold`) |
 
 ### `agents_today[].signals[]`
 
