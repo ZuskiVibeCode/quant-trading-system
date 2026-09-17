@@ -24,7 +24,13 @@ class RiskConfig(BaseModel):
     review_1y: str = "fuller_sharpe"
     allow_short: bool = False
     min_confidence_to_trade: float = 55.0
+    min_confidence_to_sell: float = 40.0
     min_order_notional: float = 1.0
+    # Cash buffer trim: when cash/equity < min, trim weakest score<=0 holding
+    cash_buffer_min_pct: float = 0.10
+    cash_buffer_target_pct: float = 0.15  # documented target; trim uses min + frac
+    buffer_trim_frac: float = 0.20
+    max_buffer_trims_per_cycle: int = 1
 
 
 class ThemeMembers(BaseModel):

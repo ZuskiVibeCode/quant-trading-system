@@ -13,6 +13,11 @@ Designed to run under **Grok Bot** (CLI + SQLite) — not LangGraph/CrewAI/Teleg
 - Kill switch: `python -m quant_system halt` / `resume`
 - Every decision logged with reasoning, timestamp, data snapshot (Tracker SQLite)
 
+### Risk / exits (`config/risk.yaml`)
+
+- **Buys** require `min_confidence_to_trade` (default **55**); **sells/reduces** use a lower floor `min_confidence_to_sell` (default **40**) so paper can exit easier.
+- **Cash buffer trim:** if cash/equity < `cash_buffer_min_pct` (10%), the cycle produced no BUYs, and at least one held name has score ≤ 0, emit one SELL of `buffer_trim_frac` (20%) of the weakest score≤0 holding (rationale includes `cash buffer trim`). Target buffer `cash_buffer_target_pct` (15%) is documented; trim uses min + frac. At most `max_buffer_trims_per_cycle` (1) per cycle. Holdings with score > 0 are never trimmed this way.
+
 ## Architecture
 
 ```

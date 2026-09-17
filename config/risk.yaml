@@ -16,5 +16,12 @@ review_1y: fuller_sharpe        # fuller Sharpe weighting
 
 # Execution
 allow_short: false              # paper long-biased for small account
-min_confidence_to_trade: 55
+min_confidence_to_trade: 55     # buy / open floor
+min_confidence_to_sell: 40      # easier exits / reduces
 min_order_notional: 1.0         # dollars
+
+# Cash buffer trim (when flat broke: sell weakest score<=0 holding)
+cash_buffer_min_pct: 0.10       # trigger when cash/equity below this
+cash_buffer_target_pct: 0.15    # documented target; trim uses min + frac
+buffer_trim_frac: 0.20          # sell this fraction of weakest holding
+max_buffer_trims_per_cycle: 1   # at most one buffer trim ticket per cycle
