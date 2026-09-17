@@ -48,6 +48,7 @@ class PortfolioManager:
 
         weights = self.tracker.get_weights()
         results: list[TradeTicket | HoldDecision] = []
+        ticker_scores: dict[str, float] = {}
 
         cash = float(self.tracker.get_state("cash", str(self.risk.starting_equity)))
         equity = self._mark_equity(cash)
@@ -86,15 +87,25 @@ class PortfolioManager:
             return [hold]
 
         for ticker, items in by_ticker.items():
-            decision = self._decide_ticker(
+            decision, score = self._decide_ticker(
                 ticker, items, weights, equity, cash, positions
             )
+            ticker_scores[ticker] = score
             if isinstance(decision, TradeTicket):
                 tid = self.tracker.insert_ticket(decision)
                 decision.id = tid
             else:
                 self.tracker.insert_hold(decision)
             results.append(decision)
+
+        trim_tickets = self._maybe_cash_buffer_trims(
+            results=results,
+            ticker_scores=ticker_scores,
+            positions=positions,
+            cash=cash,
+            equity=equity,
+        )
+        results.extend(trim_tickets)
         return results
 
     def _decide_ticker(
@@ -105,7 +116,7 @@ class PortfolioManager:
         equity: float,
         cash: float,
         positions: dict[str, Any],
-    ) -> TradeTicket | HoldDecision:
+    ) -> tuple[TradeTicket | HoldDecision, float]:
         signal_ids = [sid for sid, _ in items]
         # Weighted vote: long=+1, short=-1, neutral=0; scaled by confidence/100 * weight
         score = 0.0
@@ -145,25 +156,31 @@ class PortfolioManager:
             "contributions": detail,
         }
 
-        if abs(score) < 0.05 or blended_conf < self.risk.min_confidence_to_trade:
-            return HoldDecision(
-                ticker=ticker,
-                rationale=(
-                    f"HOLD {ticker}: score={score:.3f}, blended_conf={blended_conf:.1f} "
-                    f"(min={self.risk.min_confidence_to_trade})"
+        if abs(score) < 0.05:
+            return (
+                HoldDecision(
+                    ticker=ticker,
+                    rationale=(
+                        f"HOLD {ticker}: score={score:.3f}, blended_conf={blended_conf:.1f} "
+                        f"(flat |score| < 0.05)"
+                    ),
+                    signal_ids=signal_ids,
+                    data_snapshot=snapshot,
                 ),
-                signal_ids=signal_ids,
-                data_snapshot=snapshot,
+                score,
             )
 
         try:
             price = self.market_data.last_price(ticker)
         except Exception as exc:  # noqa: BLE001
-            return HoldDecision(
-                ticker=ticker,
-                rationale=f"HOLD {ticker}: cannot fetch price ({exc})",
-                signal_ids=signal_ids,
-                data_snapshot=snapshot,
+            return (
+                HoldDecision(
+                    ticker=ticker,
+                    rationale=f"HOLD {ticker}: cannot fetch price ({exc})",
+                    signal_ids=signal_ids,
+                    data_snapshot=snapshot,
+                ),
+                score,
             )
 
         snapshot["price"] = price
@@ -173,98 +190,246 @@ class PortfolioManager:
         max_pos_value = equity * self.risk.max_position_pct
 
         if score > 0:
-            # Long / add
+            # Long / add — buy confidence floor
+            if blended_conf < self.risk.min_confidence_to_trade:
+                return (
+                    HoldDecision(
+                        ticker=ticker,
+                        rationale=(
+                            f"HOLD {ticker}: score={score:.3f}, blended_conf={blended_conf:.1f} "
+                            f"(buy min={self.risk.min_confidence_to_trade})"
+                        ),
+                        signal_ids=signal_ids,
+                        data_snapshot=snapshot,
+                    ),
+                    score,
+                )
             room = max_pos_value - pos_value
             budget = min(room, cash * 0.95)
             if budget < self.risk.min_order_notional or price <= 0:
-                return HoldDecision(
-                    ticker=ticker,
-                    rationale=(
-                        f"HOLD {ticker}: insufficient budget/room "
-                        f"(budget={budget:.2f}, max_pos={max_pos_value:.2f})"
+                return (
+                    HoldDecision(
+                        ticker=ticker,
+                        rationale=(
+                            f"HOLD {ticker}: insufficient budget/room "
+                            f"(budget={budget:.2f}, max_pos={max_pos_value:.2f})"
+                        ),
+                        signal_ids=signal_ids,
+                        data_snapshot=snapshot,
                     ),
-                    signal_ids=signal_ids,
-                    data_snapshot=snapshot,
+                    score,
                 )
             # Fractional shares OK for paper/sim
             qty = round(budget / price, 6)
             if qty * price < self.risk.min_order_notional:
-                return HoldDecision(
-                    ticker=ticker,
-                    rationale=f"HOLD {ticker}: qty too small for min notional",
-                    signal_ids=signal_ids,
-                    data_snapshot=snapshot,
+                return (
+                    HoldDecision(
+                        ticker=ticker,
+                        rationale=f"HOLD {ticker}: qty too small for min notional",
+                        signal_ids=signal_ids,
+                        data_snapshot=snapshot,
+                    ),
+                    score,
                 )
             # Cap so position won't exceed 20% after fill
             if (pos_value + qty * price) > max_pos_value + 1e-6:
                 qty = max(0.0, (max_pos_value - pos_value) / price)
                 qty = round(qty, 6)
             if qty <= 0:
-                return HoldDecision(
-                    ticker=ticker,
-                    rationale=f"HOLD {ticker}: at max position 20%",
-                    signal_ids=signal_ids,
-                    data_snapshot=snapshot,
+                return (
+                    HoldDecision(
+                        ticker=ticker,
+                        rationale=f"HOLD {ticker}: at max position 20%",
+                        signal_ids=signal_ids,
+                        data_snapshot=snapshot,
+                    ),
+                    score,
                 )
-            return TradeTicket(
-                ticker=ticker,
-                side=TicketSide.BUY,
-                qty=qty,
-                rationale=(
-                    f"BUY {qty} {ticker} @~{price:.2f}; weighted_score={score:.3f}; "
-                    f"blended_conf={blended_conf:.1f}; max_pos={self.risk.max_position_pct:.0%}"
+            return (
+                TradeTicket(
+                    ticker=ticker,
+                    side=TicketSide.BUY,
+                    qty=qty,
+                    rationale=(
+                        f"BUY {qty} {ticker} @~{price:.2f}; weighted_score={score:.3f}; "
+                        f"blended_conf={blended_conf:.1f}; max_pos={self.risk.max_position_pct:.0%}"
+                    ),
+                    signal_ids=signal_ids,
                 ),
-                signal_ids=signal_ids,
+                score,
             )
 
         # score < 0 -> reduce / sell (short only if allow_short and no long)
         if pos_qty > 0:
+            # Sell / reduce — lower confidence floor than buys
+            if blended_conf < self.risk.min_confidence_to_sell:
+                return (
+                    HoldDecision(
+                        ticker=ticker,
+                        rationale=(
+                            f"HOLD {ticker}: score={score:.3f}, blended_conf={blended_conf:.1f} "
+                            f"(sell min={self.risk.min_confidence_to_sell})"
+                        ),
+                        signal_ids=signal_ids,
+                        data_snapshot=snapshot,
+                    ),
+                    score,
+                )
             # Sell portion scaled by |score|
             sell_frac = min(1.0, abs(score) / 0.5)
             qty = round(pos_qty * sell_frac, 6)
             if qty <= 0:
-                return HoldDecision(
-                    ticker=ticker,
-                    rationale=f"HOLD {ticker}: bearish but nothing to sell",
-                    signal_ids=signal_ids,
-                    data_snapshot=snapshot,
+                return (
+                    HoldDecision(
+                        ticker=ticker,
+                        rationale=f"HOLD {ticker}: bearish but nothing to sell",
+                        signal_ids=signal_ids,
+                        data_snapshot=snapshot,
+                    ),
+                    score,
                 )
-            return TradeTicket(
-                ticker=ticker,
-                side=TicketSide.SELL,
-                qty=qty,
-                rationale=(
-                    f"SELL {qty} {ticker} @~{price:.2f}; weighted_score={score:.3f}; "
-                    f"reduce risk"
+            return (
+                TradeTicket(
+                    ticker=ticker,
+                    side=TicketSide.SELL,
+                    qty=qty,
+                    rationale=(
+                        f"SELL {qty} {ticker} @~{price:.2f}; weighted_score={score:.3f}; "
+                        f"reduce risk"
+                    ),
+                    signal_ids=signal_ids,
                 ),
-                signal_ids=signal_ids,
+                score,
             )
 
         if self.risk.allow_short:
+            # Opening shorts use buy confidence floor (new risk)
+            if blended_conf < self.risk.min_confidence_to_trade:
+                return (
+                    HoldDecision(
+                        ticker=ticker,
+                        rationale=(
+                            f"HOLD {ticker}: score={score:.3f}, blended_conf={blended_conf:.1f} "
+                            f"(short min={self.risk.min_confidence_to_trade})"
+                        ),
+                        signal_ids=signal_ids,
+                        data_snapshot=snapshot,
+                    ),
+                    score,
+                )
             # Not opening shorts on $100 account by default
             target = min(max_pos_value, cash * 0.5)
             qty = round(target / price, 6) if price > 0 else 0.0
             if qty * price < self.risk.min_order_notional:
-                return HoldDecision(
-                    ticker=ticker,
-                    rationale=f"HOLD {ticker}: short size below min notional",
-                    signal_ids=signal_ids,
-                    data_snapshot=snapshot,
+                return (
+                    HoldDecision(
+                        ticker=ticker,
+                        rationale=f"HOLD {ticker}: short size below min notional",
+                        signal_ids=signal_ids,
+                        data_snapshot=snapshot,
+                    ),
+                    score,
                 )
-            return TradeTicket(
+            return (
+                TradeTicket(
+                    ticker=ticker,
+                    side=TicketSide.SELL,
+                    qty=qty,
+                    rationale=f"SHORT {qty} {ticker} (allow_short=true); score={score:.3f}",
+                    signal_ids=signal_ids,
+                ),
+                score,
+            )
+
+        return (
+            HoldDecision(
+                ticker=ticker,
+                rationale=f"HOLD {ticker}: bearish score but shorts disabled / no long to exit",
+                signal_ids=signal_ids,
+                data_snapshot=snapshot,
+            ),
+            score,
+        )
+
+    def _maybe_cash_buffer_trims(
+        self,
+        results: list[TradeTicket | HoldDecision],
+        ticker_scores: dict[str, float],
+        positions: dict[str, Any],
+        cash: float,
+        equity: float,
+    ) -> list[TradeTicket]:
+        """When cash is below min buffer and cycle produced no buys, trim weakest score<=0 holds."""
+        if equity <= 0:
+            return []
+        if cash / equity >= self.risk.cash_buffer_min_pct:
+            return []
+
+        has_buy = any(
+            isinstance(d, TradeTicket) and d.side == TicketSide.BUY for d in results
+        )
+        if has_buy:
+            return []
+
+        # Already-sold qty this cycle (avoid overselling on trim)
+        sold_qty: dict[str, float] = defaultdict(float)
+        for d in results:
+            if isinstance(d, TradeTicket) and d.side == TicketSide.SELL:
+                sold_qty[d.ticker] += float(d.qty)
+
+        # Candidates: held tickers with known score <= 0 (do not trim score > 0)
+        candidates: list[tuple[str, float, float, float]] = []  # ticker, score, pos_qty, available
+        for ticker, pos in positions.items():
+            if ticker not in ticker_scores:
+                continue
+            score = ticker_scores[ticker]
+            if score > 0:
+                continue
+            pos_qty = float(pos["qty"])
+            available = pos_qty - sold_qty.get(ticker, 0.0)
+            if available <= 0:
+                continue
+            candidates.append((ticker, score, pos_qty, available))
+
+        if not candidates:
+            return []
+
+        # Weakest first (lowest weighted_score), emit at most max_buffer_trims_per_cycle
+        candidates.sort(key=lambda x: (x[1], x[0]))
+        max_trims = max(0, int(self.risk.max_buffer_trims_per_cycle))
+        out: list[TradeTicket] = []
+        for ticker, score, pos_qty, available in candidates:
+            if len(out) >= max_trims:
+                break
+            try:
+                price = self.market_data.last_price(ticker)
+            except Exception:  # noqa: BLE001
+                continue
+            if price <= 0:
+                continue
+            qty = round(pos_qty * self.risk.buffer_trim_frac, 6)
+            if qty > available:
+                qty = round(available, 6)
+            if qty <= 0:
+                continue
+            notional = qty * price
+            if notional < self.risk.min_order_notional:
+                continue
+            ticket = TradeTicket(
                 ticker=ticker,
                 side=TicketSide.SELL,
                 qty=qty,
-                rationale=f"SHORT {qty} {ticker} (allow_short=true); score={score:.3f}",
-                signal_ids=signal_ids,
+                rationale=(
+                    f"SELL {qty} {ticker} @~{price:.2f}; cash buffer trim; "
+                    f"weighted_score={score:.3f}; cash/equity={cash / equity:.2%} "
+                    f"< min={self.risk.cash_buffer_min_pct:.0%}"
+                ),
+                signal_ids=[],
             )
-
-        return HoldDecision(
-            ticker=ticker,
-            rationale=f"HOLD {ticker}: bearish score but shorts disabled / no long to exit",
-            signal_ids=signal_ids,
-            data_snapshot=snapshot,
-        )
+            tid = self.tracker.insert_ticket(ticket)
+            ticket.id = tid
+            out.append(ticket)
+        return out
 
     def _mark_equity(self, cash: float) -> float:
         equity = cash
