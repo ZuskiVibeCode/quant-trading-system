@@ -181,7 +181,7 @@ pytest -q
 | Agent | Status | Notes |
 |-------|--------|-------|
 | MomentumAgent | live | MA/RSI/MACD/ATR/RS vs benchmark; relative volume, demand imbalance, BB/KC squeeze; VbP (PoC/VA), Weinstein weekly stage (30w SMA), anchored VWAP (high-volume pivot) — soft score only |
-| FundamentalAgent | live | yfinance info → quality_score + valuation_note; missing → neutral/low conf |
+| FundamentalAgent | live | yfinance info → quality + valuation + EV/capital structure, sales multiples, dilution soft flags (desk-style reasoning); missing → neutral/low conf; soft score only |
 | SentimentAgent | live | headline polarity + credibility; `manipulation_risk` only on coordinated hype |
 | MacroAgent | live | VIX (^VIX), dollar (UUP / DX-Y.NYB), rates (TLT / ^TNX), SPY trend → risk-on/off/neutral; `supporting_data`: regime, macro_risk_level, sector_bias, key_levels |
 | StatisticalMLAgent | live | z-score / residual-to-MA mean-reversion, momentum-stat, vol regime, optional XS mom rank; `statistical_edge_score` + confidence band; missing → neutral/low conf |
