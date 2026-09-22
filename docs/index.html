@@ -37,7 +37,8 @@
     <div class="topbar">
       <nav class="nav" id="nav">
         <a href="#snapshot">Snapshot</a>
-        <a href="#holdings">Holdings</a>
+        <a href="#holdings">Open</a>
+        <a href="#closed">Closed</a>
         <a href="#agents">Agents</a>
         <a href="#research">Research</a>
         <a href="#mission">Mission log</a>
@@ -70,18 +71,29 @@
           <p class="kicker">02 · Holdings</p>
           <h2>Open book</h2>
         </div>
-        <p class="hint">Positions with sector tags from universe themes.</p>
+        <p class="hint">Positions with sector tags. Click a row for marks, fills, and latest research.</p>
       </div>
       <div class="panel table-scroll" id="holdingsTable"></div>
+    </section>
+
+    <section id="closed">
+      <div class="section-head">
+        <div>
+          <p class="kicker">03 · Closed book</p>
+          <h2>Realized exits</h2>
+        </div>
+        <p class="hint">Sell fills from Tracker — entry/P&amp;L shown only when a prior buy cost is known.</p>
+      </div>
+      <div class="panel table-scroll" id="closedTable"></div>
     </section>
 
     <section id="agents">
       <div class="section-head">
         <div>
-          <p class="kicker">03 · Agents</p>
+          <p class="kicker">04 · Agents</p>
           <h2>Today's research work</h2>
         </div>
-        <p class="hint">Per-agent signals for the UTC day — direction, confidence, truncated reasoning.</p>
+        <p class="hint">Per-agent signals for today (ET) — direction, confidence, truncated reasoning.</p>
       </div>
       <div class="agent-grid" id="agentGrid"></div>
     </section>
@@ -89,10 +101,10 @@
     <section id="research">
       <div class="section-head">
         <div>
-          <p class="kicker">04 · Research</p>
+          <p class="kicker">05 · Research</p>
           <h2>Signals &amp; decisions</h2>
         </div>
-        <p class="hint">Tickets, holds, fills, and auditor flags from today.</p>
+        <p class="hint">Tickets, holds, fills, and auditor flags from today (ET).</p>
       </div>
       <div class="grid-stats" id="decisionStats" style="margin-bottom:1rem"></div>
       <div class="panel table-scroll" id="researchTable"></div>
@@ -103,7 +115,7 @@
     <section id="mission">
       <div class="section-head">
         <div>
-          <p class="kicker">05 · Mission log</p>
+          <p class="kicker">06 · Mission log</p>
           <h2>Timeline</h2>
         </div>
         <p class="hint">Recent decisions as a readable mission trail.</p>
@@ -114,10 +126,10 @@
     <section id="watch">
       <div class="section-head">
         <div>
-          <p class="kicker">06 · Watchlist</p>
+          <p class="kicker">07 · Watchlist</p>
           <h2>Universe not held</h2>
         </div>
-        <p class="hint">Tickers outside the open book with the strongest agent signal today.</p>
+        <p class="hint">Tickers outside the open book with the strongest agent signal today (ET).</p>
       </div>
       <div class="panel table-scroll" id="watchTable"></div>
     </section>

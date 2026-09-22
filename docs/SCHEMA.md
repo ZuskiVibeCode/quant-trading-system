@@ -12,14 +12,14 @@ Optional: `--no-alpaca`, `--no-history`, `--docs PATH`.
 
 | Key | Type | Notes |
 |-----|------|-------|
-| `meta` | object | `exported_at`, `account`, `starting_equity`, `paper` (always `true`), `day_start_utc` |
+| `meta` | object | `exported_at`, `account`, `starting_equity`, `paper` (always `true`), `day_start_utc` (ET local midnight as UTC ISO), `day_timezone` (`America/New_York`), `day_local` (YYYY-MM-DD), `day_label` (`ET day`) |
 | `snapshot` | object | `equity`, `cash`, `peak_equity`, `daily_pnl`, `drawdown`, `halted`, `day_halted`, `halt_reason` |
 | `holdings` | array | `{ticker, qty, avg_cost, last?, sector, unrealized?, updated_at?}` |
 | `closed` | array | From sell fills when trackable; may be `[]` |
 | `equity_curve` | array | `{t, equity, cash, daily_pnl, drawdown, peak_equity}` from `portfolio_snapshots` |
 | `agents_today` | object | Per `agent_id`: `{agent_id, count, long, short, neutral, signals[]}` |
 | `decisions_today` | object | `tickets`, `holds`, `fills`, `order_submitted`, `failed`, `counts` |
-| `auditor_flags_today` | array | Flags with `created_at` on the UTC day |
+| `auditor_flags_today` | array | Flags with `created_at` on the current ET calendar day |
 | `mission_log` | array | Timeline `{id, at, type, actor, ticker, summary}` |
 | `watchlist` | array | Universe tickers not held + top agent signal |
 | `sectors` | object | Theme → ticker list from `config/universe.yaml` |
@@ -37,7 +37,7 @@ Optional: `--no-alpaca`, `--no-history`, `--docs PATH`.
 
 When history is enabled (default), the same payload is also written to:
 
-`docs/data/history/YYYY-MM-DD.json` (UTC date).
+`docs/data/history/YYYY-MM-DD.json` (America/New_York local calendar date).
 
 ## Security
 

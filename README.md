@@ -137,7 +137,7 @@ Static Orbit-inspired viewer under `docs/` (site root = `/docs`).
 source .venv/bin/activate
 python -m quant_system export-dashboard
 # writes docs/data/latest.json
-# and docs/data/history/YYYY-MM-DD.json (UTC)
+# and docs/data/history/YYYY-MM-DD.json (ET local date)
 # optional: --no-alpaca  --no-history  --docs PATH
 ```
 

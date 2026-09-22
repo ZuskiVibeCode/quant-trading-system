@@ -10,6 +10,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from quant_system.config.loader import load_config
 from quant_system.tracker.api import Tracker
@@ -34,9 +35,43 @@ def _now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 
-def _utc_day_start(ts: datetime | None = None) -> str:
+DASHBOARD_TZ = ZoneInfo("America/New_York")
+
+
+def _as_utc(ts: datetime | None = None) -> datetime:
+    """Normalize *ts* (or now) to aware UTC."""
     t = ts or datetime.now(timezone.utc)
-    return t.strftime("%Y-%m-%dT00:00:00.000000Z")
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=timezone.utc)
+    return t.astimezone(timezone.utc)
+
+
+def local_day_bounds(ts: datetime | None = None, tz: ZoneInfo | None = None) -> tuple[datetime, datetime, str]:
+    """Return (day_start_utc, day_end_utc, local_date_YYYY-MM-DD) for *tz* calendar day.
+
+    Boundaries are timezone-aware UTC datetimes corresponding to local midnight
+    at the start of the local calendar day containing *ts*.
+    """
+    zone = tz or DASHBOARD_TZ
+    local = _as_utc(ts).astimezone(zone)
+    start_local = local.replace(hour=0, minute=0, second=0, microsecond=0)
+    from datetime import timedelta
+
+    end_local = start_local + timedelta(days=1)
+    start_utc = start_local.astimezone(timezone.utc)
+    end_utc = end_local.astimezone(timezone.utc)
+    return start_utc, end_utc, start_local.strftime("%Y-%m-%d")
+
+
+def _local_day_start_utc_iso(ts: datetime | None = None) -> str:
+    """ET local midnight for *ts*, expressed as a UTC ISO string for DB cutoffs."""
+    start_utc, _, _ = local_day_bounds(ts)
+    return start_utc.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
+
+def _utc_day_start(ts: datetime | None = None) -> str:
+    """Deprecated alias: now returns America/New_York local-day start in UTC ISO."""
+    return _local_day_start_utc_iso(ts)
 
 
 def _repo_root() -> Path:
@@ -355,7 +390,8 @@ def build_dashboard_payload(
         for k, v in cfg.universe.themes.items()
     }
     sector_of = _sector_map(themes)
-    day_start = _utc_day_start()
+    day_start_utc_dt, _, local_day = local_day_bounds()
+    day_start = day_start_utc_dt.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
     equity = float(tracker.get_state("equity", str(cfg.risk.starting_equity)))
     cash = float(tracker.get_state("cash", str(cfg.risk.starting_equity)))
@@ -435,7 +471,11 @@ def build_dashboard_payload(
             "account": account,
             "starting_equity": float(cfg.risk.starting_equity),
             "paper": True,
+            # day_start_utc is ET local midnight converted to UTC (compat key name).
             "day_start_utc": day_start,
+            "day_timezone": "America/New_York",
+            "day_local": local_day,
+            "day_label": "ET day",
         },
         "snapshot": {
             "equity": equity,
@@ -545,7 +585,7 @@ def export_dashboard(
 
         history_path = None
         if append_history:
-            day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            _, _, day = local_day_bounds()
             history_path = hist_dir / f"{day}.json"
             history_path.write_text(json.dumps(payload, indent=2, default=str) + "\n")
 

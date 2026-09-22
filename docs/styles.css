@@ -544,3 +544,12 @@ tr.clickable:hover td { background: var(--elevated); }
 @media (min-width: 640px) { .hero { min-height: 30rem; } }
 .hero-art { opacity: 0.5; }
 .topbar { backdrop-filter: blur(10px); background: rgb(16 20 24 / 0.82); position: sticky; top: 0.5rem; z-index: 20; }
+
+tr.clickable:focus-visible td {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: var(--elevated);
+}
+tr.clickable:focus {
+  outline: none;
+}

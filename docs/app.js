@@ -61,6 +61,102 @@
     return Number(n) >= 0 ? "gain" : "loss";
   }
 
+  function safeNum(n) {
+    if (n == null || n === "") return null;
+    const v = Number(n);
+    return Number.isFinite(v) ? v : null;
+  }
+
+  function marketValue(qty, last) {
+    const q = safeNum(qty);
+    const l = safeNum(last);
+    if (q == null || l == null) return null;
+    return q * l;
+  }
+
+  function costBasis(qty, avgCost) {
+    const q = safeNum(qty);
+    const a = safeNum(avgCost);
+    if (q == null || a == null) return null;
+    return q * a;
+  }
+
+  function unrealizedPct(unrealized, qty, avgCost) {
+    const u = safeNum(unrealized);
+    const basis = costBasis(qty, avgCost);
+    if (u == null || basis == null || basis === 0) return null;
+    return u / basis;
+  }
+
+  function tickerKey(t) {
+    return String(t || "").toUpperCase();
+  }
+
+  function signalsForTicker(ticker) {
+    const want = tickerKey(ticker);
+    const out = [];
+    const agents = DATA?.agents_today || {};
+    Object.values(agents).forEach((block) => {
+      (block.signals || []).forEach((s) => {
+        if (tickerKey(s.ticker) === want) {
+          out.push({ ...s, agent_id: s.agent_id || block.agent_id });
+        }
+      });
+    });
+    out.sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")));
+    return out;
+  }
+
+  function decisionsForTicker(ticker) {
+    const want = tickerKey(ticker);
+    const d = DATA?.decisions_today || {};
+    const buckets = ["tickets", "holds", "fills", "order_submitted", "failed", "other"];
+    const out = [];
+    buckets.forEach((key) => {
+      (d[key] || []).forEach((row) => {
+        if (tickerKey(row.ticker) === want) out.push(row);
+      });
+    });
+    out.sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")));
+    return out;
+  }
+
+  function missionForTicker(ticker) {
+    const want = tickerKey(ticker);
+    return (DATA?.mission_log || [])
+      .filter((e) => tickerKey(e.ticker) === want)
+      .slice(0, 8);
+  }
+
+  function closedFillsForTicker(ticker) {
+    const want = tickerKey(ticker);
+    return (DATA?.closed || [])
+      .filter((c) => tickerKey(c.ticker) === want)
+      .slice()
+      .sort((a, b) => String(b.closed_at || "").localeCompare(String(a.closed_at || "")));
+  }
+
+  function openDialogHtml(html) {
+    const dlg = $("dialog");
+    const body = $("dialogBody");
+    body.innerHTML = html;
+    dlg.hidden = false;
+    dlg.classList.add("open");
+  }
+
+  function bindRowActivation(tr, onActivate) {
+    tr.classList.add("clickable");
+    tr.tabIndex = 0;
+    tr.setAttribute("role", "button");
+    tr.addEventListener("click", onActivate);
+    tr.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onActivate();
+      }
+    });
+  }
+
   function sectorOf(ticker) {
     const sectors = DATA?.sectors || {};
     for (const [sec, list] of Object.entries(sectors)) {
@@ -118,7 +214,10 @@
   function renderSnapshot() {
     const s = DATA.snapshot || {};
     const meta = DATA.meta || {};
-    $("exportedAt").textContent = `Exported ${fmtTime(meta.exported_at)} · account ${meta.account || "paper"}`;
+    const dayBit = meta.day_local
+      ? ` · ${meta.day_label || "ET day"} ${meta.day_local}`
+      : "";
+    $("exportedAt").textContent = `Exported ${fmtTime(meta.exported_at)} · account ${meta.account || "paper"}${dayBit}`;
     const cards = [
       { label: "Equity", value: fmtUsd(s.equity) },
       { label: "Cash", value: fmtUsd(s.cash) },
@@ -186,7 +285,7 @@
         <tbody>
           ${rows
             .map(
-              (h) => `<tr>
+              (h, i) => `<tr data-hold-idx="${i}" aria-label="Open details for ${h.ticker}">
                 <td class="mono">${h.ticker}</td>
                 <td class="muted">${h.sector || "—"}</td>
                 <td class="mono">${Number(h.qty).toFixed(4)}</td>
@@ -198,6 +297,163 @@
             .join("")}
         </tbody>
       </table>`;
+    $("holdingsTable").querySelectorAll("tr[data-hold-idx]").forEach((tr) => {
+      const idx = Number(tr.getAttribute("data-hold-idx"));
+      bindRowActivation(tr, () => openHoldingDetail(rows[idx]));
+    });
+  }
+
+  function renderClosed() {
+    const host = $("closedTable");
+    if (!host) return;
+    const rows = (DATA.closed || []).filter((c) => matchesSector(c.sector || sectorOf(c.ticker)));
+    if (!rows.length) {
+      host.innerHTML = `<div class="empty">No closed trades${filter !== "all" ? " in this sector" : ""}</div>`;
+      return;
+    }
+    // Newest first for readability
+    const ordered = rows.slice().sort((a, b) => String(b.closed_at || "").localeCompare(String(a.closed_at || "")));
+    host.innerHTML = `
+      <table>
+        <thead><tr><th>Ticker</th><th>Sector</th><th>Qty</th><th>Entry</th><th>Exit</th><th>Realized</th><th>Closed</th><th>Mode</th></tr></thead>
+        <tbody>
+          ${ordered
+            .map(
+              (c, i) => `<tr data-closed-idx="${i}" aria-label="Open closed trade details for ${c.ticker}">
+                <td class="mono">${c.ticker}</td>
+                <td class="muted">${c.sector || "—"}</td>
+                <td class="mono">${c.qty != null ? Number(c.qty).toFixed(4) : "—"}</td>
+                <td class="mono">${fmtUsd(c.entry)}</td>
+                <td class="mono">${fmtUsd(c.exit)}</td>
+                <td class="mono ${pnlClass(c.pnl)}">${fmtUsd(c.pnl)}</td>
+                <td class="mono subtle">${fmtTime(c.closed_at)}</td>
+                <td class="mono muted">${c.mode || "—"}</td>
+              </tr>`
+            )
+            .join("")}
+        </tbody>
+      </table>`;
+    host.querySelectorAll("tr[data-closed-idx]").forEach((tr) => {
+      const idx = Number(tr.getAttribute("data-closed-idx"));
+      bindRowActivation(tr, () => openClosedDetail(ordered[idx]));
+    });
+  }
+
+  function openHoldingDetail(h) {
+    const mv = marketValue(h.qty, h.last);
+    const pct = unrealizedPct(h.unrealized, h.qty, h.avg_cost);
+    const sigs = signalsForTicker(h.ticker);
+    const decisions = decisionsForTicker(h.ticker);
+    const mission = missionForTicker(h.ticker);
+    const closed = closedFillsForTicker(h.ticker);
+    const fills = (Array.isArray(h.fills) ? h.fills : []).slice(0, 8);
+    const latestSig = sigs[0];
+    const latestDec = decisions[0];
+
+    let researchHtml = `<p class="muted">No research signals for this ticker in today's feed.</p>`;
+    if (latestSig) {
+      researchHtml = `
+        <p><span class="mono muted">${latestSig.agent_id || "agent"}</span>
+          · <span class="dir ${latestSig.direction}">${latestSig.direction}</span>
+          · <span class="mono">${Number(latestSig.confidence).toFixed(1)}</span>
+          · <span class="subtle">${fmtTime(latestSig.created_at)}</span></p>
+        <p style="margin-top:0.5rem">${latestSig.reasoning || "—"}</p>
+        ${latestSig.supporting_data ? `<pre>${JSON.stringify(latestSig.supporting_data, null, 2)}</pre>` : ""}`;
+    }
+
+    let decisionHtml = `<p class="muted">No decisions for this ticker in today's feed.</p>`;
+    if (latestDec) {
+      decisionHtml = `
+        <p><span class="mono">${latestDec.decision_type || "decision"}</span>
+          · <span class="muted">${latestDec.actor || "—"}</span>
+          · <span class="subtle">${fmtTime(latestDec.created_at)}</span></p>
+        <p style="margin-top:0.5rem">${latestDec.reasoning || "—"}</p>`;
+    }
+
+    let fillsHtml = "";
+    if (fills.length) {
+      fillsHtml = `<p class="kicker" style="margin-top:1rem">Position fills</p>
+        <pre>${JSON.stringify(fills, null, 2)}</pre>`;
+    } else if (closed.length) {
+      fillsHtml = `<p class="kicker" style="margin-top:1rem">Related closed sells</p>
+        <ul style="margin:0.35rem 0 0;padding-left:1.1rem;color:var(--muted);font-size:0.85rem">
+          ${closed.slice(0, 5).map((c) =>
+            `<li class="mono">${fmtTime(c.closed_at)} · qty ${c.qty != null ? Number(c.qty).toFixed(4) : "—"} · exit ${fmtUsd(c.exit)} · pnl ${fmtUsd(c.pnl)}</li>`
+          ).join("")}
+        </ul>`;
+    }
+
+    let missionHtml = "";
+    if (mission.length) {
+      missionHtml = `<p class="kicker" style="margin-top:1rem">Mission notes</p>
+        <ul style="margin:0.35rem 0 0;padding-left:1.1rem;color:var(--muted);font-size:0.85rem">
+          ${mission.map((e) =>
+            `<li><span class="mono">${e.type || "event"}</span> · ${fmtTime(e.at)} — ${trunc(e.summary || "", 160)}</li>`
+          ).join("")}
+        </ul>`;
+    }
+
+    openDialogHtml(`
+      <p class="kicker">Open book</p>
+      <h3>${h.ticker} · <span class="muted">${h.sector || "—"}</span></h3>
+      <p class="muted">Updated ${fmtTime(h.updated_at)}</p>
+      <div class="grid-stats" style="margin-top:1rem">
+        <div class="stat"><p class="label">Qty</p><p class="value mono">${h.qty != null ? Number(h.qty).toFixed(4) : "—"}</p></div>
+        <div class="stat"><p class="label">Avg cost</p><p class="value mono">${fmtUsd(h.avg_cost)}</p></div>
+        <div class="stat"><p class="label">Last</p><p class="value mono">${fmtUsd(h.last)}</p></div>
+        <div class="stat"><p class="label">Market value</p><p class="value mono">${fmtUsd(mv)}</p></div>
+        <div class="stat"><p class="label">Unrealized $</p><p class="value mono ${pnlClass(h.unrealized)}">${fmtUsd(h.unrealized)}</p></div>
+        <div class="stat"><p class="label">Unrealized %</p><p class="value mono ${pnlClass(h.unrealized)}">${pct == null ? "—" : (pct * 100).toFixed(2) + "%"}</p></div>
+      </div>
+      <p class="kicker" style="margin-top:1rem">Latest research</p>
+      ${researchHtml}
+      <p class="kicker" style="margin-top:1rem">Latest decision</p>
+      ${decisionHtml}
+      ${fillsHtml}
+      ${missionHtml}`);
+  }
+
+  function openClosedDetail(c) {
+    const sigs = signalsForTicker(c.ticker);
+    const decisions = decisionsForTicker(c.ticker);
+    const latestSig = sigs[0];
+    const related = decisions.filter((d) => {
+      const t = String(d.decision_type || "").toLowerCase();
+      return t.includes("fill") || t.includes("order") || t === "ticket";
+    }).slice(0, 5);
+
+    let extra = "";
+    if (latestSig) {
+      extra += `<p class="kicker" style="margin-top:1rem">Latest research (same ticker)</p>
+        <p><span class="mono muted">${latestSig.agent_id || "agent"}</span>
+          · <span class="dir ${latestSig.direction}">${latestSig.direction}</span>
+          · <span class="subtle">${fmtTime(latestSig.created_at)}</span></p>
+        <p style="margin-top:0.35rem">${latestSig.reasoning || "—"}</p>`;
+    }
+    if (related.length) {
+      extra += `<p class="kicker" style="margin-top:1rem">Related decisions</p>
+        <ul style="margin:0.35rem 0 0;padding-left:1.1rem;color:var(--muted);font-size:0.85rem">
+          ${related.map((d) =>
+            `<li><span class="mono">${d.decision_type}</span> · ${fmtTime(d.created_at)} — ${trunc(d.reasoning || "", 140)}</li>`
+          ).join("")}
+        </ul>`;
+    }
+    if (c.buy || c.sell) {
+      extra += `<p class="kicker" style="margin-top:1rem">Linked legs</p>
+        <pre>${JSON.stringify({ buy: c.buy || null, sell: c.sell || null }, null, 2)}</pre>`;
+    }
+
+    openDialogHtml(`
+      <p class="kicker">Closed book</p>
+      <h3>${c.ticker} · <span class="muted">${c.sector || "—"}</span></h3>
+      <p class="muted">Closed ${fmtTime(c.closed_at)} · mode ${c.mode || "—"}</p>
+      <div class="grid-stats" style="margin-top:1rem">
+        <div class="stat"><p class="label">Qty</p><p class="value mono">${c.qty != null ? Number(c.qty).toFixed(4) : "—"}</p></div>
+        <div class="stat"><p class="label">Entry</p><p class="value mono">${fmtUsd(c.entry)}</p></div>
+        <div class="stat"><p class="label">Exit</p><p class="value mono">${fmtUsd(c.exit)}</p></div>
+        <div class="stat"><p class="label">Realized P/L</p><p class="value mono ${pnlClass(c.pnl)}">${fmtUsd(c.pnl)}</p></div>
+      </div>
+      ${extra || `<p class="muted" style="margin-top:1rem">No additional reasoning or linked fill payloads in this feed.</p>`}`);
   }
 
   function renderAgents() {
@@ -382,18 +638,14 @@
   }
 
   function openDetail(signal, agentId) {
-    const dlg = $("dialog");
-    const body = $("dialogBody");
-    body.innerHTML = `
+    openDialogHtml(`
       <p class="kicker">${agentId || signal.agent_id || "agent"}</p>
       <h3>${signal.ticker} · <span class="dir ${signal.direction}">${signal.direction}</span>
         <span class="mono"> ${Number(signal.confidence).toFixed(1)}</span></h3>
       <p class="muted">${fmtTime(signal.created_at)}</p>
       <p style="margin-top:1rem">${signal.reasoning || ""}</p>
       <p class="kicker" style="margin-top:1rem">Supporting data</p>
-      <pre>${JSON.stringify(signal.supporting_data || {}, null, 2)}</pre>`;
-    dlg.hidden = false;
-    dlg.classList.add("open");
+      <pre>${JSON.stringify(signal.supporting_data || {}, null, 2)}</pre>`);
   }
 
   function closeDetail() {
@@ -407,6 +659,7 @@
     renderHeroBadges();
     renderSnapshot();
     renderHoldings();
+    renderClosed();
     renderAgents();
     renderResearch();
     renderMission();

@@ -147,3 +147,70 @@ def test_holdings_enrich_falls_back_to_market_value_over_qty(tmp_path, monkeypat
     h = payload["holdings"][0]
     assert h["last"] == 25.0
     assert h["unrealized"] == 20.0
+
+
+def test_local_day_bounds_evening_et():
+    """Evening ET (next calendar day UTC) still belongs to the ET local day."""
+    from datetime import datetime, timezone
+
+    from quant_system.dashboard_export import _local_day_start_utc_iso, local_day_bounds
+
+    # 2026-09-21 20:40 ET == 2026-09-22 00:40 UTC (EDT, UTC-4)
+    evening_utc = datetime(2026, 9, 22, 0, 40, 31, tzinfo=timezone.utc)
+    start_utc, end_utc, local_day = local_day_bounds(evening_utc)
+    assert local_day == "2026-09-21"
+    assert start_utc.year == 2026 and start_utc.month == 9 and start_utc.day == 21
+    assert start_utc.hour == 4  # EDT midnight = 04:00 UTC
+    assert end_utc.day == 22 and end_utc.hour == 4
+    iso = _local_day_start_utc_iso(evening_utc)
+    assert iso.startswith("2026-09-21T04:00:00")
+    assert iso.endswith("Z")
+
+
+def test_build_payload_uses_et_day_for_evening_signals(tmp_path, monkeypatch):
+    """Signals stamped after UTC midnight but still on ET day appear in agents_today."""
+    from datetime import datetime, timezone
+
+    from quant_system import dashboard_export as de
+    from quant_system.models.signal import Direction, Signal
+    from quant_system.tracker.api import Tracker
+
+    # Freeze "now" at 2026-09-22 00:40 UTC == Sep 21 20:40 ET
+    frozen = datetime(2026, 9, 22, 0, 40, 0, tzinfo=timezone.utc)
+
+    class _FrozenDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            if tz is None:
+                return frozen.replace(tzinfo=None)
+            return frozen.astimezone(tz)
+
+    monkeypatch.setattr(de, "datetime", _FrozenDateTime)
+
+    db = str(tmp_path / "etday.db")
+    tracker = Tracker(db)
+    sig = Signal(
+        agent_id="momentum",
+        ticker="NVDA",
+        direction=Direction.LONG,
+        confidence=70.0,
+        reasoning="et-day evening signal",
+        supporting_data={"rsi": 58.0},
+    )
+    sid = tracker.insert_signal(sig)
+    # Backdate created_at into Sep 21 ET afternoon (still before frozen now, after ET midnight)
+    tracker.conn.execute(
+        "UPDATE signals SET created_at = ? WHERE id = ?",
+        ("2026-09-21T19:48:00.000000Z", sid),
+    )
+    tracker.conn.commit()
+
+    payload = de.build_dashboard_payload(tracker, include_alpaca=False)
+    tracker.close()
+
+    assert payload["meta"]["day_local"] == "2026-09-21"
+    assert payload["meta"]["day_timezone"] == "America/New_York"
+    assert payload["meta"]["day_label"] == "ET day"
+    assert payload["meta"]["day_start_utc"].startswith("2026-09-21T04:00:00")
+    assert payload["agents_today"]["momentum"]["count"] >= 1
+    assert payload["agents_today"]["momentum"]["signals"][0]["ticker"] == "NVDA"
