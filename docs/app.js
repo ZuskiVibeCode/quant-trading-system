@@ -162,23 +162,37 @@
     return `<span class="zone-badge ${z}">${label}</span>`;
   }
 
+  function zoneNiceMax(vals, padRatio = 1.2, floor = 0.1) {
+    const nums = (vals || []).map((v) => Number(v) || 0);
+    const m = nums.length ? Math.max(0, ...nums) : 0;
+    if (m <= 0) return floor;
+    const raw = Math.max(m * padRatio, m + 0.04);
+    const step = raw <= 0.35 ? 0.05 : 0.1;
+    return Math.ceil(raw / step) * step;
+  }
+
   function drawZoneHistoryChart(series) {
     if (!series.length) {
       return `<div class="empty" style="padding:1rem">No zone history for this ticker yet</div>`;
     }
     const w = 520;
     const h = 160;
-    const pad = { t: 16, r: 12, b: 28, l: 36 };
+    const pad = { t: 16, r: 12, b: 28, l: 40 };
+    const yMax = zoneNiceMax(series.flatMap((p) => [p.buy, p.sell]));
     const x = (i) => pad.l + (i / Math.max(series.length - 1, 1)) * (w - pad.l - pad.r);
-    const y = (v) => pad.t + (1 - Math.min(Math.max(v, 0), 1)) * (h - pad.t - pad.b);
+    const y = (v) => pad.t + (1 - Math.min(Math.max(Number(v) || 0, 0), yMax) / yMax) * (h - pad.t - pad.b);
     const buyPts = series.map((p, i) => `${x(i).toFixed(1)},${y(p.buy).toFixed(1)}`).join(" ");
     const sellPts = series.map((p, i) => `${x(i).toFixed(1)},${y(p.sell).toFixed(1)}`).join(" ");
     const first = series[0].day.slice(5);
     const last = series[series.length - 1].day.slice(5);
+    const thresh =
+      0.35 <= yMax
+        ? `<line x1="${pad.l}" x2="${w - pad.r}" y1="${y(0.35)}" y2="${y(0.35)}" stroke="#232a32" stroke-dasharray="3 4"/>`
+        : "";
     return `<div class="zone-chart"><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Buy and sell pressure history">
-      <line x1="${pad.l}" x2="${w - pad.r}" y1="${y(0.35)}" y2="${y(0.35)}" stroke="#232a32" stroke-dasharray="3 4"/>
-      <text x="6" y="${y(1) + 3}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono">1</text>
-      <text x="6" y="${y(0) + 3}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono">0</text>
+      ${thresh}
+      <text x="4" y="${y(yMax) + 3}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono">${yMax.toFixed(2)}</text>
+      <text x="4" y="${y(0) + 3}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono">0</text>
       <polyline points="${buyPts}" fill="none" stroke="#8aa58f" stroke-width="1.6"/>
       <polyline points="${sellPts}" fill="none" stroke="#c48980" stroke-width="1.6"/>
       <text x="${pad.l}" y="${h - 8}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono">${first}</text>
@@ -769,11 +783,20 @@
     const w = 720;
     const h = 480;
     const pad = { t: 36, r: 28, b: 48, l: 56 };
-    const xOf = (sell) => pad.l + Math.min(Math.max(Number(sell) || 0, 0), 1) * (w - pad.l - pad.r);
-    const yOf = (buy) => pad.t + (1 - Math.min(Math.max(Number(buy) || 0, 0), 1)) * (h - pad.t - pad.b);
-    // quadrant guides at 0.35
-    const xT = xOf(0.35);
-    const yT = yOf(0.35);
+    const xMax = zoneNiceMax(points.map((p) => p.sell));
+    const yMax = zoneNiceMax(points.map((p) => p.buy));
+    const xOf = (sell) => pad.l + (Math.min(Math.max(Number(sell) || 0, 0), xMax) / xMax) * (w - pad.l - pad.r);
+    const yOf = (buy) => pad.t + (1 - Math.min(Math.max(Number(buy) || 0, 0), yMax) / yMax) * (h - pad.t - pad.b);
+    // Zone threshold guides (0.35) only when they fall inside the fitted range
+    const guides = [];
+    if (0.35 <= xMax) {
+      const xT = xOf(0.35);
+      guides.push(`<line x1="${xT}" x2="${xT}" y1="${pad.t}" y2="${h - pad.b}" stroke="#232a32" stroke-dasharray="4 5"/>`);
+    }
+    if (0.35 <= yMax) {
+      const yT = yOf(0.35);
+      guides.push(`<line x1="${pad.l}" x2="${w - pad.r}" y1="${yT}" y2="${yT}" stroke="#232a32" stroke-dasharray="4 5"/>`);
+    }
     const dots = points
       .map((p, i) => {
         const cx = xOf(p.sell).toFixed(1);
@@ -789,18 +812,17 @@
       .join("");
     host.innerHTML = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Buy vs sell pressure scatter">
       <rect x="${pad.l}" y="${pad.t}" width="${w - pad.l - pad.r}" height="${h - pad.t - pad.b}" fill="#0c1014" stroke="#232a32"/>
-      <line x1="${xT}" x2="${xT}" y1="${pad.t}" y2="${h - pad.b}" stroke="#232a32" stroke-dasharray="4 5"/>
-      <line x1="${pad.l}" x2="${w - pad.r}" y1="${yT}" y2="${yT}" stroke="#232a32" stroke-dasharray="4 5"/>
+      ${guides.join("")}
       <text class="zones-quad-label" x="${pad.l + 8}" y="${pad.t + 16}">Buy</text>
       <text class="zones-quad-label" x="${w - pad.r - 8}" y="${pad.t + 16}" text-anchor="end">Conflicted</text>
       <text class="zones-quad-label" x="${pad.l + 8}" y="${h - pad.b - 8}">Quiet</text>
       <text class="zones-quad-label" x="${w - pad.r - 8}" y="${h - pad.b - 8}" text-anchor="end">Sell</text>
-      <text x="${pad.l}" y="${h - 14}" fill="#5c656e" font-size="11" font-family="IBM Plex Mono">Sell →</text>
-      <text x="16" y="${pad.t + 4}" fill="#5c656e" font-size="11" font-family="IBM Plex Mono" transform="rotate(-90 16,${pad.t + 4})">Buy ↑</text>
+      <text x="${pad.l}" y="${h - 14}" fill="#5c656e" font-size="11" font-family="IBM Plex Mono">Sell → (fit 0–${xMax.toFixed(2)})</text>
+      <text x="16" y="${pad.t + 4}" fill="#5c656e" font-size="11" font-family="IBM Plex Mono" transform="rotate(-90 16,${pad.t + 4})">Buy ↑ (0–${yMax.toFixed(2)})</text>
       <text x="${pad.l - 8}" y="${yOf(0) + 3}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono" text-anchor="end">0</text>
-      <text x="${pad.l - 8}" y="${yOf(1) + 3}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono" text-anchor="end">1</text>
+      <text x="${pad.l - 8}" y="${yOf(yMax) + 3}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono" text-anchor="end">${yMax.toFixed(2)}</text>
       <text x="${xOf(0)}" y="${h - pad.b + 18}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono" text-anchor="middle">0</text>
-      <text x="${xOf(1)}" y="${h - pad.b + 18}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono" text-anchor="middle">1</text>
+      <text x="${xOf(xMax)}" y="${h - pad.b + 18}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono" text-anchor="middle">${xMax.toFixed(2)}</text>
       ${dots}
     </svg>`;
     host.querySelectorAll("[data-zone-idx]").forEach((g) => {
