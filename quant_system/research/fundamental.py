@@ -80,25 +80,307 @@ def _safe_float(value: Any) -> float | None:
     return f
 
 
-def fetch_yfinance_fundamentals(ticker: str) -> dict[str, Any]:
-    """Pull fundamentals via yfinance info. Returns {} on any failure."""
+# Statement row aliases (yfinance labels vary by ticker / period).
+_REVENUE_ALIASES: tuple[str, ...] = ("Total Revenue", "Operating Revenue", "Revenue")
+_NET_INCOME_ALIASES: tuple[str, ...] = (
+    "Net Income",
+    "Net Income Common Stockholders",
+    "Net Income Continuous Operations",
+    "Net Income From Continuing Operation Net Minority Interest",
+)
+_OPERATING_INCOME_ALIASES: tuple[str, ...] = ("Operating Income", "EBIT")
+_GROSS_PROFIT_ALIASES: tuple[str, ...] = ("Gross Profit",)
+_FCF_ALIASES: tuple[str, ...] = ("Free Cash Flow",)
+_OCF_ALIASES: tuple[str, ...] = ("Operating Cash Flow", "Cash Flow From Continuing Operating Activities")
+_TOTAL_DEBT_ALIASES: tuple[str, ...] = ("Total Debt",)
+_NET_DEBT_ALIASES: tuple[str, ...] = ("Net Debt",)
+_CASH_ALIASES: tuple[str, ...] = (
+    "Cash And Cash Equivalents",
+    "Cash Cash Equivalents And Short Term Investments",
+    "Cash Financial",
+)
+_CASH_STI_ALIASES: tuple[str, ...] = ("Cash Cash Equivalents And Short Term Investments",)
+_SHARES_ALIASES: tuple[str, ...] = ("Ordinary Shares Number", "Share Issued", "Common Stock")
+_EQUITY_ALIASES: tuple[str, ...] = (
+    "Stockholders Equity",
+    "Common Stock Equity",
+    "Total Equity Gross Minority Interest",
+)
+_ASSETS_ALIASES: tuple[str, ...] = ("Total Assets",)
+_META_KEYS: frozenset[str] = frozenset(
+    {
+        "fundamentals_source",
+        "longBusinessSummary",
+        "description",
+        "_info_text",
+    }
+)
+
+_MEANINGFUL_SKIP: frozenset[str] = frozenset(
+    {
+        "marketCap",
+        "currentPrice",
+        "regularMarketPrice",
+        "previousClose",
+        "longBusinessSummary",
+        "description",
+        "_info_text",
+        "fundamentals_source",
+    }
+)
+
+
+def _frame_row(frame: Any, aliases: tuple[str, ...]) -> Any | None:
+    """Return a pandas Series for the first matching row label, or None."""
+    if frame is None:
+        return None
     try:
-        import yfinance as yf
+        if getattr(frame, "empty", True):
+            return None
+        index = frame.index
+        for alias in aliases:
+            if alias in index:
+                return frame.loc[alias]
+    except Exception:  # noqa: BLE001
+        return None
+    return None
 
-        info = yf.Ticker(ticker).info or {}
-    except Exception:  # noqa: BLE001 — network / API flakiness
+
+def _series_value(series: Any, col_idx: int = 0) -> float | None:
+    if series is None:
+        return None
+    try:
+        if hasattr(series, "iloc"):
+            if len(series) <= col_idx:
+                return None
+            return _safe_float(series.iloc[col_idx])
+        return _safe_float(series)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _latest(frame: Any, aliases: tuple[str, ...]) -> float | None:
+    return _series_value(_frame_row(frame, aliases), 0)
+
+
+def _yoy_growth(frame: Any, aliases: tuple[str, ...]) -> float | None:
+    series = _frame_row(frame, aliases)
+    if series is None:
+        return None
+    try:
+        if not hasattr(series, "iloc") or len(series) < 2:
+            return None
+        curr = _safe_float(series.iloc[0])
+        prev = _safe_float(series.iloc[1])
+    except Exception:  # noqa: BLE001
+        return None
+    if curr is None or prev is None or prev == 0:
+        return None
+    return (curr - prev) / abs(prev)
+
+
+def _fast_info_dict(fast_info: Any) -> dict[str, Any]:
+    """Normalize yfinance fast_info (object or mapping) to a plain dict."""
+    if fast_info is None:
         return {}
+    out: dict[str, Any] = {}
+    if isinstance(fast_info, dict):
+        src = fast_info
+    else:
+        try:
+            src = dict(fast_info)
+        except Exception:  # noqa: BLE001
+            src = {}
+            for key in (
+                "market_cap",
+                "marketCap",
+                "last_price",
+                "lastPrice",
+                "previous_close",
+                "previousClose",
+                "shares",
+                "shares_outstanding",
+            ):
+                try:
+                    val = getattr(fast_info, key, None)
+                except Exception:  # noqa: BLE001
+                    val = None
+                if val is not None:
+                    src[key] = val
+    for k, v in src.items():
+        out[str(k)] = v
+    return out
 
+
+def metrics_from_statements(
+    income_stmt: Any = None,
+    balance_sheet: Any = None,
+    cashflow: Any = None,
+    *,
+    fast_info: Any = None,
+    quarterly_income: Any = None,
+    quarterly_balance: Any = None,
+    quarterly_cashflow: Any = None,
+) -> dict[str, Any]:
+    """Derive yfinance-style fundamental metrics from statement frames + fast_info.
+
+    Prefers annual statements; falls back to quarterly frames when annual rows
+    are missing. Pure helper — no network. Returns {} when nothing usable.
+    """
+    out: dict[str, Any] = {}
+
+    # Prefer annual; use quarterly only as fill for missing keys.
+    income = income_stmt if income_stmt is not None and not getattr(income_stmt, "empty", True) else None
+    balance = balance_sheet if balance_sheet is not None and not getattr(balance_sheet, "empty", True) else None
+    cash = cashflow if cashflow is not None and not getattr(cashflow, "empty", True) else None
+    q_income = (
+        quarterly_income
+        if quarterly_income is not None and not getattr(quarterly_income, "empty", True)
+        else None
+    )
+    q_balance = (
+        quarterly_balance
+        if quarterly_balance is not None and not getattr(quarterly_balance, "empty", True)
+        else None
+    )
+    q_cash = (
+        quarterly_cashflow
+        if quarterly_cashflow is not None and not getattr(quarterly_cashflow, "empty", True)
+        else None
+    )
+
+    def pick(annual_frame: Any, quarterly_frame: Any, aliases: tuple[str, ...]) -> float | None:
+        val = _latest(annual_frame, aliases)
+        if val is not None:
+            return val
+        return _latest(quarterly_frame, aliases)
+
+    total_revenue = pick(income, q_income, _REVENUE_ALIASES)
+    if total_revenue is not None:
+        out["totalRevenue"] = total_revenue
+
+    net_income = pick(income, q_income, _NET_INCOME_ALIASES)
+    operating_income = pick(income, q_income, _OPERATING_INCOME_ALIASES)
+    gross_profit = pick(income, q_income, _GROSS_PROFIT_ALIASES)
+
+    fcf = pick(cash, q_cash, _FCF_ALIASES)
+    if fcf is not None:
+        out["freeCashflow"] = fcf
+    ocf = pick(cash, q_cash, _OCF_ALIASES)
+    if ocf is not None:
+        out["operatingCashflow"] = ocf
+
+    total_cash = pick(balance, q_balance, _CASH_ALIASES)
+    if total_cash is not None:
+        out["totalCash"] = total_cash
+    cash_sti = pick(balance, q_balance, _CASH_STI_ALIASES)
+    # Prefer broader cash+STI when distinct and larger; keep shortTermInvestments absense honest.
+    if cash_sti is not None and (total_cash is None or cash_sti > total_cash):
+        out["totalCash"] = cash_sti
+
+    total_debt = pick(balance, q_balance, _TOTAL_DEBT_ALIASES)
+    if total_debt is None:
+        net_debt = pick(balance, q_balance, _NET_DEBT_ALIASES)
+        cash_for_debt = out.get("totalCash")
+        if net_debt is not None and cash_for_debt is not None:
+            # Net Debt ≈ Total Debt - cash → Total Debt ≈ Net Debt + cash
+            total_debt = net_debt + cash_for_debt
+    if total_debt is not None:
+        out["totalDebt"] = total_debt
+
+    shares = pick(balance, q_balance, _SHARES_ALIASES)
+    if shares is not None and shares > 0:
+        out["sharesOutstanding"] = shares
+
+    equity = pick(balance, q_balance, _EQUITY_ALIASES)
+    assets = pick(balance, q_balance, _ASSETS_ALIASES)
+
+    # Margins from latest annual/quarterly income vs revenue
+    rev_for_margins = total_revenue
+    if rev_for_margins is not None and rev_for_margins != 0:
+        if net_income is not None:
+            out["profitMargins"] = net_income / rev_for_margins
+        if operating_income is not None:
+            out["operatingMargins"] = operating_income / rev_for_margins
+        if gross_profit is not None:
+            out["grossMargins"] = gross_profit / rev_for_margins
+
+    # YoY growth — prefer annual columns
+    rev_g = _yoy_growth(income, _REVENUE_ALIASES)
+    if rev_g is None:
+        rev_g = _yoy_growth(q_income, _REVENUE_ALIASES)
+    if rev_g is not None:
+        out["revenueGrowth"] = rev_g
+
+    earn_g = _yoy_growth(income, _NET_INCOME_ALIASES)
+    if earn_g is None:
+        earn_g = _yoy_growth(q_income, _NET_INCOME_ALIASES)
+    if earn_g is not None:
+        out["earningsGrowth"] = earn_g
+
+    if equity is not None and equity != 0 and net_income is not None:
+        out["returnOnEquity"] = net_income / equity
+    if assets is not None and assets != 0 and net_income is not None:
+        out["returnOnAssets"] = net_income / assets
+
+    if total_debt is not None and equity is not None and equity != 0:
+        # Match yfinance percent-like D/E (e.g. 25.0 ≈ 0.25x)
+        out["debtToEquity"] = (total_debt / equity) * 100.0
+
+    # fast_info market / price / shares fill
+    fi = _fast_info_dict(fast_info)
+    mcap = _safe_float(fi.get("marketCap") if "marketCap" in fi else fi.get("market_cap"))
+    if mcap is not None:
+        out["marketCap"] = mcap
+    last_px = _safe_float(fi.get("lastPrice") if "lastPrice" in fi else fi.get("last_price"))
+    if last_px is not None:
+        out["currentPrice"] = last_px
+        out["regularMarketPrice"] = last_px
+    prev_px = _safe_float(
+        fi.get("previousClose") if "previousClose" in fi else fi.get("previous_close")
+    )
+    if prev_px is not None:
+        out["previousClose"] = prev_px
+    fi_shares = _safe_float(fi.get("shares") if "shares" in fi else fi.get("shares_outstanding"))
+    if fi_shares is not None and fi_shares > 0 and "sharesOutstanding" not in out:
+        out["sharesOutstanding"] = fi_shares
+
+    # Derived valuation
+    debt = _safe_float(out.get("totalDebt"))
+    cash_v = _safe_float(out.get("totalCash"))
+    if mcap is not None and (debt is not None or cash_v is not None):
+        out["enterpriseValue"] = mcap + (debt or 0.0) - (cash_v or 0.0)
+
+    rev = _safe_float(out.get("totalRevenue"))
+    if mcap is not None and rev is not None and rev > 0:
+        out["priceToSalesTrailing12Months"] = mcap / rev
+    ev = _safe_float(out.get("enterpriseValue"))
+    if ev is not None and rev is not None and rev > 0:
+        out["enterpriseToRevenue"] = ev / rev
+
+    meaningful = {k for k in out if k not in _MEANINGFUL_SKIP}
+    if not meaningful:
+        return {}
+    return out
+
+
+def _info_has_meaningful(info: dict[str, Any]) -> bool:
     if not isinstance(info, dict) or not info:
-        return {}
+        return False
+    for key in _INFO_KEYS:
+        if key in _MEANINGFUL_SKIP:
+            continue
+        if _safe_float(info.get(key)) is not None:
+            return True
+    return False
 
+
+def _metrics_from_info(info: dict[str, Any]) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for key in _INFO_KEYS:
         val = _safe_float(info.get(key))
         if val is not None:
             out[key] = val
-
-    # Optional text for dilution language scan (best-effort, never required).
     text_bits: list[str] = []
     for key in ("longBusinessSummary", "description"):
         raw = info.get(key)
@@ -107,18 +389,101 @@ def fetch_yfinance_fundamentals(ticker: str) -> dict[str, Any]:
             out[key] = raw.strip()[:4000]
     if text_bits:
         out["_info_text"] = " ".join(text_bits)[:8000]
+    return out
 
-    # Require at least one real metric besides marketCap / price / text alone.
-    skip = {
-        "marketCap",
-        "currentPrice",
-        "regularMarketPrice",
-        "previousClose",
-        "longBusinessSummary",
-        "description",
-        "_info_text",
-    }
-    meaningful = {k for k in out if k not in skip}
+
+def fetch_yfinance_fundamentals(ticker: str) -> dict[str, Any]:
+    """Pull fundamentals via yfinance.
+
+    Prefers `.info` when it has meaningful keys. When info is empty/thin (Yahoo
+    crumb 401), falls back to `fast_info` + annual/quarterly statements.
+    Returns {} only when nothing usable. Sets `fundamentals_source` to
+    ``yfinance_info`` | ``yfinance_statements`` | ``mixed``.
+    """
+    try:
+        import yfinance as yf
+    except Exception:  # noqa: BLE001
+        return {}
+
+    try:
+        t = yf.Ticker(ticker)
+    except Exception:  # noqa: BLE001 — network / API flakiness
+        return {}
+
+    info: dict[str, Any] = {}
+    try:
+        raw_info = t.info
+        if isinstance(raw_info, dict):
+            info = raw_info
+    except Exception:  # noqa: BLE001
+        info = {}
+
+    info_metrics = _metrics_from_info(info) if info else {}
+    info_ok = _info_has_meaningful(info_metrics)
+
+    statement_metrics: dict[str, Any] = {}
+    need_statements = not info_ok
+    # Also fill when info is thin on statement-derived fields we care about.
+    if info_ok:
+        # Still attach source; skip statement fetch when info is rich enough.
+        needed = ("totalRevenue", "freeCashflow", "totalDebt", "totalCash", "profitMargins")
+        if sum(1 for k in needed if k in info_metrics) < 2:
+            need_statements = True
+
+    if need_statements:
+        try:
+            fast = getattr(t, "fast_info", None)
+        except Exception:  # noqa: BLE001
+            fast = None
+        try:
+            income = t.income_stmt
+        except Exception:  # noqa: BLE001
+            income = None
+        try:
+            balance = t.balance_sheet
+        except Exception:  # noqa: BLE001
+            balance = None
+        try:
+            cashflow = t.cashflow
+        except Exception:  # noqa: BLE001
+            cashflow = None
+        try:
+            q_income = t.quarterly_income_stmt
+        except Exception:  # noqa: BLE001
+            q_income = None
+        try:
+            q_balance = t.quarterly_balance_sheet
+        except Exception:  # noqa: BLE001
+            q_balance = None
+        try:
+            q_cash = t.quarterly_cashflow
+        except Exception:  # noqa: BLE001
+            q_cash = None
+        statement_metrics = metrics_from_statements(
+            income,
+            balance,
+            cashflow,
+            fast_info=fast,
+            quarterly_income=q_income,
+            quarterly_balance=q_balance,
+            quarterly_cashflow=q_cash,
+        )
+
+    if info_ok and statement_metrics:
+        # Merge: info wins on overlapping keys; statements fill gaps.
+        out = dict(statement_metrics)
+        out.update(info_metrics)
+        out["fundamentals_source"] = "mixed"
+    elif info_ok:
+        out = dict(info_metrics)
+        out["fundamentals_source"] = "yfinance_info"
+    elif statement_metrics:
+        out = dict(statement_metrics)
+        out["fundamentals_source"] = "yfinance_statements"
+    else:
+        return {}
+
+    meaningful = {k for k in out if k not in _MEANINGFUL_SKIP}
     if not meaningful:
         return {}
     return out
@@ -844,11 +1209,16 @@ class FundamentalAgent(ResearchAgent):
 
     def analyze(self, ticker: str, *, benchmark: str = "SPY") -> Signal:
         fetch_error: str | None = None
+        fundamentals_source: str | None = None
         try:
             metrics = dict(self._fetch(ticker) or {})
         except Exception as exc:  # noqa: BLE001
             metrics = {}
             fetch_error = str(exc)
+
+        raw_source = metrics.pop("fundamentals_source", None)
+        if isinstance(raw_source, str) and raw_source.strip():
+            fundamentals_source = raw_source.strip()
 
         result = _score_fundamentals(metrics)
 
@@ -894,6 +1264,7 @@ class FundamentalAgent(ResearchAgent):
             "implied_shares": dilution.get("implied_shares"),
             "share_count_gap_pct": dilution.get("share_count_gap_pct"),
             "bear_lines": result.get("bear_lines") or [],
+            "fundamentals_source": fundamentals_source,
         }
         if capital.get("ev_estimate") is not None:
             supporting["ev_estimate"] = capital["ev_estimate"]

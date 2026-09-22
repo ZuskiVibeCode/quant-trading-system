@@ -308,3 +308,118 @@ def test_extreme_multiple_soft_bear_in_reasoning(md):
     assert "Bear/risk:" in sig.reasoning
     # Soft only — still a normal Signal, no hard block field
     assert "hard_block" not in sig.supporting_data
+
+
+def test_metrics_from_statements_maps_annual_frames():
+    import pandas as pd
+
+    from quant_system.research.fundamental import metrics_from_statements
+
+    cols = pd.to_datetime(["2025-12-31", "2024-12-31"])
+    income = pd.DataFrame(
+        {
+            cols[0]: {
+                "Total Revenue": 200.0,
+                "Net Income": 40.0,
+                "Operating Income": 50.0,
+                "Gross Profit": 120.0,
+            },
+            cols[1]: {
+                "Total Revenue": 100.0,
+                "Net Income": 20.0,
+                "Operating Income": 25.0,
+                "Gross Profit": 60.0,
+            },
+        }
+    )
+    balance = pd.DataFrame(
+        {
+            cols[0]: {
+                "Total Debt": 30.0,
+                "Cash And Cash Equivalents": 10.0,
+                "Ordinary Shares Number": 5.0,
+                "Stockholders Equity": 80.0,
+                "Total Assets": 150.0,
+            },
+            cols[1]: {
+                "Total Debt": 25.0,
+                "Cash And Cash Equivalents": 8.0,
+                "Ordinary Shares Number": 5.0,
+                "Stockholders Equity": 70.0,
+                "Total Assets": 140.0,
+            },
+        }
+    )
+    cashflow = pd.DataFrame(
+        {
+            cols[0]: {"Free Cash Flow": 35.0, "Operating Cash Flow": 45.0},
+            cols[1]: {"Free Cash Flow": 18.0, "Operating Cash Flow": 22.0},
+        }
+    )
+    fast = {"market_cap": 1000.0, "last_price": 200.0, "previous_close": 198.0}
+
+    m = metrics_from_statements(income, balance, cashflow, fast_info=fast)
+    assert m["totalRevenue"] == pytest.approx(200.0)
+    assert m["freeCashflow"] == pytest.approx(35.0)
+    assert m["operatingCashflow"] == pytest.approx(45.0)
+    assert m["totalDebt"] == pytest.approx(30.0)
+    assert m["totalCash"] == pytest.approx(10.0)
+    assert m["sharesOutstanding"] == pytest.approx(5.0)
+    assert m["profitMargins"] == pytest.approx(0.20)
+    assert m["operatingMargins"] == pytest.approx(0.25)
+    assert m["grossMargins"] == pytest.approx(0.60)
+    assert m["revenueGrowth"] == pytest.approx(1.0)  # 200/100 - 1
+    assert m["earningsGrowth"] == pytest.approx(1.0)
+    assert m["returnOnEquity"] == pytest.approx(40.0 / 80.0)
+    assert m["returnOnAssets"] == pytest.approx(40.0 / 150.0)
+    assert m["debtToEquity"] == pytest.approx((30.0 / 80.0) * 100.0)
+    assert m["marketCap"] == pytest.approx(1000.0)
+    assert m["enterpriseValue"] == pytest.approx(1000.0 + 30.0 - 10.0)
+    assert m["priceToSalesTrailing12Months"] == pytest.approx(1000.0 / 200.0)
+    assert m["enterpriseToRevenue"] == pytest.approx(1020.0 / 200.0)
+    assert m["currentPrice"] == pytest.approx(200.0)
+
+
+def test_metrics_from_statements_net_debt_plus_cash():
+    import pandas as pd
+
+    from quant_system.research.fundamental import metrics_from_statements
+
+    cols = pd.to_datetime(["2025-12-31"])
+    balance = pd.DataFrame(
+        {
+            cols[0]: {
+                "Net Debt": 40.0,
+                "Cash And Cash Equivalents": 15.0,
+                "Stockholders Equity": 100.0,
+            }
+        }
+    )
+    income = pd.DataFrame({cols[0]: {"Total Revenue": 50.0, "Net Income": 5.0}})
+    m = metrics_from_statements(income, balance, None, fast_info={"marketCap": 200.0})
+    assert m["totalDebt"] == pytest.approx(55.0)  # net debt + cash
+    assert m["totalCash"] == pytest.approx(15.0)
+
+
+def test_metrics_from_statements_empty_returns_empty():
+    from quant_system.research.fundamental import metrics_from_statements
+
+    assert metrics_from_statements(None, None, None) == {}
+    assert metrics_from_statements(None, None, None, fast_info={"last_price": 10.0}) == {}
+
+
+def test_agent_surfaces_fundamentals_source(md):
+    payload = {
+        "revenueGrowth": 0.12,
+        "profitMargins": 0.10,
+        "freeCashflow": 1_000_000,
+        "totalRevenue": 10_000_000,
+        "marketCap": 50_000_000,
+        "totalCash": 2_000_000,
+        "totalDebt": 1_000_000,
+        "fundamentals_source": "yfinance_statements",
+    }
+    agent = FundamentalAgent(md, fundamentals_fetcher=lambda _t: dict(payload))
+    sig = agent.analyze("IBM")
+    assert sig.supporting_data["fundamentals_source"] == "yfinance_statements"
+    assert "fundamentals_source" not in (sig.supporting_data.get("metrics") or {})
