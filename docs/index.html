@@ -42,6 +42,7 @@
         <a href="#agents">Agents</a>
         <a href="#research">Research</a>
         <a href="#mission">Mission log</a>
+        <a href="#zones">Zones</a>
         <a href="#watch">Watchlist</a>
       </nav>
       <div class="meta-line" id="exportedAt">Loading…</div>
@@ -123,10 +124,25 @@
       <ul class="timeline" id="missionLog"></ul>
     </section>
 
+
+    <section id="zones">
+      <div class="section-head">
+        <div>
+          <p class="kicker">08 · Zones</p>
+          <h2>Buy vs sell pressure</h2>
+        </div>
+        <p class="hint">Universe map of aggregated research pressure. Held = filled markers; watch = open. Click a point for history.</p>
+      </div>
+      <div class="zones-legend" id="zonesLegend"></div>
+      <div class="panel chart-wrap zones-wrap">
+        <div id="zonesScatter"></div>
+      </div>
+    </section>
+
     <section id="watch">
       <div class="section-head">
         <div>
-          <p class="kicker">07 · Watchlist</p>
+          <p class="kicker">09 · Watchlist</p>
           <h2>Universe not held</h2>
         </div>
         <p class="hint">Tickers outside the open book with the strongest agent signal today (ET).</p>

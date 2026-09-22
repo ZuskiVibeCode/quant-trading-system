@@ -553,3 +553,48 @@ tr.clickable:focus-visible td {
 tr.clickable:focus {
   outline: none;
 }
+
+
+/* ---- Orbit Zones ---- */
+.zones-wrap { position: relative; }
+.zones-wrap svg { width: 100%; height: min(28rem, 70vw); display: block; }
+.zones-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+.zones-legend .chip { cursor: default; }
+.zone-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--elevated);
+  box-shadow: var(--shadow-border);
+}
+.zone-badge.buy_zone { color: var(--gain); }
+.zone-badge.sell_zone { color: var(--loss); }
+.zone-badge.conflicted { color: #c4b08f; }
+.zone-badge.quiet { color: var(--subtle); }
+.zones-scatter-point { cursor: pointer; }
+.zones-scatter-point:hover circle,
+.zones-scatter-point:focus circle { stroke: var(--fg); stroke-width: 1.5; }
+.zones-scatter-point:focus { outline: none; }
+.zone-chart { margin-top: 0.75rem; }
+.zone-chart svg { width: 100%; height: 10rem; display: block; }
+.agent-mix-table { width: 100%; min-width: 0; margin-top: 0.5rem; font-size: 0.82rem; }
+.agent-mix-table th, .agent-mix-table td { padding: 0.4rem 0.5rem; }
+.zones-quad-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  fill: #3d4550;
+}

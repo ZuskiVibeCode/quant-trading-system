@@ -208,6 +208,240 @@ def _agents_today(signals: list[dict[str, Any]]) -> dict[str, Any]:
     return out
 
 
+
+# ---------------------------------------------------------------------------
+# Buy / sell zone aggregation (Orbit Zones)
+# ---------------------------------------------------------------------------
+# Per ticker, take the latest signal that day for each research agent.
+# buy  = mean over agents of (confidence/100 if direction == long  else 0)
+# sell = mean over agents of (confidence/100 if direction == short else 0)
+# Both axes are independent and in [0, 1]. Neutral / missing contribute 0.
+# Zone labels (thresholds tuned so a typical book is mixed buy/quiet):
+#   buy_zone   if buy  >= BUY_ZONE_MIN  and sell < SELL_QUIET_MAX
+#   sell_zone  if sell >= SELL_ZONE_MIN and buy  < BUY_QUIET_MAX
+#   conflicted if buy  >= BUY_ZONE_MIN  and sell >= SELL_ZONE_MIN
+#   quiet      otherwise
+
+BUY_ZONE_MIN = 0.35
+SELL_ZONE_MIN = 0.35
+BUY_QUIET_MAX = 0.25
+SELL_QUIET_MAX = 0.25
+ZONE_SERIES_IN_LATEST = 20  # compact day count embedded in latest.json
+
+
+def latest_signals_by_agent_ticker(agents_today: dict[str, Any]) -> dict[str, dict[str, dict[str, Any]]]:
+    """Return {ticker: {agent_id: signal}} using the newest signal per (agent, ticker).
+
+    `agents_today` signals are assumed newest-first (export query is ORDER BY id DESC).
+    """
+    by_ticker: dict[str, dict[str, dict[str, Any]]] = {}
+    for aid, block in (agents_today or {}).items():
+        agent_id = (block.get("agent_id") if isinstance(block, dict) else None) or aid
+        signals = (block.get("signals") if isinstance(block, dict) else None) or []
+        for s in signals:
+            if not isinstance(s, dict):
+                continue
+            ticker = str(s.get("ticker") or "").upper()
+            if not ticker:
+                continue
+            slot = by_ticker.setdefault(ticker, {})
+            if agent_id in slot:
+                continue  # already have newer
+            slot[agent_id] = s
+    return by_ticker
+
+
+def compute_zone_pressures(agent_signals: dict[str, dict[str, Any]]) -> tuple[float, float, float]:
+    """Compute (buy, sell, net) from a map of agent_id → signal dict.
+
+    Each agent contributes confidence/100 when direction matches; otherwise 0.
+    Denominator is the number of agents that fired for this ticker (len of map).
+    Empty map → (0.0, 0.0, 0.0).
+    """
+    if not agent_signals:
+        return 0.0, 0.0, 0.0
+    n = len(agent_signals)
+    buy_sum = 0.0
+    sell_sum = 0.0
+    for s in agent_signals.values():
+        conf = float(s.get("confidence") or 0.0) / 100.0
+        if conf < 0:
+            conf = 0.0
+        direction = str(s.get("direction") or "").lower()
+        if direction == "long":
+            buy_sum += conf
+        elif direction == "short":
+            sell_sum += conf
+    buy = buy_sum / n
+    sell = sell_sum / n
+    return buy, sell, buy - sell
+
+
+def zone_label(buy: float, sell: float) -> str:
+    """Map buy/sell pressures to a zone label."""
+    if buy >= BUY_ZONE_MIN and sell < SELL_QUIET_MAX:
+        return "buy_zone"
+    if sell >= SELL_ZONE_MIN and buy < BUY_QUIET_MAX:
+        return "sell_zone"
+    if buy >= BUY_ZONE_MIN and sell >= SELL_ZONE_MIN:
+        return "conflicted"
+    return "quiet"
+
+
+def _agent_breakdown(agent_signals: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for aid in sorted(agent_signals.keys()):
+        s = agent_signals[aid]
+        rows.append(
+            {
+                "agent_id": aid,
+                "direction": str(s.get("direction") or "neutral"),
+                "confidence": float(s.get("confidence") or 0.0),
+            }
+        )
+    return rows
+
+
+def build_zone_points(
+    agents_today: dict[str, Any],
+    *,
+    held: set[str] | None = None,
+    sector_of: dict[str, str] | None = None,
+    holdings: list[dict[str, Any]] | None = None,
+    compact: bool = False,
+) -> list[dict[str, Any]]:
+    """Build zone points for one day's agents_today.
+
+    When *compact* is True, omit agents breakdown and weight (for zones_history).
+    """
+    held = {str(t).upper() for t in (held or set())}
+    sector_of = sector_of or {}
+    weight_of: dict[str, float] = {}
+    if holdings:
+        # Approximate weight by market value share when last is known; else by cost basis.
+        vals: dict[str, float] = {}
+        for h in holdings:
+            t = str(h.get("ticker") or "").upper()
+            qty = float(h.get("qty") or 0)
+            last = h.get("last")
+            avg = h.get("avg_cost")
+            if last is not None:
+                vals[t] = abs(qty * float(last))
+            elif avg is not None:
+                vals[t] = abs(qty * float(avg))
+        total = sum(vals.values()) or 0.0
+        if total > 0:
+            weight_of = {t: v / total for t, v in vals.items()}
+
+    points: list[dict[str, Any]] = []
+    for ticker, agent_map in sorted(latest_signals_by_agent_ticker(agents_today).items()):
+        buy, sell, net = compute_zone_pressures(agent_map)
+        z = zone_label(buy, sell)
+        is_held = ticker in held
+        if compact:
+            points.append(
+                {
+                    "ticker": ticker,
+                    "buy": round(buy, 6),
+                    "sell": round(sell, 6),
+                    "zone": z,
+                    "held": is_held,
+                }
+            )
+        else:
+            pt: dict[str, Any] = {
+                "ticker": ticker,
+                "sector": sector_of.get(ticker),
+                "held": is_held,
+                "buy": round(buy, 6),
+                "sell": round(sell, 6),
+                "net": round(net, 6),
+                "zone": z,
+                "agents": _agent_breakdown(agent_map),
+            }
+            if is_held and ticker in weight_of:
+                pt["weight"] = round(weight_of[ticker], 6)
+            points.append(pt)
+    return points
+
+
+def build_zones_block(
+    agents_today: dict[str, Any],
+    *,
+    as_of: str,
+    day_local: str,
+    held: set[str] | None = None,
+    sector_of: dict[str, str] | None = None,
+    holdings: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    return {
+        "as_of": as_of,
+        "day_local": day_local,
+        "thresholds": {
+            "buy_zone_min": BUY_ZONE_MIN,
+            "sell_zone_min": SELL_ZONE_MIN,
+            "buy_quiet_max": BUY_QUIET_MAX,
+            "sell_quiet_max": SELL_QUIET_MAX,
+        },
+        "points": build_zone_points(
+            agents_today,
+            held=held,
+            sector_of=sector_of,
+            holdings=holdings,
+            compact=False,
+        ),
+    }
+
+
+def _held_from_payload(payload: dict[str, Any]) -> set[str]:
+    return {str(h.get("ticker") or "").upper() for h in (payload.get("holdings") or []) if h.get("ticker")}
+
+
+def _sector_of_from_payload(payload: dict[str, Any]) -> dict[str, str]:
+    sectors = payload.get("sectors") or {}
+    out: dict[str, str] = {}
+    for theme, tickers in sectors.items():
+        for t in tickers or []:
+            out[str(t).upper()] = str(theme)
+    return out
+
+
+def rebuild_zones_history(
+    hist_dir: Path,
+    *,
+    today_payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Scan history/*.json (+ optional today payload) and rebuild zones_history.
+
+    Returns `{ days: [{day, points: [compact...]}] }` sorted ascending by day.
+    """
+    by_day: dict[str, list[dict[str, Any]]] = {}
+
+    if hist_dir.is_dir():
+        for path in sorted(hist_dir.glob("*.json")):
+            try:
+                day = path.stem
+                payload = json.loads(path.read_text())
+            except (OSError, json.JSONDecodeError):
+                continue
+            agents = payload.get("agents_today") or {}
+            if not agents:
+                continue
+            held = _held_from_payload(payload)
+            points = build_zone_points(agents, held=held, compact=True)
+            by_day[day] = points
+
+    if today_payload:
+        day = (today_payload.get("meta") or {}).get("day_local")
+        agents = today_payload.get("agents_today") or {}
+        if day and agents:
+            held = _held_from_payload(today_payload)
+            by_day[str(day)] = build_zone_points(agents, held=held, compact=True)
+
+    days = [{"day": d, "points": by_day[d]} for d in sorted(by_day.keys())]
+    return {"days": days}
+
+
 def _decisions_today(decisions: list[dict[str, Any]]) -> dict[str, Any]:
     buckets = {
         "tickets": [],
@@ -511,6 +745,17 @@ def build_dashboard_payload(
     except Exception:  # noqa: BLE001
         payload["rotation"] = {"active": {}, "cold": [], "settings": {}}
         payload["cold"] = []
+
+    # Additive Orbit Zones (buy/sell pressure map)
+    held_tickers = {str(h["ticker"]).upper() for h in holdings}
+    payload["zones"] = build_zones_block(
+        payload["agents_today"],
+        as_of=payload["meta"]["exported_at"],
+        day_local=local_day,
+        held=held_tickers,
+        sector_of=sector_of,
+        holdings=holdings,
+    )
     return payload
 
 
@@ -589,15 +834,33 @@ def export_dashboard(
             history_path = hist_dir / f"{day}.json"
             history_path.write_text(json.dumps(payload, indent=2, default=str) + "\n")
 
+        # Rebuild zones_history from history/*.json + today's payload
+        zones_hist = rebuild_zones_history(hist_dir, today_payload=payload)
+        zones_hist_path = data_dir / "zones_history.json"
+        zones_hist_path.write_text(json.dumps(zones_hist, indent=2, default=str) + "\n")
+
+        # Embed a compact recent series in latest for chart depth without a second fetch
+        recent_days = zones_hist.get("days") or []
+        if len(recent_days) > ZONE_SERIES_IN_LATEST:
+            recent_days = recent_days[-ZONE_SERIES_IN_LATEST:]
+        payload["zones_series"] = {"days": recent_days}
+        # Rewrite latest with zones_series included
+        latest_path.write_text(json.dumps(payload, indent=2, default=str) + "\n")
+        if history_path is not None:
+            history_path.write_text(json.dumps(payload, indent=2, default=str) + "\n")
+
         return {
             "latest": str(latest_path),
             "history": str(history_path) if history_path else None,
+            "zones_history": str(zones_hist_path),
             "exported_at": payload["meta"]["exported_at"],
             "agents_today_counts": {
                 k: v.get("count", 0) for k, v in payload["agents_today"].items()
             },
             "holdings": len(payload["holdings"]),
             "equity": payload["snapshot"]["equity"],
+            "zones_points": len((payload.get("zones") or {}).get("points") or []),
+            "zones_history_days": len(zones_hist.get("days") or []),
         }
     finally:
         if own or close_tracker:

@@ -1,6 +1,7 @@
 /* Quant Mission Ledger — vanilla viewer for docs/data/latest.json */
 (() => {
   const DATA_URL = "./data/latest.json";
+  const ZONES_HISTORY_URL = "./data/zones_history.json";
   const SECTORS = ["all", "quantum", "robotics", "space"];
   const AGENT_ORDER = [
     "momentum",
@@ -17,6 +18,7 @@
   };
 
   let DATA = null;
+  let zonesHistory = null;
   let filter = "all";
 
   const $ = (id) => document.getElementById(id);
@@ -134,6 +136,116 @@
       .filter((c) => tickerKey(c.ticker) === want)
       .slice()
       .sort((a, b) => String(b.closed_at || "").localeCompare(String(a.closed_at || "")));
+  }
+
+
+  function zonePointForTicker(ticker) {
+    const want = tickerKey(ticker);
+    const pts = DATA?.zones?.points || [];
+    return pts.find((p) => tickerKey(p.ticker) === want) || null;
+  }
+
+  function zoneSeriesForTicker(ticker) {
+    const want = tickerKey(ticker);
+    const days = (zonesHistory?.days || DATA?.zones_series?.days || []);
+    const out = [];
+    days.forEach((d) => {
+      const pt = (d.points || []).find((p) => tickerKey(p.ticker) === want);
+      if (pt) out.push({ day: d.day, buy: Number(pt.buy) || 0, sell: Number(pt.sell) || 0, zone: pt.zone });
+    });
+    return out;
+  }
+
+  function zoneBadgeHtml(zone) {
+    const z = zone || "quiet";
+    const label = String(z).replace(/_/g, " ");
+    return `<span class="zone-badge ${z}">${label}</span>`;
+  }
+
+  function drawZoneHistoryChart(series) {
+    if (!series.length) {
+      return `<div class="empty" style="padding:1rem">No zone history for this ticker yet</div>`;
+    }
+    const w = 520;
+    const h = 160;
+    const pad = { t: 16, r: 12, b: 28, l: 36 };
+    const x = (i) => pad.l + (i / Math.max(series.length - 1, 1)) * (w - pad.l - pad.r);
+    const y = (v) => pad.t + (1 - Math.min(Math.max(v, 0), 1)) * (h - pad.t - pad.b);
+    const buyPts = series.map((p, i) => `${x(i).toFixed(1)},${y(p.buy).toFixed(1)}`).join(" ");
+    const sellPts = series.map((p, i) => `${x(i).toFixed(1)},${y(p.sell).toFixed(1)}`).join(" ");
+    const first = series[0].day.slice(5);
+    const last = series[series.length - 1].day.slice(5);
+    return `<div class="zone-chart"><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Buy and sell pressure history">
+      <line x1="${pad.l}" x2="${w - pad.r}" y1="${y(0.35)}" y2="${y(0.35)}" stroke="#232a32" stroke-dasharray="3 4"/>
+      <text x="6" y="${y(1) + 3}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono">1</text>
+      <text x="6" y="${y(0) + 3}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono">0</text>
+      <polyline points="${buyPts}" fill="none" stroke="#8aa58f" stroke-width="1.6"/>
+      <polyline points="${sellPts}" fill="none" stroke="#c48980" stroke-width="1.6"/>
+      <text x="${pad.l}" y="${h - 8}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono">${first}</text>
+      <text x="${w - pad.r}" y="${h - 8}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono" text-anchor="end">${last}</text>
+      <text x="${pad.l + 4}" y="12" fill="#8aa58f" font-size="10" font-family="IBM Plex Mono">buy</text>
+      <text x="${pad.l + 40}" y="12" fill="#c48980" font-size="10" font-family="IBM Plex Mono">sell</text>
+    </svg></div>`;
+  }
+
+  function agentMixTableHtml(agents) {
+    const rows = agents || [];
+    if (!rows.length) return `<p class="muted">No agent mix for this ticker today.</p>`;
+    return `<table class="agent-mix-table">
+      <thead><tr><th>Agent</th><th>Dir</th><th>Conf</th></tr></thead>
+      <tbody>
+        ${rows
+          .map(
+            (a) => `<tr>
+              <td class="mono muted">${a.agent_id}</td>
+              <td><span class="dir ${a.direction}">${a.direction}</span></td>
+              <td class="mono">${Number(a.confidence).toFixed(1)}</td>
+            </tr>`
+          )
+          .join("")}
+      </tbody>
+    </table>`;
+  }
+
+  function zoneDetailBlock(ticker) {
+    const pt = zonePointForTicker(ticker);
+    const series = zoneSeriesForTicker(ticker);
+    if (!pt && !series.length) {
+      return `<p class="kicker" style="margin-top:1rem">Zones</p>
+        <p class="muted">No zone score for this ticker yet.</p>`;
+    }
+    const badge = pt ? zoneBadgeHtml(pt.zone) : "";
+    const nums = pt
+      ? `<div class="grid-stats" style="margin-top:0.75rem">
+          <div class="stat"><p class="label">Buy</p><p class="value mono gain">${Number(pt.buy).toFixed(3)}</p></div>
+          <div class="stat"><p class="label">Sell</p><p class="value mono loss">${Number(pt.sell).toFixed(3)}</p></div>
+          <div class="stat"><p class="label">Net</p><p class="value mono">${Number(pt.net).toFixed(3)}</p></div>
+          <div class="stat"><p class="label">Zone</p><p class="value">${badge}</p></div>
+        </div>`
+      : "";
+    return `<p class="kicker" style="margin-top:1rem">Zones</p>
+      ${nums}
+      ${drawZoneHistoryChart(series)}
+      <p class="kicker" style="margin-top:0.75rem">Agent mix (today)</p>
+      ${agentMixTableHtml(pt?.agents || [])}`;
+  }
+
+  function openZoneDetail(pt) {
+    const series = zoneSeriesForTicker(pt.ticker);
+    openDialogHtml(`
+      <p class="kicker">Zones</p>
+      <h3>${pt.ticker} · <span class="muted">${pt.sector || "—"}</span> ${zoneBadgeHtml(pt.zone)}</h3>
+      <p class="muted">${pt.held ? "Held in open book" : "Watchlist only"}</p>
+      <div class="grid-stats" style="margin-top:1rem">
+        <div class="stat"><p class="label">Buy pressure</p><p class="value mono gain">${Number(pt.buy).toFixed(3)}</p></div>
+        <div class="stat"><p class="label">Sell pressure</p><p class="value mono loss">${Number(pt.sell).toFixed(3)}</p></div>
+        <div class="stat"><p class="label">Net</p><p class="value mono">${Number(pt.net != null ? pt.net : pt.buy - pt.sell).toFixed(3)}</p></div>
+        ${pt.weight != null ? `<div class="stat"><p class="label">Weight</p><p class="value mono">${(Number(pt.weight) * 100).toFixed(1)}%</p></div>` : ""}
+      </div>
+      <p class="kicker" style="margin-top:1rem">History</p>
+      ${drawZoneHistoryChart(series)}
+      <p class="kicker" style="margin-top:0.75rem">Agent mix (today)</p>
+      ${agentMixTableHtml(pt.agents || [])}`);
   }
 
   function openDialogHtml(html) {
@@ -410,7 +522,8 @@
       <p class="kicker" style="margin-top:1rem">Latest decision</p>
       ${decisionHtml}
       ${fillsHtml}
-      ${missionHtml}`);
+      ${missionHtml}
+      ${zoneDetailBlock(h.ticker)}`);
   }
 
   function openClosedDetail(c) {
@@ -610,6 +723,99 @@
       .join("");
   }
 
+  function openWatchDetail(w) {
+    const s = w.signal;
+    let sigHtml = `<p class="muted">No top agent signal today.</p>`;
+    if (s) {
+      sigHtml = `<p><span class="mono muted">${s.agent_id || "agent"}</span>
+        · <span class="dir ${s.direction}">${s.direction}</span>
+        · <span class="mono">${Number(s.confidence).toFixed(1)}</span>
+        · <span class="subtle">${fmtTime(s.created_at)}</span></p>
+        <p style="margin-top:0.5rem">${s.reasoning || "—"}</p>`;
+    }
+    openDialogHtml(`
+      <p class="kicker">Watchlist</p>
+      <h3>${w.ticker} · <span class="muted">${w.sector || "—"}</span></h3>
+      <p class="kicker" style="margin-top:1rem">Top signal</p>
+      ${sigHtml}
+      ${zoneDetailBlock(w.ticker)}`);
+  }
+
+
+  function renderZones() {
+    const host = $("zonesScatter");
+    const legend = $("zonesLegend");
+    if (!host) return;
+    const all = DATA?.zones?.points || [];
+    const points = all.filter((p) => matchesSector(p.sector || sectorOf(p.ticker)));
+    const counts = { buy_zone: 0, sell_zone: 0, conflicted: 0, quiet: 0 };
+    all.forEach((p) => { counts[p.zone] = (counts[p.zone] || 0) + 1; });
+    if (legend) {
+      legend.innerHTML = [
+        ["buy_zone", "Buy"],
+        ["sell_zone", "Sell"],
+        ["conflicted", "Conflicted"],
+        ["quiet", "Quiet"],
+      ]
+        .map(([z, lab]) => `<span class="chip zone-badge ${z}">${lab} ${counts[z] || 0}</span>`)
+        .join("") +
+        `<span class="chip">held ● · watch ○</span>` +
+        (filter !== "all" ? `<span class="chip">filter ${filter}: ${points.length}</span>` : "");
+    }
+    if (!points.length) {
+      host.innerHTML = `<div class="empty">No zone points${filter !== "all" ? " for this sector" : ""}</div>`;
+      return;
+    }
+    const w = 720;
+    const h = 480;
+    const pad = { t: 36, r: 28, b: 48, l: 56 };
+    const xOf = (sell) => pad.l + Math.min(Math.max(Number(sell) || 0, 0), 1) * (w - pad.l - pad.r);
+    const yOf = (buy) => pad.t + (1 - Math.min(Math.max(Number(buy) || 0, 0), 1)) * (h - pad.t - pad.b);
+    // quadrant guides at 0.35
+    const xT = xOf(0.35);
+    const yT = yOf(0.35);
+    const dots = points
+      .map((p, i) => {
+        const cx = xOf(p.sell).toFixed(1);
+        const cy = yOf(p.buy).toFixed(1);
+        const r = p.held ? 6.5 : 5;
+        const fill = p.held ? "#8fb4c4" : "transparent";
+        const stroke = p.zone === "buy_zone" ? "#8aa58f" : p.zone === "sell_zone" ? "#c48980" : p.zone === "conflicted" ? "#c4b08f" : "#5c656e";
+        return `<g class="zones-scatter-point" data-zone-idx="${i}" tabindex="0" role="button" aria-label="${p.ticker} buy ${Number(p.buy).toFixed(2)} sell ${Number(p.sell).toFixed(2)}">
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="1.6"/>
+          <title>${p.ticker} · buy ${Number(p.buy).toFixed(3)} · sell ${Number(p.sell).toFixed(3)} · ${p.zone}</title>
+        </g>`;
+      })
+      .join("");
+    host.innerHTML = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Buy vs sell pressure scatter">
+      <rect x="${pad.l}" y="${pad.t}" width="${w - pad.l - pad.r}" height="${h - pad.t - pad.b}" fill="#0c1014" stroke="#232a32"/>
+      <line x1="${xT}" x2="${xT}" y1="${pad.t}" y2="${h - pad.b}" stroke="#232a32" stroke-dasharray="4 5"/>
+      <line x1="${pad.l}" x2="${w - pad.r}" y1="${yT}" y2="${yT}" stroke="#232a32" stroke-dasharray="4 5"/>
+      <text class="zones-quad-label" x="${pad.l + 8}" y="${pad.t + 16}">Buy</text>
+      <text class="zones-quad-label" x="${w - pad.r - 8}" y="${pad.t + 16}" text-anchor="end">Conflicted</text>
+      <text class="zones-quad-label" x="${pad.l + 8}" y="${h - pad.b - 8}">Quiet</text>
+      <text class="zones-quad-label" x="${w - pad.r - 8}" y="${h - pad.b - 8}" text-anchor="end">Sell</text>
+      <text x="${pad.l}" y="${h - 14}" fill="#5c656e" font-size="11" font-family="IBM Plex Mono">Sell →</text>
+      <text x="16" y="${pad.t + 4}" fill="#5c656e" font-size="11" font-family="IBM Plex Mono" transform="rotate(-90 16,${pad.t + 4})">Buy ↑</text>
+      <text x="${pad.l - 8}" y="${yOf(0) + 3}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono" text-anchor="end">0</text>
+      <text x="${pad.l - 8}" y="${yOf(1) + 3}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono" text-anchor="end">1</text>
+      <text x="${xOf(0)}" y="${h - pad.b + 18}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono" text-anchor="middle">0</text>
+      <text x="${xOf(1)}" y="${h - pad.b + 18}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono" text-anchor="middle">1</text>
+      ${dots}
+    </svg>`;
+    host.querySelectorAll("[data-zone-idx]").forEach((g) => {
+      const idx = Number(g.getAttribute("data-zone-idx"));
+      const activate = () => openZoneDetail(points[idx]);
+      g.addEventListener("click", activate);
+      g.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          activate();
+        }
+      });
+    });
+  }
+
   function renderWatch() {
     const rows = (DATA.watchlist || []).filter((w) => matchesSector(w.sector || sectorOf(w.ticker)));
     if (!rows.length) {
@@ -618,23 +824,29 @@
     }
     $("watchTable").innerHTML = `
       <table>
-        <thead><tr><th>Ticker</th><th>Sector</th><th>Top agent</th><th>Dir</th><th>Conf</th><th>Note</th></tr></thead>
+        <thead><tr><th>Ticker</th><th>Sector</th><th>Top agent</th><th>Dir</th><th>Conf</th><th>Zone</th><th>Note</th></tr></thead>
         <tbody>
           ${rows
-            .map((w) => {
+            .map((w, i) => {
               const s = w.signal;
-              return `<tr>
+              const zp = zonePointForTicker(w.ticker);
+              return `<tr data-watch-idx="${i}" aria-label="Open details for ${w.ticker}">
                 <td class="mono">${w.ticker}</td>
                 <td class="muted">${w.sector || "—"}</td>
                 <td class="mono muted">${s?.agent_id || "—"}</td>
                 <td>${s ? `<span class="dir ${s.direction}">${s.direction}</span>` : "—"}</td>
                 <td class="mono">${s ? Number(s.confidence).toFixed(0) : "—"}</td>
+                <td>${zp ? zoneBadgeHtml(zp.zone) : `<span class="muted">—</span>`}</td>
                 <td class="muted">${trunc(s?.reasoning || "", 90)}</td>
               </tr>`;
             })
             .join("")}
         </tbody>
       </table>`;
+    $("watchTable").querySelectorAll("tr[data-watch-idx]").forEach((tr) => {
+      const idx = Number(tr.getAttribute("data-watch-idx"));
+      bindRowActivation(tr, () => openWatchDetail(rows[idx]));
+    });
   }
 
   function openDetail(signal, agentId) {
@@ -663,6 +875,7 @@
     renderAgents();
     renderResearch();
     renderMission();
+    renderZones();
     renderWatch();
   }
 
@@ -693,6 +906,13 @@
       const res = await fetch(DATA_URL, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status} loading ${DATA_URL}`);
       DATA = await res.json();
+      try {
+        const zh = await fetch(ZONES_HISTORY_URL, { cache: "no-store" });
+        if (zh.ok) zonesHistory = await zh.json();
+      } catch (_) {
+        zonesHistory = DATA.zones_series || null;
+      }
+      if (!zonesHistory) zonesHistory = DATA.zones_series || null;
       setHeroArt();
       renderAll();
     } catch (err) {

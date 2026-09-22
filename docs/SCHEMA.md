@@ -25,6 +25,8 @@ Optional: `--no-alpaca`, `--no-history`, `--docs PATH`.
 | `sectors` | object | Theme → ticker list from `config/universe.yaml` |
 | `alpaca_snapshot` | object? | Optional public cash/equity/positions only — **never secrets** |
 | `rotation` | object? | **Additive.** `{active: theme→tickers, cold: [...], settings}` from cold/active researcher |
+| `zones` | object? | **Additive.** Today's buy/sell pressure map — see below |
+| `zones_series` | object? | **Additive.** Compact recent history `{days:[{day, points}]}` (≤20 days) for charts |
 | `cold` | array? | **Additive.** Compact `[{ticker, checkup_date, reason, theme}]` (same as `rotation.cold`) |
 
 ### `agents_today[].signals[]`
@@ -32,6 +34,47 @@ Optional: `--no-alpaca`, `--no-history`, `--docs PATH`.
 `{ticker, direction, confidence, reasoning, supporting_data, created_at, signal_id}`
 
 `supporting_data` is a **summary** (selected scalar keys), not the full research blob.
+
+
+### `zones` (additive)
+
+Computed from `agents_today` on each export. Never contains secrets.
+
+```
+zones: {
+  as_of: ISO-UTC,
+  day_local: YYYY-MM-DD,
+  thresholds: {buy_zone_min, sell_zone_min, buy_quiet_max, sell_quiet_max},
+  points: [{
+    ticker, sector?, held, weight?,
+    buy, sell, net,          # floats in [0,1] (net = buy - sell)
+    zone,                    # buy_zone | sell_zone | conflicted | quiet
+    agents: [{agent_id, direction, confidence}]
+  }]
+}
+```
+
+**Pressure model** (per ticker, per ET day):
+
+1. Take the **latest** signal for each research agent that fired on the ticker.
+2. `buy = mean over agents of (confidence/100 if direction==long else 0)`
+3. `sell = mean over agents of (confidence/100 if direction==short else 0)`
+4. Neutral / missing agent contributions are `0`; both axes are independent and in `[0, 1]`.
+5. Zone labels (defaults):
+   - `buy_zone` if `buy >= 0.35` and `sell < 0.25`
+   - `sell_zone` if `sell >= 0.35` and `buy < 0.25`
+   - `conflicted` if `buy >= 0.35` and `sell >= 0.35`
+   - `quiet` otherwise
+
+### `zones_history.json` (sibling file)
+
+Written next to `latest.json` on every export. Full backfill from `history/*.json`:
+
+```
+{ "days": [ { "day": "YYYY-MM-DD", "points": [ {ticker, buy, sell, zone, held} ] } ] }
+```
+
+Days sorted ascending. `zones_series` in `latest.json` is the trailing window of this file.
 
 ## History
 
