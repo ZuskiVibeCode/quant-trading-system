@@ -67,3 +67,83 @@ def test_build_payload_agents_shape(tmp_path):
     assert isinstance(payload["watchlist"], list)
     assert "quantum" in payload["sectors"]
     tracker.close()
+
+
+def test_holdings_enrich_from_alpaca_marks(tmp_path, monkeypatch):
+    """Holdings last/unrealized come from Alpaca current_price + unrealized_pl dollars."""
+    from quant_system import dashboard_export as de
+
+    fake_alpaca = {
+        "cash": 50.0,
+        "equity": 265.0,
+        "buying_power": 50.0,
+        "open_orders_count": 0,
+        "paper": True,
+        "positions": [
+            {
+                "ticker": "IONQ",
+                "qty": 10.0,
+                "avg_cost": 20.0,
+                "market_value": 220.0,
+                "current_price": 22.0,
+                "unrealized_pl": 20.0,
+            }
+        ],
+    }
+    monkeypatch.setattr(de, "_optional_alpaca_snapshot", lambda: fake_alpaca)
+
+    db = str(tmp_path / "enrich.db")
+    tracker = Tracker(db)
+    tracker.reconcile_portfolio(
+        cash=50.0,
+        equity=265.0,
+        positions=[{"ticker": "IONQ", "qty": 10.0, "avg_cost": 20.0}],
+        source="test",
+    )
+    payload = build_dashboard_payload(tracker, include_alpaca=True)
+    tracker.close()
+
+    assert len(payload["holdings"]) == 1
+    h = payload["holdings"][0]
+    assert h["ticker"] == "IONQ"
+    assert h["last"] == 22.0
+    assert h["unrealized"] == 20.0
+
+
+def test_holdings_enrich_falls_back_to_market_value_over_qty(tmp_path, monkeypatch):
+    """When current_price is absent, last = market_value / qty."""
+    from quant_system import dashboard_export as de
+
+    fake_alpaca = {
+        "cash": 0.0,
+        "equity": 100.0,
+        "buying_power": 0.0,
+        "open_orders_count": 0,
+        "paper": True,
+        "positions": [
+            {
+                "ticker": "ASTS",
+                "qty": 4.0,
+                "avg_cost": 20.0,
+                "market_value": 100.0,
+                "current_price": None,
+                "unrealized_pl": 20.0,
+            }
+        ],
+    }
+    monkeypatch.setattr(de, "_optional_alpaca_snapshot", lambda: fake_alpaca)
+
+    db = str(tmp_path / "enrich2.db")
+    tracker = Tracker(db)
+    tracker.reconcile_portfolio(
+        cash=0.0,
+        equity=100.0,
+        positions=[{"ticker": "ASTS", "qty": 4.0, "avg_cost": 20.0}],
+        source="test",
+    )
+    payload = build_dashboard_payload(tracker, include_alpaca=True)
+    tracker.close()
+
+    h = payload["holdings"][0]
+    assert h["last"] == 25.0
+    assert h["unrealized"] == 20.0

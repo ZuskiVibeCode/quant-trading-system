@@ -29,13 +29,25 @@ def fetch_account_snapshot(client: Any | None = None) -> dict[str, Any]:
 
     positions = []
     for p in positions_raw or []:
-        positions.append(
-            {
-                "ticker": str(getattr(p, "symbol", "")).upper(),
-                "qty": float(getattr(p, "qty", 0) or 0),
-                "avg_cost": float(getattr(p, "avg_entry_price", 0) or 0),
-            }
-        )
+        pos: dict[str, Any] = {
+            "ticker": str(getattr(p, "symbol", "")).upper(),
+            "qty": float(getattr(p, "qty", 0) or 0),
+            "avg_cost": float(getattr(p, "avg_entry_price", 0) or 0),
+        }
+        for src, dest in (
+            ("market_value", "market_value"),
+            ("unrealized_pl", "unrealized_pl"),
+            ("current_price", "current_price"),
+        ):
+            raw = getattr(p, src, None)
+            if raw is None or raw == "":
+                pos[dest] = None
+            else:
+                try:
+                    pos[dest] = float(raw)
+                except (TypeError, ValueError):
+                    pos[dest] = None
+        positions.append(pos)
 
     cash = float(getattr(account, "cash", 0) or 0)
     equity = float(getattr(account, "equity", 0) or 0)

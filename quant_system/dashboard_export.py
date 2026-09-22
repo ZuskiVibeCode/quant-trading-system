@@ -331,7 +331,9 @@ def _optional_alpaca_snapshot() -> dict[str, Any] | None:
                     "qty": p.get("qty"),
                     "avg_cost": p.get("avg_cost") or p.get("avg_entry_price"),
                     "market_value": p.get("market_value"),
-                    "unrealized_pl": p.get("unrealized_pl") or p.get("unrealized_plpc"),
+                    "current_price": p.get("current_price"),
+                    # Dollar P/L only — do not fall back to unrealized_plpc (percent).
+                    "unrealized_pl": p.get("unrealized_pl"),
                 }
                 for p in (snap.get("positions") or [])
             ],
@@ -399,7 +401,13 @@ def build_dashboard_payload(
                     h["unrealized"] = float(a["unrealized_pl"])
                 except (TypeError, ValueError):
                     pass
-            if a.get("market_value") is not None and h["qty"]:
+            # Prefer current_price for last; else derive from market_value/qty.
+            if a.get("current_price") is not None:
+                try:
+                    h["last"] = float(a["current_price"])
+                except (TypeError, ValueError):
+                    pass
+            elif a.get("market_value") is not None and h["qty"]:
                 try:
                     h["last"] = float(a["market_value"]) / float(h["qty"])
                 except (TypeError, ValueError, ZeroDivisionError):
