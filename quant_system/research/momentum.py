@@ -1,4 +1,4 @@
-"""MomentumAgent — MA 20/50/200, RSI, MACD, breakouts, ATR, RS, volume / demand / squeeze."""
+"""MomentumAgent — MA 20/50/200, RSI, MACD, breakouts, ATR, RS, volume / demand / squeeze, VbP, Weinstein, aVWAP."""
 
 from __future__ import annotations
 
@@ -21,6 +21,16 @@ _SQUEEZE_BB_PERIOD = 20
 _SQUEEZE_BB_STD = 2.0
 _SQUEEZE_KC_PERIOD = 20
 _SQUEEZE_KC_ATR_MULT = 1.5
+
+# Structure overlays: Volume-by-Price, Weinstein weekly stage, Anchored VWAP
+_VBP_LOOKBACK = 80
+_VBP_BINS = 24
+_VBP_VALUE_AREA = 0.70
+_WEINSTEIN_SMA_WEEKS = 30
+_WEINSTEIN_SLOPE_LOOKBACK = 5
+_WEINSTEIN_SLOPE_FLAT = 0.005  # ~0.5% SMA change over slope lookback = "flat"
+_AVWAP_LOOKBACK = 90
+_AVWAP_MIN_BARS_AFTER = 5
 
 
 def _sma(series: pd.Series, window: int) -> pd.Series:
@@ -215,6 +225,455 @@ def bollinger_keltner_squeeze(
         }
     )
     return out
+
+
+def volume_by_price(
+    df: pd.DataFrame,
+    *,
+    lookback: int = _VBP_LOOKBACK,
+    n_bins: int = _VBP_BINS,
+    value_area_pct: float = _VBP_VALUE_AREA,
+) -> dict[str, Any]:
+    """Visible-range Volume-by-Price: PoC and ~70% Value Area from recent daily bars.
+
+    Bins typical price ((H+L+C)/3) over the last `lookback` sessions and accumulates
+    volume per bin. PoC = midpoint of the highest-volume bin. Value Area expands
+    symmetrically from PoC until `value_area_pct` of total volume is covered.
+    """
+    out: dict[str, Any] = {
+        "vbp_poc": None,
+        "vbp_vah": None,
+        "vbp_val": None,
+        "price_vs_poc": None,
+        "vbp_lookback": lookback,
+        "vbp_bins": n_bins,
+    }
+    if df is None or getattr(df, "empty", True):
+        return out
+    for col in ("High", "Low", "Close", "Volume"):
+        if col not in df.columns:
+            return out
+
+    tail = df.iloc[-lookback:] if len(df) >= lookback else df
+    if len(tail) < 5:
+        return out
+
+    high = pd.to_numeric(tail["High"], errors="coerce")
+    low = pd.to_numeric(tail["Low"], errors="coerce")
+    close = pd.to_numeric(tail["Close"], errors="coerce")
+    vol = pd.to_numeric(tail["Volume"], errors="coerce").fillna(0.0).clip(lower=0.0)
+    typical = (high + low + close) / 3.0
+    valid = typical.notna() & vol.notna()
+    typical = typical[valid]
+    vol = vol[valid]
+    if len(typical) < 5 or float(vol.sum()) <= 0:
+        return out
+
+    p_min = float(typical.min())
+    p_max = float(typical.max())
+    if not (p_max > p_min):
+        # Degenerate range — single price level
+        poc = p_min
+        last = _safe_float(close.iloc[-1])
+        out.update(
+            {
+                "vbp_poc": poc,
+                "vbp_vah": poc,
+                "vbp_val": poc,
+                "price_vs_poc": ((last - poc) / poc) if last and poc else None,
+            }
+        )
+        return out
+
+    edges = np.linspace(p_min, p_max, n_bins + 1)
+    # bin index 0..n_bins-1; clip right edge into last bin
+    idxs = np.clip(np.digitize(typical.to_numpy(), edges) - 1, 0, n_bins - 1)
+    vol_bins = np.zeros(n_bins, dtype=float)
+    for i, v in zip(idxs, vol.to_numpy()):
+        vol_bins[int(i)] += float(v)
+    total = float(vol_bins.sum())
+    if total <= 0:
+        return out
+
+    poc_i = int(np.argmax(vol_bins))
+    mids = (edges[:-1] + edges[1:]) / 2.0
+    poc = float(mids[poc_i])
+
+    # Expand value area from PoC until ~70% volume
+    lo_i = hi_i = poc_i
+    covered = float(vol_bins[poc_i])
+    target = value_area_pct * total
+    while covered < target and (lo_i > 0 or hi_i < n_bins - 1):
+        left = vol_bins[lo_i - 1] if lo_i > 0 else -1.0
+        right = vol_bins[hi_i + 1] if hi_i < n_bins - 1 else -1.0
+        if right >= left and hi_i < n_bins - 1:
+            hi_i += 1
+            covered += float(vol_bins[hi_i])
+        elif lo_i > 0:
+            lo_i -= 1
+            covered += float(vol_bins[lo_i])
+        else:
+            break
+
+    vah = float(edges[hi_i + 1])  # top of highest VA bin
+    val = float(edges[lo_i])  # bottom of lowest VA bin
+    last = _safe_float(close.iloc[-1])
+    price_vs_poc = ((last - poc) / poc) if last is not None and poc else None
+
+    out.update(
+        {
+            "vbp_poc": poc,
+            "vbp_vah": vah,
+            "vbp_val": val,
+            "price_vs_poc": price_vs_poc,
+        }
+    )
+    return out
+
+
+def _resample_weekly(df: pd.DataFrame) -> pd.DataFrame:
+    """Daily OHLCV → weekly (W-FRI) bars. Requires a DatetimeIndex."""
+    if not isinstance(df.index, pd.DatetimeIndex):
+        # Best-effort: try to parse index
+        idx = pd.to_datetime(df.index, errors="coerce")
+        if idx.isna().all():
+            return pd.DataFrame()
+        df = df.copy()
+        df.index = idx
+    df = df.sort_index()
+    # Drop tz for clean weekly buckets
+    if getattr(df.index, "tz", None) is not None:
+        df = df.copy()
+        df.index = df.index.tz_localize(None)
+    agg = {
+        "Open": "first",
+        "High": "max",
+        "Low": "min",
+        "Close": "last",
+        "Volume": "sum",
+    }
+    cols = [c for c in agg if c in df.columns]
+    if "Close" not in cols:
+        return pd.DataFrame()
+    weekly = df[cols].resample("W-FRI").agg({c: agg[c] for c in cols}).dropna(subset=["Close"])
+    return weekly
+
+
+def weinstein_stage(
+    df: pd.DataFrame,
+    *,
+    sma_weeks: int = _WEINSTEIN_SMA_WEEKS,
+    slope_lookback: int = _WEINSTEIN_SLOPE_LOOKBACK,
+    slope_flat: float = _WEINSTEIN_SLOPE_FLAT,
+) -> dict[str, Any]:
+    """Stan Weinstein-style stage from weekly close vs 30-week SMA.
+
+    Deterministic rule set (documented for paper learning — soft bias only):
+      Stage 2: weekly close ABOVE rising 30w SMA (SMA slope > +flat threshold).
+      Stage 4: weekly close BELOW declining 30w SMA (SMA slope < -flat threshold).
+      Stage 3: after advance — close at/above SMA but SMA flattening/falling,
+               or oscillating near a flat SMA that previously advanced (~20w).
+      Stage 1: basing — close at/below SMA with flat/rising SMA after decline,
+               or sideways near a flat SMA that previously declined (~20w).
+
+    Slope = (SMA_now - SMA_{n weeks ago}) / SMA_{n weeks ago}, n=`slope_lookback`.
+    Flat band = ±`slope_flat` (default 0.5%). Young names with < sma_weeks weekly
+    bars return stage=None but may still expose partial sma30w when computable.
+    """
+    out: dict[str, Any] = {
+        "weinstein_stage": None,
+        "sma30w": None,
+        "sma30w_slope": None,
+        "weekly_bars": 0,
+        "weekly_close": None,
+    }
+    if df is None or getattr(df, "empty", True) or "Close" not in df.columns:
+        return out
+
+    weekly = _resample_weekly(df)
+    out["weekly_bars"] = int(len(weekly))
+    if weekly.empty:
+        return out
+
+    wclose = pd.to_numeric(weekly["Close"], errors="coerce")
+    last_w = _safe_float(wclose.iloc[-1])
+    out["weekly_close"] = last_w
+
+    if len(wclose) < sma_weeks:
+        # Not enough history for a full 30w SMA — leave stage unset
+        if len(wclose) >= 5:
+            partial = _sma(wclose, min(sma_weeks, len(wclose)))
+            out["sma30w"] = _safe_float(partial.iloc[-1])
+        return out
+
+    sma = _sma(wclose, sma_weeks)
+    sma_now = _safe_float(sma.iloc[-1])
+    out["sma30w"] = sma_now
+    if sma_now is None or last_w is None or sma_now <= 0:
+        return out
+
+    # Slope over lookback weeks
+    lb = min(slope_lookback, len(sma) - 1)
+    sma_prev = _safe_float(sma.iloc[-1 - lb]) if lb >= 1 else None
+    if sma_prev is None or sma_prev <= 0:
+        slope = 0.0
+    else:
+        slope = (sma_now - sma_prev) / sma_prev
+    out["sma30w_slope"] = slope
+
+    above = last_w > sma_now
+    below = last_w < sma_now
+    rising = slope > slope_flat
+    declining = slope < -slope_flat
+    flat = not rising and not declining
+
+    # Longer context: did the 30w SMA advance or decline over ~20 weeks?
+    # Distinguishes Stage 1 (basing after decline) from Stage 3 (topping after advance)
+    # when price is near a flattening SMA.
+    ctx_lb = min(20, len(sma) - 1)
+    sma_ctx = _safe_float(sma.iloc[-1 - ctx_lb]) if ctx_lb >= 5 else None
+    prior_decline = bool(
+        sma_ctx is not None and sma_ctx > 0 and (sma_now - sma_ctx) / sma_ctx < -slope_flat
+    )
+    prior_advance = bool(
+        sma_ctx is not None and sma_ctx > 0 and (sma_now - sma_ctx) / sma_ctx > slope_flat
+    )
+    near_sma = abs(last_w - sma_now) / sma_now <= 0.03
+
+    # Primary classification
+    if above and rising:
+        stage = 2
+    elif below and declining:
+        stage = 4
+    elif near_sma and flat:
+        # Sideways at flat SMA: Stage 1 after decline, Stage 3 after advance
+        if prior_decline and not prior_advance:
+            stage = 1
+        elif prior_advance and not prior_decline:
+            stage = 3
+        else:
+            stage = 1 if below or not above else 3
+    elif above and (flat or declining):
+        # Still elevated vs SMA after advance / rolling over — Stage 3
+        stage = 3 if (prior_advance or declining or flat) else 2
+    elif below and (flat or rising):
+        # Holding below / early reclaim — Stage 1
+        stage = 1
+    else:
+        # Exactly on SMA
+        if rising:
+            stage = 2
+        elif declining:
+            stage = 4
+        else:
+            stage = 1 if prior_decline else 3
+    out["weinstein_stage"] = stage
+    return out
+
+
+def anchored_vwap(
+    df: pd.DataFrame,
+    *,
+    lookback: int = _AVWAP_LOOKBACK,
+    min_bars_after: int = _AVWAP_MIN_BARS_AFTER,
+) -> dict[str, Any]:
+    """Anchored VWAP from a deterministic price-volume pivot (no earnings API).
+
+    Anchor rule (documented):
+      Within the last `lookback` sessions (default 90), choose the day with the
+      highest volume that still leaves at least `min_bars_after` bars afterward
+      so VWAP has room to form. That high-volume bar is treated as the practical
+      catalyst / breakout-climax pivot for this universe (earnings dates are
+      unreliable via free yfinance without extra APIs, so we do not use them).
+
+    VWAP uses typical price (H+L+C)/3 * volume from the anchor bar through today.
+    """
+    out: dict[str, Any] = {
+        "avwap": None,
+        "anchor_date": None,
+        "anchor_reason": None,
+        "price_vs_avwap": None,
+        "anchor_price": None,
+    }
+    if df is None or getattr(df, "empty", True):
+        return out
+    for col in ("High", "Low", "Close", "Volume"):
+        if col not in df.columns:
+            return out
+    if len(df) < min_bars_after + 2:
+        return out
+
+    # Search window: exclude the final min_bars_after bars from being the anchor
+    search_end = len(df) - min_bars_after
+    search_start = max(0, search_end - lookback)
+    if search_end <= search_start:
+        return out
+
+    window = df.iloc[search_start:search_end]
+    vol = pd.to_numeric(window["Volume"], errors="coerce").fillna(0.0)
+    if vol.empty or float(vol.max()) <= 0:
+        return out
+
+    # Index of max volume within window (last occurrence if ties — more recent)
+    rel_i = int(vol.to_numpy()[::-1].argmax())
+    anchor_i_in_window = len(vol) - 1 - rel_i
+    anchor_pos = search_start + anchor_i_in_window
+
+    seg = df.iloc[anchor_pos:]
+    high = pd.to_numeric(seg["High"], errors="coerce")
+    low = pd.to_numeric(seg["Low"], errors="coerce")
+    close = pd.to_numeric(seg["Close"], errors="coerce")
+    svol = pd.to_numeric(seg["Volume"], errors="coerce").fillna(0.0).clip(lower=0.0)
+    typical = (high + low + close) / 3.0
+    valid = typical.notna() & svol.notna() & (svol > 0)
+    if valid.sum() < 2:
+        return out
+    tp = typical[valid]
+    vv = svol[valid]
+    cum_pv = float((tp * vv).sum())
+    cum_v = float(vv.sum())
+    if cum_v <= 0:
+        return out
+    avwap = cum_pv / cum_v
+    last = _safe_float(close.iloc[-1])
+    anchor_ts = seg.index[0]
+    try:
+        anchor_date = pd.Timestamp(anchor_ts).strftime("%Y-%m-%d")
+    except Exception:  # noqa: BLE001
+        anchor_date = str(anchor_ts)
+    anchor_px = _safe_float(pd.to_numeric(seg["Close"], errors="coerce").iloc[0])
+
+    out.update(
+        {
+            "avwap": float(avwap),
+            "anchor_date": anchor_date,
+            "anchor_reason": (
+                f"highest-volume day in prior {lookback}d lookback "
+                f"(excl. last {min_bars_after}d); volume climax / breakout pivot"
+            ),
+            "price_vs_avwap": ((last - avwap) / avwap) if last is not None and avwap else None,
+            "anchor_price": anchor_px,
+        }
+    )
+    return out
+
+
+def _apply_structure_overlays(
+    *,
+    score: float,
+    reasons: list[str],
+    vbp: dict[str, Any],
+    weinstein: dict[str, Any],
+    avwap: dict[str, Any],
+    uptrend_short: bool,
+) -> float:
+    """Soft score tweaks from VbP / Weinstein / aVWAP — magnitudes stay small."""
+
+    last_rel = None
+    poc = vbp.get("vbp_poc")
+    vah = vbp.get("vbp_vah")
+    val = vbp.get("vbp_val")
+    pvp = vbp.get("price_vs_poc")
+    # Reconstruct last vs levels using price_vs_poc when available
+    if poc is not None and pvp is not None:
+        last_est = poc * (1.0 + pvp)
+        # Near VAL / PoC support in uptrend
+        if uptrend_short and val is not None and poc is not None:
+            near_val = abs(last_est - val) / val <= 0.015 or (
+                val <= last_est <= poc * 1.01
+            )
+            near_poc = abs(pvp) <= 0.01
+            if near_val or near_poc:
+                score += 4
+                where = "VAL/PoC" if near_val else "PoC"
+                reasons.append(f"VbP: price near {where} support in uptrend")
+            elif vah is not None and last_est > vah * 1.02 and pvp > 0.04:
+                score -= 4
+                reasons.append(
+                    f"VbP: extended above VAH/PoC (price_vs_poc={pvp:+.1%}) — chase caution"
+                )
+            else:
+                reasons.append(
+                    f"VbP PoC={poc:.2f} VA=[{val:.2f},{vah:.2f}] "
+                    f"(price_vs_poc={pvp:+.1%})"
+                )
+        elif pvp is not None and vah is not None and last_est > vah * 1.02 and pvp > 0.05:
+            score -= 3
+            reasons.append(f"VbP: stretched above VAH (price_vs_poc={pvp:+.1%})")
+        elif poc is not None and val is not None and vah is not None:
+            reasons.append(
+                f"VbP PoC={poc:.2f} VA=[{val:.2f},{vah:.2f}]"
+                + (f" (price_vs_poc={pvp:+.1%})" if pvp is not None else "")
+            )
+    elif poc is not None:
+        reasons.append(f"VbP PoC={poc:.2f}")
+
+    stage = weinstein.get("weinstein_stage")
+    sma30w = weinstein.get("sma30w")
+    if stage is not None:
+        if stage == 2:
+            score += 5
+            reasons.append(
+                f"Weinstein Stage 2 (markup; SMA30w={sma30w:.2f})"
+                if sma30w
+                else "Weinstein Stage 2 (markup)"
+            )
+        elif stage == 3:
+            score -= 4
+            reasons.append(
+                f"Weinstein Stage 3 (distribution/topping; SMA30w={sma30w:.2f}) — "
+                "caution on new aggressive longs"
+                if sma30w
+                else "Weinstein Stage 3 — caution on new aggressive longs"
+            )
+        elif stage == 4:
+            score -= 6
+            reasons.append(
+                f"Weinstein Stage 4 (markdown; SMA30w={sma30w:.2f}) — "
+                "discourage new longs"
+                if sma30w
+                else "Weinstein Stage 4 — discourage new longs"
+            )
+        elif stage == 1:
+            score += 1
+            reasons.append(
+                f"Weinstein Stage 1 (basing; SMA30w={sma30w:.2f})"
+                if sma30w
+                else "Weinstein Stage 1 (basing)"
+            )
+    elif sma30w is not None:
+        reasons.append(
+            f"Weinstein SMA30w={sma30w:.2f} (insufficient weekly bars for stage)"
+        )
+
+    av = avwap.get("avwap")
+    pva = avwap.get("price_vs_avwap")
+    anchor_date = avwap.get("anchor_date")
+    if av is not None and pva is not None:
+        above = pva >= 0
+        weak_tape = stage in (3, 4) or not uptrend_short
+        if above and stage == 2:
+            score += 4
+            reasons.append(
+                f"Above aVWAP ({av:.2f}, anchor {anchor_date}) in Stage 2"
+            )
+        elif above and uptrend_short:
+            score += 2
+            reasons.append(f"Above aVWAP ({av:.2f}, anchor {anchor_date})")
+        elif (not above) and weak_tape:
+            score -= 4
+            reasons.append(
+                f"Below aVWAP ({av:.2f}, anchor {anchor_date}) on weak tape"
+            )
+        elif not above:
+            score -= 2
+            reasons.append(f"Below aVWAP ({av:.2f}, anchor {anchor_date})")
+        else:
+            reasons.append(
+                f"aVWAP={av:.2f} (anchor {anchor_date}, price_vs_avwap={pva:+.1%})"
+            )
+
+    return score
 
 
 def _apply_volume_overlays(
@@ -466,6 +925,45 @@ class MomentumAgent(ResearchAgent):
         except Exception as vol_exc:  # noqa: BLE001 — never fail signal on overlay math
             reasons.append(f"Volume overlays skipped: {vol_exc}")
 
+        # Structure overlays: VbP / Weinstein weekly stage / anchored VWAP
+        vbp: dict[str, Any] = {
+            "vbp_poc": None,
+            "vbp_vah": None,
+            "vbp_val": None,
+            "price_vs_poc": None,
+            "vbp_lookback": _VBP_LOOKBACK,
+            "vbp_bins": _VBP_BINS,
+        }
+        weinstein: dict[str, Any] = {
+            "weinstein_stage": None,
+            "sma30w": None,
+            "sma30w_slope": None,
+            "weekly_bars": 0,
+            "weekly_close": None,
+        }
+        avwap_data: dict[str, Any] = {
+            "avwap": None,
+            "anchor_date": None,
+            "anchor_reason": None,
+            "price_vs_avwap": None,
+            "anchor_price": None,
+        }
+        try:
+            vbp = volume_by_price(df)
+            weinstein = weinstein_stage(df)
+            avwap_data = anchored_vwap(df)
+            uptrend_short = bool(m20 is not None and m50 is not None and m20 > m50)
+            score = _apply_structure_overlays(
+                score=score,
+                reasons=reasons,
+                vbp=vbp,
+                weinstein=weinstein,
+                avwap=avwap_data,
+                uptrend_short=uptrend_short,
+            )
+        except Exception as struct_exc:  # noqa: BLE001 — never fail signal on overlay math
+            reasons.append(f"Structure overlays skipped: {struct_exc}")
+
         # Map score (-80..+80ish) -> direction + confidence
         if score >= 15:
             direction = Direction.LONG
@@ -502,6 +1000,20 @@ class MomentumAgent(ResearchAgent):
             "bb_width_pct": squeeze.get("bb_width_pct"),
             "kc_width_pct": squeeze.get("kc_width_pct"),
             "bb_inside_kc": squeeze.get("bb_inside_kc"),
+            "vbp_poc": vbp.get("vbp_poc"),
+            "vbp_vah": vbp.get("vbp_vah"),
+            "vbp_val": vbp.get("vbp_val"),
+            "price_vs_poc": vbp.get("price_vs_poc"),
+            "vbp_lookback": vbp.get("vbp_lookback"),
+            "weinstein_stage": weinstein.get("weinstein_stage"),
+            "sma30w": weinstein.get("sma30w"),
+            "sma30w_slope": weinstein.get("sma30w_slope"),
+            "weekly_bars": weinstein.get("weekly_bars"),
+            "avwap": avwap_data.get("avwap"),
+            "anchor_date": avwap_data.get("anchor_date"),
+            "anchor_reason": avwap_data.get("anchor_reason"),
+            "price_vs_avwap": avwap_data.get("price_vs_avwap"),
+            "anchor_price": avwap_data.get("anchor_price"),
             "raw_score": score,
             "bars": len(df),
         }

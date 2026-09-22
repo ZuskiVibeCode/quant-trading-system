@@ -1,4 +1,4 @@
-"""Unit tests for MomentumAgent volume / demand / squeeze overlays."""
+"""Unit tests for MomentumAgent volume / demand / squeeze / VbP / Weinstein / aVWAP."""
 
 from __future__ import annotations
 
@@ -10,9 +10,12 @@ from quant_system.market_data.interface import MarketData
 from quant_system.models.signal import Direction
 from quant_system.research.momentum import (
     MomentumAgent,
+    anchored_vwap,
     bollinger_keltner_squeeze,
     demand_imbalance,
     relative_volume,
+    volume_by_price,
+    weinstein_stage,
 )
 
 
@@ -272,3 +275,162 @@ def test_squeeze_release_bumps_reasoning_on_expansion_trend():
     # Direction should be long-ish on strong expansion; overlays present either way
     assert sd["relative_volume"] is not None
     assert sig.direction in (Direction.LONG, Direction.NEUTRAL, Direction.SHORT)
+
+
+# ---------------------------------------------------------------------------
+# Volume by Price / Weinstein / Anchored VWAP
+# ---------------------------------------------------------------------------
+
+
+def test_volume_by_price_poc_and_value_area():
+    """Concentrated volume at a price level → PoC there; VA covers ~70%."""
+    n = 80
+    close = np.concatenate(
+        [
+            np.full(20, 50.0),
+            np.full(40, 60.0),  # heavy volume cluster
+            np.full(20, 70.0),
+        ]
+    )
+    vol = np.concatenate(
+        [
+            np.full(20, 50_000.0),
+            np.full(40, 200_000.0),
+            np.full(20, 50_000.0),
+        ]
+    )
+    df = _ohlcv(close, volume=vol, high_mult=1.005, low_mult=0.995)
+    out = volume_by_price(df, lookback=80, n_bins=20)
+    assert out["vbp_poc"] is not None
+    assert out["vbp_vah"] is not None and out["vbp_val"] is not None
+    assert out["vbp_val"] <= out["vbp_poc"] <= out["vbp_vah"]
+    # PoC should sit near the 60 cluster
+    assert 55.0 <= out["vbp_poc"] <= 65.0
+    assert out["price_vs_poc"] is not None
+    # Last close ~70 → above PoC
+    assert out["price_vs_poc"] > 0
+
+
+def test_volume_by_price_empty_and_short():
+    assert volume_by_price(pd.DataFrame())["vbp_poc"] is None
+    df = _ohlcv([10.0, 10.5, 11.0])
+    assert volume_by_price(df)["vbp_poc"] is None  # < 5 bars
+
+
+def test_weinstein_stage_2_uptrend():
+    """Long monotonic daily advance → weekly Stage 2 (above rising 30w SMA)."""
+    n = 250  # ~50 weeks
+    close = np.linspace(40, 100, n)
+    df = _ohlcv(close)
+    out = weinstein_stage(df)
+    assert out["weekly_bars"] >= 30
+    assert out["sma30w"] is not None
+    assert out["weinstein_stage"] == 2
+    assert out["sma30w_slope"] is not None and out["sma30w_slope"] > 0
+
+
+def test_weinstein_stage_4_downtrend():
+    n = 250
+    close = np.linspace(100, 40, n)
+    df = _ohlcv(close)
+    out = weinstein_stage(df)
+    assert out["weinstein_stage"] == 4
+    assert out["sma30w_slope"] is not None and out["sma30w_slope"] < 0
+
+
+def test_weinstein_stage_insufficient_history():
+    """Young name: fewer than 30 weekly bars → stage None, maybe partial SMA."""
+    n = 40  # ~8 weeks
+    df = _ohlcv(np.linspace(20, 30, n))
+    out = weinstein_stage(df)
+    assert out["weekly_bars"] < 30
+    assert out["weinstein_stage"] is None
+
+
+def test_weinstein_stage_1_basing_after_decline():
+    """Decline then sideways base → Stage 1 (near flat SMA after prior decline)."""
+    decline = np.linspace(100, 45, 180)
+    base = 45.0 + np.sin(np.linspace(0, 10 * np.pi, 200)) * 1.2  # sideways coil
+    close = np.concatenate([decline, base])
+    df = _ohlcv(close)
+    out = weinstein_stage(df)
+    assert out["weinstein_stage"] == 1
+    assert out["sma30w"] is not None
+
+
+def test_anchored_vwap_from_volume_pivot():
+    n = 100
+    close = np.linspace(50, 70, n)
+    vol = np.full(n, 100_000.0)
+    vol[40] = 900_000.0  # clear climax inside lookback, ≥5 bars from end
+    df = _ohlcv(close, volume=vol)
+    out = anchored_vwap(df, lookback=90, min_bars_after=5)
+    assert out["avwap"] is not None
+    assert out["anchor_date"] is not None
+    assert "highest-volume" in (out["anchor_reason"] or "")
+    assert out["price_vs_avwap"] is not None
+    # Anchor should be the high-volume day
+    assert out["anchor_date"] == str(df.index[40].date())
+    # Price ended above the early-mid anchor region → typically above aVWAP
+    assert out["avwap"] > 0
+
+
+def test_anchored_vwap_insufficient_bars():
+    df = _ohlcv(np.linspace(10, 12, 4))
+    assert anchored_vwap(df)["avwap"] is None
+
+
+def test_agent_supporting_data_includes_structure_overlays():
+    n = 260
+    rng = np.random.default_rng(11)
+    close = 40 * np.cumprod(1 + rng.normal(0.0015, 0.012, n))
+    vol = rng.integers(80_000, 150_000, n).astype(float)
+    vol[100] = float(np.max(vol) * 4)  # visible anchor
+    df = _ohlcv(close, volume=vol)
+    spy = _ohlcv(100 * np.cumprod(1 + rng.normal(0.0004, 0.008, n)))
+    sig = MomentumAgent(_FrameMarketData({"AAPL": df, "SPY": spy})).analyze("AAPL")
+    sd = sig.supporting_data
+    for key in (
+        "vbp_poc",
+        "vbp_vah",
+        "vbp_val",
+        "price_vs_poc",
+        "weinstein_stage",
+        "sma30w",
+        "avwap",
+        "anchor_date",
+        "anchor_reason",
+        "price_vs_avwap",
+    ):
+        assert key in sd, f"missing {key}"
+    assert sd["vbp_poc"] is not None
+    assert sd["avwap"] is not None
+    assert sd["weinstein_stage"] in (1, 2, 3, 4)
+    low = sig.reasoning.lower()
+    assert (
+        "vbp" in low
+        or "weinstein" in low
+        or "avwap" in low
+        or "stage" in low
+        or "poc" in low
+    )
+
+
+def test_structure_overlays_soft_bias_stage2_vs_stage4():
+    """Same short-term shape aside: Stage-2 tape should score higher than Stage-4."""
+    n = 260
+    up = np.linspace(40, 90, n)
+    down = np.linspace(90, 40, n)
+    vol = np.full(n, 120_000.0)
+    vol[80] = 500_000.0
+    spy = _ohlcv(np.linspace(100, 110, n))
+    sig_up = MomentumAgent(
+        _FrameMarketData({"U": _ohlcv(up, volume=vol), "SPY": spy})
+    ).analyze("U")
+    sig_dn = MomentumAgent(
+        _FrameMarketData({"D": _ohlcv(down, volume=vol), "SPY": spy})
+    ).analyze("D")
+    assert sig_up.supporting_data["weinstein_stage"] == 2
+    assert sig_dn.supporting_data["weinstein_stage"] == 4
+    assert sig_up.supporting_data["raw_score"] > sig_dn.supporting_data["raw_score"]
+
