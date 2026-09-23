@@ -31,6 +31,12 @@ class RiskConfig(BaseModel):
     cash_buffer_target_pct: float = 0.15  # documented target; trim uses min + frac
     buffer_trim_frac: float = 0.20
     max_buffer_trims_per_cycle: int = 1
+    # Opportunity-cost rotate: trim weakest long to fund a higher-score buy when cash is tight
+    opportunity_rotate_enabled: bool = True
+    opportunity_rotate_min_score_gap: float = 0.15
+    opportunity_rotate_trim_frac: float = 0.25
+    max_opportunity_trims_per_cycle: int = 2
+    opportunity_rotate_min_buy_score: float = 0.05
 
 
 class ThemeMembers(BaseModel):

@@ -33,6 +33,8 @@ def env(tmp_path):
     cfg.risk.min_confidence_to_sell = 1.0
     cfg.risk.min_order_notional = 1.0
     cfg.risk.starting_equity = 100.0
+    # Isolate cumulative-cash planning from opportunity-cost rotate
+    cfg.risk.opportunity_rotate_enabled = False
     yield tracker, md, cfg
     tracker.close()
 

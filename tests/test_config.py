@@ -17,6 +17,11 @@ def test_universe_and_risk():
     assert cfg.risk.cash_buffer_target_pct == 0.15
     assert cfg.risk.buffer_trim_frac == 0.20
     assert cfg.risk.max_buffer_trims_per_cycle == 1
+    assert cfg.risk.opportunity_rotate_enabled is True
+    assert cfg.risk.opportunity_rotate_min_score_gap == 0.15
+    assert cfg.risk.opportunity_rotate_trim_frac == 0.25
+    assert cfg.risk.max_opportunity_trims_per_cycle == 2
+    assert cfg.risk.opportunity_rotate_min_buy_score == 0.05
     assert cfg.universe.benchmark == "SPY"
     tickers = cfg.universe.tickers
     assert len(tickers) == 30

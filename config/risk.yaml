@@ -25,3 +25,11 @@ cash_buffer_min_pct: 0.10       # trigger when cash/equity below this
 cash_buffer_target_pct: 0.15    # documented target; trim uses min + frac
 buffer_trim_frac: 0.20          # sell this fraction of weakest holding
 max_buffer_trims_per_cycle: 1   # at most one buffer trim ticket per cycle
+
+# Opportunity-cost rotate (fund a better buy by trimming a weaker long when cash is tight)
+opportunity_rotate_enabled: true
+opportunity_rotate_min_score_gap: 0.15   # buy score must beat donor by at least this
+opportunity_rotate_trim_frac: 0.25        # sell this fraction of donor qty (or enough notional)
+max_opportunity_trims_per_cycle: 2
+opportunity_rotate_min_buy_score: 0.05   # only rotate for meaningfully positive buys
+

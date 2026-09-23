@@ -155,14 +155,59 @@ class PortfolioManager:
             else:
                 sized_holds.append(decision)
 
+        # Remaining position qty after signal-driven sells (opportunity-rotate donors)
+        remaining_pos_qty: dict[str, float] = {
+            t: float(pos["qty"]) for t, pos in positions.items()
+        }
+        for ticket in sell_tickets:
+            remaining_pos_qty[ticket.ticker] = (
+                remaining_pos_qty.get(ticket.ticker, 0.0) - float(ticket.qty)
+            )
+
+        pending_buy_tickers: set[str] = set()
+        opportunity_trims_used = 0
+
         buy_plans.sort(key=lambda p: (-p.score, p.ticker))
         for plan in buy_plans:
             decision = self._size_buy(plan, equity, remaining_cash)
             if isinstance(decision, TradeTicket):
                 remaining_cash -= float(decision.qty) * float(plan.price or 0.0)
                 buy_tickets.append(decision)
-            else:
-                sized_holds.append(decision)
+                pending_buy_tickers.add(plan.ticker)
+                continue
+
+            if (
+                self.risk.opportunity_rotate_enabled
+                and opportunity_trims_used < int(self.risk.max_opportunity_trims_per_cycle)
+                and plan.score >= self.risk.opportunity_rotate_min_buy_score
+                and self._is_insufficient_cash_hold(decision)
+            ):
+                rotate = self._opportunity_rotate_sell(
+                    buy_plan=plan,
+                    equity=equity,
+                    remaining_cash=remaining_cash,
+                    ticker_scores=ticker_scores,
+                    remaining_pos_qty=remaining_pos_qty,
+                    pending_buy_tickers=pending_buy_tickers,
+                )
+                if rotate is not None:
+                    rotate_ticket, donor_price = rotate
+                    remaining_cash += float(rotate_ticket.qty) * donor_price
+                    remaining_pos_qty[rotate_ticket.ticker] = (
+                        remaining_pos_qty.get(rotate_ticket.ticker, 0.0)
+                        - float(rotate_ticket.qty)
+                    )
+                    sell_tickets.append(rotate_ticket)
+                    opportunity_trims_used += 1
+                    # One trim attempt per buy, then re-size
+                    decision = self._size_buy(plan, equity, remaining_cash)
+                    if isinstance(decision, TradeTicket):
+                        remaining_cash -= float(decision.qty) * float(plan.price or 0.0)
+                        buy_tickets.append(decision)
+                        pending_buy_tickers.add(plan.ticker)
+                        continue
+
+            sized_holds.append(decision)
 
         # Opening shorts consume buying power similarly (allow_short default false)
         short_plans.sort(key=lambda p: (p.score, p.ticker))  # most bearish first
@@ -454,6 +499,99 @@ class PortfolioManager:
             rationale=f"SHORT {qty} {ticker} (allow_short=true); score={score:.3f}",
             signal_ids=plan.signal_ids,
         )
+
+
+    @staticmethod
+    def _is_insufficient_cash_hold(decision: HoldDecision | TradeTicket) -> bool:
+        """True when sizing failed because remaining cash / budget was too small."""
+        if not isinstance(decision, HoldDecision):
+            return False
+        return "insufficient remaining cash" in (decision.rationale or "")
+
+    def _opportunity_rotate_sell(
+        self,
+        *,
+        buy_plan: _ScoredTicker,
+        equity: float,
+        remaining_cash: float,
+        ticker_scores: dict[str, float],
+        remaining_pos_qty: dict[str, float],
+        pending_buy_tickers: set[str],
+    ) -> tuple[TradeTicket, float] | None:
+        """Trim the weakest eligible long to free cash for a higher-score buy.
+
+        Returns (SELL ticket, donor_price) or None if no suitable donor.
+        """
+        buy_ticker = buy_plan.ticker
+        buy_score = buy_plan.score
+        gap = float(self.risk.opportunity_rotate_min_score_gap)
+        trim_frac = float(self.risk.opportunity_rotate_trim_frac)
+
+        max_pos_value = equity * self.risk.max_position_pct
+        room = max(0.0, max_pos_value - buy_plan.pos_value)
+        # Position room must be able to absorb at least min notional; else cash won't help
+        if room < float(self.risk.min_order_notional):
+            return None
+        # Cash needed so remaining_cash * 0.95 covers the full room budget
+        target_cash = room / 0.95
+        notional_needed = max(0.0, target_cash - remaining_cash)
+        if notional_needed <= 0:
+            return None
+
+        # Candidates: longs with remaining qty, not the buy ticker, not pending buys
+        candidates: list[tuple[float, float, str, float, float]] = []
+        # (donor_score, remaining_value, ticker, remaining_qty, price)
+        for ticker, rem_qty in remaining_pos_qty.items():
+            if ticker == buy_ticker:
+                continue
+            if rem_qty <= 1e-9:
+                continue
+            if ticker in pending_buy_tickers:
+                continue
+            donor_score = float(ticker_scores.get(ticker, 0.0))
+            if buy_score - donor_score < gap:
+                continue
+            try:
+                price = float(self.market_data.last_price(ticker))
+            except Exception:  # noqa: BLE001
+                continue
+            if price <= 0:
+                continue
+            remaining_value = rem_qty * price
+            candidates.append((donor_score, remaining_value, ticker, rem_qty, price))
+
+        if not candidates:
+            return None
+
+        # Lowest score first; tie-break smaller remaining position value, then ticker
+        candidates.sort(key=lambda x: (x[0], x[1], x[2]))
+        donor_score, _val, donor, rem_qty, donor_price = candidates[0]
+
+        qty_by_frac = rem_qty * trim_frac
+        qty_by_need = notional_needed / donor_price if donor_price > 0 else 0.0
+        qty = round(min(qty_by_frac, qty_by_need, rem_qty), 6)
+        if qty <= 0:
+            return None
+        notional = qty * donor_price
+        if notional < self.risk.min_order_notional and qty + 1e-9 < rem_qty:
+            # Bump toward min notional if position still has room
+            min_qty = round(float(self.risk.min_order_notional) / donor_price, 6)
+            qty = min(min_qty, round(rem_qty, 6))
+            notional = qty * donor_price
+        if qty <= 0 or notional < self.risk.min_order_notional:
+            return None
+
+        ticket = TradeTicket(
+            ticker=donor,
+            side=TicketSide.SELL,
+            qty=qty,
+            rationale=(
+                f"SELL {qty} {donor} @~{donor_price:.2f}; opportunity rotate to fund "
+                f"{buy_ticker} (buy_score={buy_score:.3f} donor_score={donor_score:.3f})"
+            ),
+            signal_ids=list(buy_plan.signal_ids),
+        )
+        return ticket, donor_price
 
     def _maybe_cash_buffer_trims(
         self,
