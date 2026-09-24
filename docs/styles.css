@@ -598,3 +598,115 @@ tr.clickable:focus {
   text-transform: uppercase;
   fill: #3d4550;
 }
+
+/* ---- Orbit Sectors board ---- */
+.sector-board {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 720px) {
+  .sector-board { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.sector-card {
+  text-align: left;
+  width: 100%;
+  background: var(--surface);
+  border: none;
+  color: inherit;
+  border-radius: var(--radius);
+  padding: 1rem 1.05rem;
+  box-shadow: var(--shadow-border);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.sector-card:hover {
+  box-shadow: 0 0 0 1px rgb(143 180 196 / 0.4), var(--shadow-border);
+}
+.sector-card:focus {
+  outline: none;
+}
+.sector-card:focus-visible {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.sector-card[aria-pressed="true"] {
+  box-shadow: 0 0 0 1px rgb(143 180 196 / 0.55), 0 0 24px rgb(143 180 196 / 0.12);
+}
+.sector-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.sector-card h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+.sector-card .sector-meta {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--subtle);
+  letter-spacing: 0.04em;
+}
+.sector-subhead {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--subtle);
+}
+.pressure-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.pressure-row {
+  display: grid;
+  grid-template-columns: 2.4rem 1fr 2.6rem;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+}
+.pressure-row .bar-track {
+  height: 0.35rem;
+  border-radius: 999px;
+  background: var(--elevated);
+  overflow: hidden;
+}
+.pressure-row .bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  min-width: 0;
+}
+.pressure-row .bar-fill.buy { background: var(--gain); }
+.pressure-row .bar-fill.sell { background: var(--loss); }
+.pressure-row .bar-fill.net.gain { background: var(--gain); }
+.pressure-row .bar-fill.net.loss { background: var(--loss); }
+.pressure-row .bar-fill.net.flat { background: var(--subtle); }
+.sector-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+.sector-stats .stat {
+  padding: 0.45rem 0.5rem;
+}
+.sector-stats .stat .label { font-size: 0.58rem; }
+.sector-stats .stat .value { font-size: 0.85rem; }
+.sector-zones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.sector-zones .chip {
+  cursor: default;
+  font-size: 0.62rem;
+  padding: 0.15rem 0.45rem;
+}

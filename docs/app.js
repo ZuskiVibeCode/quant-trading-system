@@ -297,6 +297,12 @@
     return filter === "all" || sec === filter;
   }
 
+  function setSectorFilter(key) {
+    filter = SECTORS.includes(key) ? key : "all";
+    setHeroArt();
+    renderAll();
+  }
+
   function setHeroArt() {
     const img = $("heroArt");
     if (!img) return;
@@ -315,9 +321,7 @@
       btn.textContent = key === "all" ? "All" : key;
       btn.setAttribute("aria-pressed", filter === key ? "true" : "false");
       btn.addEventListener("click", () => {
-        filter = key;
-        setHeroArt();
-        renderAll();
+        setSectorFilter(key);
       });
       el.appendChild(btn);
     });
@@ -889,6 +893,95 @@
     dlg.hidden = true;
   }
 
+
+  function renderSectors() {
+    const host = $("sectorBoard");
+    if (!host) return;
+    const rows = DATA?.sector_board || [];
+    if (!rows.length) {
+      // Fallback: empty themes from sectors map so UI still shows structure
+      const themes = Object.keys(DATA?.sectors || {});
+      if (!themes.length) {
+        host.innerHTML = `<div class="empty">No sector board in latest.json — re-export dashboard</div>`;
+        return;
+      }
+    }
+    const ordered = ["quantum", "space", "robotics"];
+    const byTheme = Object.fromEntries(rows.map((r) => [r.theme, r]));
+    const themes = ordered.filter((t) => byTheme[t] || (DATA?.sectors || {})[t]);
+    // include any extra themes not in ordered
+    for (const t of Object.keys(DATA?.sectors || {})) {
+      if (!themes.includes(t)) themes.push(t);
+    }
+    const fmtPressure = (n) => (n == null || Number.isNaN(Number(n)) ? "—" : Number(n).toFixed(2));
+    const barPct = (n) => Math.max(0, Math.min(100, Math.round(Math.abs(Number(n) || 0) * 100)));
+
+    host.innerHTML = themes
+      .map((theme) => {
+        const r = byTheme[theme] || {
+          theme,
+          tickers_n: (DATA?.sectors?.[theme] || []).length,
+          held_n: 0,
+          weight: 0,
+          unrealized: null,
+          buy: 0,
+          sell: 0,
+          net: 0,
+          long: 0,
+          short: 0,
+          neutral: 0,
+          zones: { buy_zone: 0, sell_zone: 0, conflicted: 0, quiet: 0 },
+        };
+        const pressed = filter === theme;
+        const netCls = Number(r.net) > 0 ? "gain" : Number(r.net) < 0 ? "loss" : "flat";
+        const z = r.zones || {};
+        return `<button type="button" class="sector-card" data-theme="${theme}" aria-pressed="${pressed ? "true" : "false"}">
+  <header>
+    <h3>${theme}</h3>
+    <span class="sector-meta">${r.held_n}/${r.tickers_n} held</span>
+  </header>
+  <div>
+    <p class="sector-subhead">Pressure</p>
+    <div class="pressure-bars">
+      <div class="pressure-row"><span>Buy</span><div class="bar-track"><div class="bar-fill buy" style="width:${barPct(r.buy)}%"></div></div><span class="gain">${fmtPressure(r.buy)}</span></div>
+      <div class="pressure-row"><span>Sell</span><div class="bar-track"><div class="bar-fill sell" style="width:${barPct(r.sell)}%"></div></div><span class="loss">${fmtPressure(r.sell)}</span></div>
+      <div class="pressure-row"><span>Net</span><div class="bar-track"><div class="bar-fill net ${netCls}" style="width:${barPct(r.net)}%"></div></div><span class="${pnlClass(r.net)}">${fmtPressure(r.net)}</span></div>
+    </div>
+  </div>
+  <div>
+    <p class="sector-subhead">Breadth</p>
+    <div class="sector-stats">
+      <div class="stat"><p class="label">Long</p><p class="value mono gain">${r.long ?? 0}</p></div>
+      <div class="stat"><p class="label">Short</p><p class="value mono loss">${r.short ?? 0}</p></div>
+      <div class="stat"><p class="label">Neutral</p><p class="value mono">${r.neutral ?? 0}</p></div>
+    </div>
+    <div class="sector-zones" style="margin-top:0.5rem">
+      <span class="chip">buy ${z.buy_zone ?? 0}</span>
+      <span class="chip">sell ${z.sell_zone ?? 0}</span>
+      <span class="chip">conflict ${z.conflicted ?? 0}</span>
+      <span class="chip">quiet ${z.quiet ?? 0}</span>
+    </div>
+  </div>
+  <div>
+    <p class="sector-subhead">Book</p>
+    <div class="sector-stats">
+      <div class="stat"><p class="label">Weight</p><p class="value mono">${fmtPct(r.weight)}</p></div>
+      <div class="stat"><p class="label">Unrealized</p><p class="value mono ${pnlClass(r.unrealized)}">${fmtUsd(r.unrealized)}</p></div>
+      <div class="stat"><p class="label">Held</p><p class="value mono">${r.held_n}/${r.tickers_n}</p></div>
+    </div>
+  </div>
+</button>`;
+      })
+      .join("");
+
+    host.querySelectorAll(".sector-card").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const theme = btn.getAttribute("data-theme");
+        setSectorFilter(filter === theme ? "all" : theme);
+      });
+    });
+  }
+
   function renderAll() {
     renderFilters();
     renderHeroBadges();
@@ -898,6 +991,7 @@
     renderAgents();
     renderResearch();
     renderMission();
+    renderSectors();
     renderZones();
     renderWatch();
   }

@@ -420,6 +420,126 @@ def build_zones_block(
     }
 
 
+def build_sector_board(
+    agents_today: dict[str, Any],
+    sectors: dict[str, list[str]],
+    holdings: list[dict[str, Any]],
+    *,
+    equity: float | None = None,
+) -> list[dict[str, Any]]:
+    """Per-theme Orbit Sectors board row (pressure / breadth / book).
+
+    Pressure aggregation (same math as Zones, then averaged across theme):
+      For each ticker in the theme that has ≥1 latest agent signal that day:
+        buy_t, sell_t, net_t = compute_zone_pressures(latest_signals_by_agent[ticker])
+      Theme buy/sell/net = mean of those per-ticker values (tickers with no signals
+      are excluded from the mean; empty theme → 0/0/0).
+
+    Breadth (ticker-level, from latest agent signals + zone labels):
+      For each theme ticker with signals, classify direction by majority of that
+      ticker's latest agent directions (ties / all-neutral → neutral). Also count
+      how many of those tickers fall in buy_zone / sell_zone / conflicted / quiet.
+
+    Book:
+      held_n = open holdings in theme; tickers_n = universe size for theme;
+      weight = sum(market value of theme holdings) / equity when equity > 0
+      (market value = qty*last, else qty*avg_cost); unrealized = sum of dollar
+      unrealized marks on those holdings (null if none have a mark).
+    """
+    by_ticker = latest_signals_by_agent_ticker(agents_today)
+    holdings_by_ticker: dict[str, dict[str, Any]] = {}
+    for h in holdings or []:
+        t = str(h.get("ticker") or "").upper()
+        if t:
+            holdings_by_ticker[t] = h
+
+    eq = float(equity) if equity is not None else 0.0
+    board: list[dict[str, Any]] = []
+    for theme in sorted((sectors or {}).keys()):
+        tickers = [str(t).upper() for t in (sectors.get(theme) or [])]
+        tickers_n = len(tickers)
+
+        buys: list[float] = []
+        sells: list[float] = []
+        nets: list[float] = []
+        long_n = short_n = neutral_n = 0
+        zones_counts = {"buy_zone": 0, "sell_zone": 0, "conflicted": 0, "quiet": 0}
+
+        for t in tickers:
+            agent_map = by_ticker.get(t) or {}
+            if not agent_map:
+                continue
+            buy, sell, net = compute_zone_pressures(agent_map)
+            buys.append(buy)
+            sells.append(sell)
+            nets.append(net)
+            z = zone_label(buy, sell)
+            zones_counts[z] = zones_counts.get(z, 0) + 1
+
+            # Majority of latest agent directions for this ticker
+            longs = shorts = 0
+            for s in agent_map.values():
+                d = str(s.get("direction") or "").lower()
+                if d == "long":
+                    longs += 1
+                elif d == "short":
+                    shorts += 1
+            if longs > shorts:
+                long_n += 1
+            elif shorts > longs:
+                short_n += 1
+            else:
+                neutral_n += 1
+
+        n_sig = len(buys)
+        buy_avg = sum(buys) / n_sig if n_sig else 0.0
+        sell_avg = sum(sells) / n_sig if n_sig else 0.0
+        net_avg = sum(nets) / n_sig if n_sig else 0.0
+
+        held_rows = [holdings_by_ticker[t] for t in tickers if t in holdings_by_ticker]
+        held_n = len(held_rows)
+        mv_sum = 0.0
+        for h in held_rows:
+            qty = float(h.get("qty") or 0)
+            last = h.get("last")
+            avg = h.get("avg_cost")
+            if last is not None:
+                mv_sum += abs(qty * float(last))
+            elif avg is not None:
+                mv_sum += abs(qty * float(avg))
+        weight = (mv_sum / eq) if eq > 1e-12 else 0.0
+        unrealized_vals = [
+            float(h["unrealized"])
+            for h in held_rows
+            if h.get("unrealized") is not None
+        ]
+        unrealized = sum(unrealized_vals) if unrealized_vals else None
+
+        board.append(
+            {
+                "theme": theme,
+                "tickers_n": tickers_n,
+                "held_n": held_n,
+                "signaled_n": n_sig,
+                "weight": round(weight, 6),
+                "unrealized": None if unrealized is None else round(unrealized, 6),
+                "buy": round(buy_avg, 6),
+                "sell": round(sell_avg, 6),
+                "net": round(net_avg, 6),
+                "long": long_n,
+                "short": short_n,
+                "neutral": neutral_n,
+                "zones": {
+                    "buy_zone": zones_counts["buy_zone"],
+                    "sell_zone": zones_counts["sell_zone"],
+                    "conflicted": zones_counts["conflicted"],
+                    "quiet": zones_counts["quiet"],
+                },
+            }
+        )
+    return board
+
+
 def _held_from_payload(payload: dict[str, Any]) -> set[str]:
     return {str(h.get("ticker") or "").upper() for h in (payload.get("holdings") or []) if h.get("ticker")}
 
@@ -792,6 +912,13 @@ def build_dashboard_payload(
         held=held_tickers,
         sector_of=sector_of,
         holdings=holdings,
+    )
+    # Additive Orbit Sectors comparison board (theme cards)
+    payload["sector_board"] = build_sector_board(
+        payload["agents_today"],
+        themes,
+        holdings,
+        equity=equity,
     )
     return payload
 

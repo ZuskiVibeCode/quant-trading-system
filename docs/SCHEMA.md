@@ -27,6 +27,7 @@ Optional: `--no-alpaca`, `--no-history`, `--docs PATH`.
 | `rotation` | object? | **Additive.** `{active: theme→tickers, cold: [...], settings}` from cold/active researcher |
 | `zones` | object? | **Additive.** Today's buy/sell pressure map — see below |
 | `zones_series` | object? | **Additive.** Compact recent history `{days:[{day, points}]}` (≤20 days) for charts |
+| `sector_board` | array? | **Additive.** Per-theme pressure / breadth / book — see below |
 | `cold` | array? | **Additive.** Compact `[{ticker, checkup_date, reason, theme}]` (same as `rotation.cold`) |
 
 ### `agents_today[].signals[]`
@@ -75,6 +76,33 @@ Written next to `latest.json` on every export. Full backfill from `history/*.jso
 ```
 
 Days sorted ascending. `zones_series` in `latest.json` is the trailing window of this file.
+
+
+### `sector_board` (additive)
+
+One row per universe theme (quantum / space / robotics). Built at export from
+`agents_today`, `sectors`, and `holdings`. Never contains secrets.
+
+```
+sector_board: [{
+  theme, tickers_n, held_n, signaled_n,
+  weight,                 # theme holdings market value / equity
+  unrealized,             # sum of dollar unrealized marks (or null)
+  buy, sell, net,         # mean per-ticker zone pressures (signaled only)
+  long, short, neutral,   # ticker counts by majority of latest agent directions
+  zones: {buy_zone, sell_zone, conflicted, quiet}  # ticker counts by zone_label
+}]
+```
+
+**Pressure:** same per-ticker math as Zones (`compute_zone_pressures` on latest
+signal per agent); theme buy/sell/net = mean across theme tickers that have
+signals. Tickers with no signals that day are excluded from the mean.
+
+**Breadth:** for each signaled ticker, majority of latest agent directions →
+long / short / neutral (ties → neutral). Zone bucket counts use `zone_label`.
+
+**Book:** `held_n` open holdings in theme vs `tickers_n` universe size;
+`weight` = Σ|qty·last| (else qty·avg_cost) / equity; `unrealized` = Σ dollar marks.
 
 ## History
 
