@@ -11,7 +11,7 @@ from quant_system.market_data.interface import MarketData
 from quant_system.market_data.yfinance_provider import MockMarketData, YFinanceMarketData
 from quant_system.models.ticket import TradeTicket
 from quant_system.oversight.auditor import Auditor
-from quant_system.research.fundamental import FundamentalAgent
+from quant_system.research.fundamental import FundamentalAgent, fetch_fundamentals_with_fallback
 from quant_system.research.macro import MacroAgent
 from quant_system.research.momentum import MomentumAgent
 from quant_system.research.rotation import (
@@ -32,7 +32,7 @@ def build_market_data(*, mock: bool = False, mock_prices: dict[str, float] | Non
 def build_agents(market_data: MarketData, universe: list[str] | None = None) -> list:
     return [
         MomentumAgent(market_data),
-        FundamentalAgent(market_data),
+        FundamentalAgent(market_data, fundamentals_fetcher=fetch_fundamentals_with_fallback),
         StatisticalMLAgent(market_data, universe=universe),
         SentimentAgent(market_data),
         MacroAgent(market_data),

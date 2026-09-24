@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+import json
+import os
 import re
+import urllib.error
+import urllib.parse
+import urllib.request
 from typing import Any, Callable
 
 from quant_system.market_data.interface import MarketData
@@ -486,6 +491,301 @@ def fetch_yfinance_fundamentals(ticker: str) -> dict[str, Any]:
     meaningful = {k for k in out if k not in _MEANINGFUL_SKIP}
     if not meaningful:
         return {}
+    return out
+
+
+
+# fundamentals_source tags:
+#   yfinance_info | yfinance_statements | mixed — Yahoo-only paths
+#   fmp                                          — FMP-only (Yahoo empty/failed)
+#   yahoo_fmp                                    — Yahoo primary + FMP fill gaps
+_FMP_BASE = "https://financialmodelingprep.com/api/v3"
+_CORE_FUNDAMENTAL_KEYS: tuple[str, ...] = (
+    "totalRevenue",
+    "freeCashflow",
+    "totalDebt",
+    "totalCash",
+    "profitMargins",
+    "operatingMargins",
+    "returnOnEquity",
+    "debtToEquity",
+    "trailingPE",
+    "forwardPE",
+    "priceToSalesTrailing12Months",
+    "pegRatio",
+    "returnOnAssets",
+    "currentRatio",
+    "enterpriseValue",
+)
+
+
+def _fmp_http_get_json(url: str, *, timeout: float = 12.0) -> Any:
+    """GET JSON from FMP; return None on any failure (offline-tolerant)."""
+    try:
+        req = urllib.request.Request(
+            url,
+            headers={"User-Agent": "quant-trading-system/paper"},
+            method="GET",
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
+            raw = resp.read().decode("utf-8", errors="replace")
+        return json.loads(raw)
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, ValueError, TypeError):
+        return None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _fmp_first_obj(payload: Any) -> dict[str, Any]:
+    if isinstance(payload, list) and payload:
+        first = payload[0]
+        return first if isinstance(first, dict) else {}
+    if isinstance(payload, dict):
+        if any(str(k).lower().startswith("error") for k in payload):
+            return {}
+        return payload
+    return {}
+
+
+def _fmp_pct_or_ratio_to_decimal(value: float | None) -> float | None:
+    """Normalize ROE/ROA/margins: FMP sometimes returns 15.5 (percent), Yahoo uses 0.155."""
+    if value is None:
+        return None
+    if abs(value) > 1.0:
+        return value / 100.0
+    return value
+
+
+def _fmp_de_to_yfinance(value: float | None) -> float | None:
+    """Normalize D/E toward yfinance percent-like (e.g. 25.0 ≈ 0.25x)."""
+    if value is None:
+        return None
+    if abs(value) <= 10.0:
+        return value * 100.0
+    return value
+
+
+def _map_fmp_to_yfinance_keys(
+    *,
+    profile: dict[str, Any],
+    key_metrics: dict[str, Any],
+    ratios: dict[str, Any],
+    income: dict[str, Any] | None = None,
+    balance: dict[str, Any] | None = None,
+    cashflow: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Map FMP profile/metrics/ratios(+optional statements) → yfinance-style keys."""
+    out: dict[str, Any] = {}
+    income = income or {}
+    balance = balance or {}
+    cashflow = cashflow or {}
+
+    def put(key: str, *candidates: Any, transform=None) -> None:
+        for cand in candidates:
+            val = _safe_float(cand)
+            if val is None:
+                continue
+            if transform is not None:
+                val = transform(val)
+                if val is None:
+                    continue
+            out[key] = val
+            return
+
+    put("marketCap", profile.get("mktCap"), profile.get("marketCap"))
+    put("currentPrice", profile.get("price"))
+    put("regularMarketPrice", profile.get("price"))
+    desc = profile.get("description")
+    if isinstance(desc, str) and desc.strip():
+        out["description"] = desc.strip()[:4000]
+        out["longBusinessSummary"] = desc.strip()[:4000]
+        out["_info_text"] = desc.strip()[:8000]
+
+    put("enterpriseValue", key_metrics.get("enterpriseValueTTM"), key_metrics.get("enterpriseValue"))
+    put("trailingPE", key_metrics.get("peRatioTTM"), ratios.get("peRatioTTM"), ratios.get("priceEarningsRatioTTM"))
+    put(
+        "priceToSalesTrailing12Months",
+        key_metrics.get("priceToSalesRatioTTM"),
+        ratios.get("priceToSalesRatioTTM"),
+    )
+    put("priceToBook", key_metrics.get("pbRatioTTM"), key_metrics.get("ptbRatioTTM"), ratios.get("priceToBookRatioTTM"))
+    put("enterpriseToRevenue", key_metrics.get("evToSalesTTM"))
+    put("enterpriseToEbitda", key_metrics.get("enterpriseValueOverEBITDATTM"))
+    put("pegRatio", key_metrics.get("pegRatioTTM"), ratios.get("pegRatioTTM"))
+    put("currentRatio", key_metrics.get("currentRatioTTM"), ratios.get("currentRatioTTM"))
+    put(
+        "debtToEquity",
+        key_metrics.get("debtToEquityTTM"),
+        ratios.get("debtEquityRatioTTM"),
+        transform=_fmp_de_to_yfinance,
+    )
+    put(
+        "returnOnEquity",
+        key_metrics.get("roeTTM"),
+        ratios.get("returnOnEquityTTM"),
+        transform=_fmp_pct_or_ratio_to_decimal,
+    )
+    put(
+        "returnOnAssets",
+        key_metrics.get("returnOnTangibleAssetsTTM"),
+        ratios.get("returnOnAssetsTTM"),
+        transform=_fmp_pct_or_ratio_to_decimal,
+    )
+    put("profitMargins", ratios.get("netProfitMarginTTM"), transform=_fmp_pct_or_ratio_to_decimal)
+    put("operatingMargins", ratios.get("operatingProfitMarginTTM"), transform=_fmp_pct_or_ratio_to_decimal)
+    put("grossMargins", ratios.get("grossProfitMarginTTM"), transform=_fmp_pct_or_ratio_to_decimal)
+
+    put("totalRevenue", income.get("revenue"), income.get("totalRevenue"))
+    put("freeCashflow", cashflow.get("freeCashFlow"), cashflow.get("freeCashflow"))
+    put(
+        "operatingCashflow",
+        cashflow.get("operatingCashFlow"),
+        cashflow.get("netCashProvidedByOperatingActivities"),
+    )
+    put(
+        "totalCash",
+        balance.get("cashAndCashEquivalents"),
+        balance.get("cashAndShortTermInvestments"),
+    )
+    put("totalDebt", balance.get("totalDebt"))
+    put(
+        "sharesOutstanding",
+        income.get("weightedAverageShsOut"),
+        income.get("weightedAverageShsOutDil"),
+        balance.get("commonStockSharesOutstanding"),
+    )
+    sti = _safe_float(balance.get("shortTermInvestments"))
+    if sti is not None:
+        out["shortTermInvestments"] = sti
+
+    mcap = _safe_float(out.get("marketCap"))
+    debt = _safe_float(out.get("totalDebt"))
+    cash = _safe_float(out.get("totalCash"))
+    if "enterpriseValue" not in out and mcap is not None and (debt is not None or cash is not None):
+        out["enterpriseValue"] = mcap + (debt or 0.0) - (cash or 0.0)
+
+    rev = _safe_float(out.get("totalRevenue"))
+    if "priceToSalesTrailing12Months" not in out and mcap is not None and rev is not None and rev > 0:
+        out["priceToSalesTrailing12Months"] = mcap / rev
+    ev = _safe_float(out.get("enterpriseValue"))
+    if "enterpriseToRevenue" not in out and ev is not None and rev is not None and rev > 0:
+        out["enterpriseToRevenue"] = ev / rev
+
+    equity = _safe_float(balance.get("totalStockholdersEquity") or balance.get("totalEquity"))
+    if "debtToEquity" not in out and debt is not None and equity is not None and equity != 0:
+        out["debtToEquity"] = (debt / equity) * 100.0
+
+    net_income = _safe_float(income.get("netIncome"))
+    if "profitMargins" not in out and net_income is not None and rev is not None and rev != 0:
+        out["profitMargins"] = net_income / rev
+    op_inc = _safe_float(income.get("operatingIncome"))
+    if "operatingMargins" not in out and op_inc is not None and rev is not None and rev != 0:
+        out["operatingMargins"] = op_inc / rev
+    if "returnOnEquity" not in out and net_income is not None and equity is not None and equity != 0:
+        out["returnOnEquity"] = net_income / equity
+    assets = _safe_float(balance.get("totalAssets"))
+    if "returnOnAssets" not in out and net_income is not None and assets is not None and assets != 0:
+        out["returnOnAssets"] = net_income / assets
+
+    meaningful = {k for k in out if k not in _MEANINGFUL_SKIP}
+    if not meaningful:
+        return {}
+    return out
+
+
+def fetch_fmp_fundamentals(ticker: str, api_key: str | None = None) -> dict[str, Any]:
+    """Pull fundamentals from Financial Modeling Prep (free-tier v3 endpoints).
+
+    Reads ``FMP_API_KEY`` from the environment when ``api_key`` is not passed.
+    Returns {} if no key or on any HTTP/parse failure — never raises into the pipeline.
+    Maps into the same yfinance-style metric keys used by scoring.
+    """
+    key = (api_key if api_key is not None else os.environ.get("FMP_API_KEY") or "").strip()
+    if not key:
+        return {}
+
+    symbol = (ticker or "").strip().upper()
+    if not symbol or not re.fullmatch(r"[A-Z0-9.\-]{1,12}", symbol):
+        return {}
+
+    q = urllib.parse.urlencode({"apikey": key})
+    q1 = urllib.parse.urlencode({"apikey": key, "limit": "1"})
+
+    try:
+        profile = _fmp_first_obj(_fmp_http_get_json(f"{_FMP_BASE}/profile/{symbol}?{q}"))
+        key_metrics = _fmp_first_obj(_fmp_http_get_json(f"{_FMP_BASE}/key-metrics-ttm/{symbol}?{q}"))
+        ratios = _fmp_first_obj(_fmp_http_get_json(f"{_FMP_BASE}/ratios-ttm/{symbol}?{q}"))
+        income = _fmp_first_obj(_fmp_http_get_json(f"{_FMP_BASE}/income-statement/{symbol}?{q1}"))
+        balance = _fmp_first_obj(
+            _fmp_http_get_json(f"{_FMP_BASE}/balance-sheet-statement/{symbol}?{q1}")
+        )
+        cashflow = _fmp_first_obj(
+            _fmp_http_get_json(f"{_FMP_BASE}/cash-flow-statement/{symbol}?{q1}")
+        )
+        out = _map_fmp_to_yfinance_keys(
+            profile=profile,
+            key_metrics=key_metrics,
+            ratios=ratios,
+            income=income,
+            balance=balance,
+            cashflow=cashflow,
+        )
+    except Exception:  # noqa: BLE001
+        return {}
+
+    if not out:
+        return {}
+    out["fundamentals_source"] = "fmp"
+    return out
+
+
+def _core_fundamental_coverage(metrics: dict[str, Any]) -> int:
+    return sum(1 for k in _CORE_FUNDAMENTAL_KEYS if _safe_float(metrics.get(k)) is not None)
+
+
+def _is_rich_fundamentals(metrics: dict[str, Any]) -> bool:
+    """Yahoo rich enough that FMP fallback is unnecessary."""
+    if not _info_has_meaningful(metrics):
+        return False
+    return _core_fundamental_coverage(metrics) >= 4
+
+
+def fetch_fundamentals_with_fallback(ticker: str) -> dict[str, Any]:
+    """Yahoo/yfinance first; FMP fills gaps or replaces when Yahoo is empty/thin.
+
+    - Yahoo rich → return Yahoo unchanged (FMP not called)
+    - Yahoo empty + FMP data → ``fundamentals_source=fmp``
+    - Yahoo thin + FMP data → merge (Yahoo wins on overlap), tag ``yahoo_fmp``
+    - Both empty → {}
+    """
+    try:
+        yahoo = fetch_yfinance_fundamentals(ticker) or {}
+    except Exception:  # noqa: BLE001
+        yahoo = {}
+
+    if _is_rich_fundamentals(yahoo):
+        return yahoo
+
+    try:
+        fmp = fetch_fmp_fundamentals(ticker) or {}
+    except Exception:  # noqa: BLE001
+        fmp = {}
+
+    fmp_metrics = {k: v for k, v in fmp.items() if k != "fundamentals_source"}
+    yahoo_metrics = {k: v for k, v in yahoo.items() if k != "fundamentals_source"}
+
+    if not fmp_metrics:
+        return yahoo if yahoo else {}
+
+    if not yahoo_metrics or not _info_has_meaningful(yahoo_metrics):
+        out = dict(fmp_metrics)
+        out["fundamentals_source"] = "fmp"
+        return out
+
+    # Yahoo thin: FMP fills gaps; Yahoo wins on overlap
+    out = dict(fmp_metrics)
+    out.update(yahoo_metrics)
+    out["fundamentals_source"] = "yahoo_fmp"
     return out
 
 
@@ -1190,7 +1490,7 @@ def _score_fundamentals(metrics: dict[str, Any]) -> dict[str, Any]:
 
 
 class FundamentalAgent(ResearchAgent):
-    """Quality + valuation signals from free yfinance fundamentals (desk-style v2).
+    """Quality + valuation signals from yfinance + optional FMP fallback (desk-style v2).
 
     Adds capital-structure / EV rebuild, sales multiples, and dilution soft flags.
     Soft score overlays only — never hard-blocks. Missing fields → honest
@@ -1205,7 +1505,7 @@ class FundamentalAgent(ResearchAgent):
         fundamentals_fetcher: FundamentalsFetcher | None = None,
     ):
         super().__init__(market_data)
-        self._fetch = fundamentals_fetcher or fetch_yfinance_fundamentals
+        self._fetch = fundamentals_fetcher or fetch_fundamentals_with_fallback
 
     def analyze(self, ticker: str, *, benchmark: str = "SPY") -> Signal:
         fetch_error: str | None = None

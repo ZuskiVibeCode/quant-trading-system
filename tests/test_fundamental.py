@@ -10,6 +10,8 @@ from quant_system.research.fundamental import (
     FundamentalAgent,
     _score_fundamentals,
     dilution_soft_flags,
+    fetch_fmp_fundamentals,
+    fetch_fundamentals_with_fallback,
     rebuild_capital_structure,
     sales_multiples,
 )
@@ -423,3 +425,231 @@ def test_agent_surfaces_fundamentals_source(md):
     sig = agent.analyze("IBM")
     assert sig.supporting_data["fundamentals_source"] == "yfinance_statements"
     assert "fundamentals_source" not in (sig.supporting_data.get("metrics") or {})
+
+
+# ---------------------------------------------------------------------------
+# FMP fallback (Yahoo primary; mock HTTP — no live network)
+# ---------------------------------------------------------------------------
+
+
+def _rich_yahoo_payload() -> dict:
+    return {
+        "revenueGrowth": 0.25,
+        "earningsGrowth": 0.30,
+        "profitMargins": 0.20,
+        "operatingMargins": 0.22,
+        "freeCashflow": 5_000_000_000,
+        "totalRevenue": 40_000_000_000,
+        "debtToEquity": 40.0,
+        "currentRatio": 2.0,
+        "returnOnEquity": 0.25,
+        "trailingPE": 18.0,
+        "priceToSalesTrailing12Months": 5.0,
+        "marketCap": 200_000_000_000,
+        "totalCash": 20_000_000_000,
+        "totalDebt": 8_000_000_000,
+        "sharesOutstanding": 5_000_000_000,
+        "fundamentals_source": "yfinance_info",
+    }
+
+
+def _thin_yahoo_payload() -> dict:
+    """Meaningful but below rich bar (core coverage < 4)."""
+    return {
+        "profitMargins": 0.12,
+        "trailingPE": 22.0,
+        "marketCap": 50_000_000_000,
+        "fundamentals_source": "yfinance_info",
+    }
+
+
+def _rich_fmp_mapped() -> dict:
+    return {
+        "marketCap": 180_000_000_000,
+        "enterpriseValue": 190_000_000_000,
+        "totalRevenue": 35_000_000_000,
+        "freeCashflow": 4_000_000_000,
+        "totalCash": 15_000_000_000,
+        "totalDebt": 10_000_000_000,
+        "profitMargins": 0.18,
+        "operatingMargins": 0.20,
+        "returnOnEquity": 0.22,
+        "debtToEquity": 50.0,
+        "trailingPE": 20.0,
+        "priceToSalesTrailing12Months": 5.1,
+        "currentRatio": 1.8,
+        "sharesOutstanding": 4_500_000_000,
+        "fundamentals_source": "fmp",
+    }
+
+
+def test_fmp_no_api_key_returns_empty(monkeypatch):
+    monkeypatch.delenv("FMP_API_KEY", raising=False)
+    assert fetch_fmp_fundamentals("AAPL") == {}
+    assert fetch_fmp_fundamentals("AAPL", api_key="") == {}
+    assert fetch_fmp_fundamentals("AAPL", api_key="   ") == {}
+
+
+def test_fmp_http_failure_returns_empty(monkeypatch):
+    monkeypatch.setenv("FMP_API_KEY", "test-key-not-real")
+    monkeypatch.setattr(
+        "quant_system.research.fundamental._fmp_http_get_json",
+        lambda *_a, **_k: None,
+    )
+    assert fetch_fmp_fundamentals("AAPL") == {}
+
+
+def test_fmp_maps_profile_metrics_ratios(monkeypatch):
+    monkeypatch.setenv("FMP_API_KEY", "test-key-not-real")
+
+    def fake_get(url: str, *, timeout: float = 12.0):
+        if "/profile/" in url:
+            return [{"mktCap": 1_000_000_000, "price": 50.0, "description": "Test Co"}]
+        if "/key-metrics-ttm/" in url:
+            return [
+                {
+                    "peRatioTTM": 15.0,
+                    "priceToSalesRatioTTM": 3.0,
+                    "enterpriseValueTTM": 1_100_000_000,
+                    "debtToEquityTTM": 0.5,
+                    "roeTTM": 0.18,
+                    "currentRatioTTM": 2.1,
+                }
+            ]
+        if "/ratios-ttm/" in url:
+            return [
+                {
+                    "netProfitMarginTTM": 0.14,
+                    "operatingProfitMarginTTM": 0.16,
+                    "grossProfitMarginTTM": 0.40,
+                    "pegRatioTTM": 1.2,
+                }
+            ]
+        if "/income-statement/" in url:
+            return [{"revenue": 400_000_000, "netIncome": 56_000_000, "weightedAverageShsOut": 20_000_000}]
+        if "/balance-sheet-statement/" in url:
+            return [
+                {
+                    "cashAndCashEquivalents": 80_000_000,
+                    "totalDebt": 40_000_000,
+                    "totalStockholdersEquity": 200_000_000,
+                    "totalAssets": 500_000_000,
+                }
+            ]
+        if "/cash-flow-statement/" in url:
+            return [{"freeCashFlow": 70_000_000, "operatingCashFlow": 90_000_000}]
+        return None
+
+    monkeypatch.setattr("quant_system.research.fundamental._fmp_http_get_json", fake_get)
+    out = fetch_fmp_fundamentals("IBM")
+    assert out["fundamentals_source"] == "fmp"
+    assert out["marketCap"] == pytest.approx(1_000_000_000)
+    assert out["trailingPE"] == pytest.approx(15.0)
+    assert out["totalRevenue"] == pytest.approx(400_000_000)
+    assert out["freeCashflow"] == pytest.approx(70_000_000)
+    assert out["totalCash"] == pytest.approx(80_000_000)
+    assert out["totalDebt"] == pytest.approx(40_000_000)
+    assert out["profitMargins"] == pytest.approx(0.14)
+    assert out["debtToEquity"] == pytest.approx(50.0)  # 0.5 ratio → yfinance-style *100
+    assert out["returnOnEquity"] == pytest.approx(0.18)
+
+
+def test_fallback_yahoo_rich_never_calls_fmp(monkeypatch):
+    calls = {"fmp": 0}
+
+    monkeypatch.setattr(
+        "quant_system.research.fundamental.fetch_yfinance_fundamentals",
+        lambda _t: _rich_yahoo_payload(),
+    )
+
+    def boom_fmp(_t, api_key=None):
+        calls["fmp"] += 1
+        raise AssertionError("FMP should not be called when Yahoo is rich")
+
+    monkeypatch.setattr("quant_system.research.fundamental.fetch_fmp_fundamentals", boom_fmp)
+    out = fetch_fundamentals_with_fallback("NVDA")
+    assert calls["fmp"] == 0
+    assert out["fundamentals_source"] == "yfinance_info"
+    assert out["revenueGrowth"] == pytest.approx(0.25)
+
+
+def test_fallback_yahoo_empty_fmp_rich(monkeypatch, md):
+    monkeypatch.setattr(
+        "quant_system.research.fundamental.fetch_yfinance_fundamentals",
+        lambda _t: {},
+    )
+    monkeypatch.setattr(
+        "quant_system.research.fundamental.fetch_fmp_fundamentals",
+        lambda _t, api_key=None: _rich_fmp_mapped(),
+    )
+    out = fetch_fundamentals_with_fallback("IBM")
+    assert out["fundamentals_source"] == "fmp"
+    assert out["totalRevenue"] == pytest.approx(35_000_000_000)
+
+    agent = FundamentalAgent(md, fundamentals_fetcher=fetch_fundamentals_with_fallback)
+    sig = agent.analyze("IBM")
+    assert sig.supporting_data["fundamentals_source"] == "fmp"
+    # Must not stay stuck at insufficient-data neutral-15
+    assert sig.confidence > 20
+    assert "insufficient" not in sig.reasoning.lower() or sig.supporting_data["coverage"] > 0
+    assert sig.supporting_data["quality_score"] != 50 or sig.direction != Direction.NEUTRAL or sig.confidence > 15
+
+
+def test_fallback_yahoo_thin_fmp_fills_yahoo_fmp(monkeypatch):
+    thin = _thin_yahoo_payload()
+    fmp = _rich_fmp_mapped()
+    monkeypatch.setattr(
+        "quant_system.research.fundamental.fetch_yfinance_fundamentals",
+        lambda _t: dict(thin),
+    )
+    monkeypatch.setattr(
+        "quant_system.research.fundamental.fetch_fmp_fundamentals",
+        lambda _t, api_key=None: dict(fmp),
+    )
+    out = fetch_fundamentals_with_fallback("IBM")
+    assert out["fundamentals_source"] == "yahoo_fmp"
+    # Yahoo wins on overlap
+    assert out["profitMargins"] == pytest.approx(0.12)
+    assert out["trailingPE"] == pytest.approx(22.0)
+    # FMP fills gaps
+    assert out["totalRevenue"] == pytest.approx(35_000_000_000)
+    assert out["freeCashflow"] == pytest.approx(4_000_000_000)
+    assert out["totalDebt"] == pytest.approx(10_000_000_000)
+
+
+def test_fallback_both_empty(monkeypatch):
+    monkeypatch.setattr(
+        "quant_system.research.fundamental.fetch_yfinance_fundamentals",
+        lambda _t: {},
+    )
+    monkeypatch.setattr(
+        "quant_system.research.fundamental.fetch_fmp_fundamentals",
+        lambda _t, api_key=None: {},
+    )
+    assert fetch_fundamentals_with_fallback("ZZZZ") == {}
+
+
+def test_agent_default_uses_fallback(monkeypatch, md):
+    """Default FundamentalAgent should route through Yahoo→FMP fallback."""
+    seen = {"fallback": 0}
+
+    def fake_fallback(ticker: str):
+        seen["fallback"] += 1
+        return {
+            "profitMargins": 0.10,
+            "totalRevenue": 1_000_000,
+            "freeCashflow": 100_000,
+            "totalCash": 50_000,
+            "totalDebt": 20_000,
+            "marketCap": 5_000_000,
+            "fundamentals_source": "fmp",
+        }
+
+    monkeypatch.setattr(
+        "quant_system.research.fundamental.fetch_fundamentals_with_fallback",
+        fake_fallback,
+    )
+    agent = FundamentalAgent(md)  # default fetcher
+    sig = agent.analyze("IBM")
+    assert seen["fallback"] == 1
+    assert sig.supporting_data["fundamentals_source"] == "fmp"
