@@ -168,3 +168,151 @@ def reconcile_tracker_to_alpaca(
         },
         "reconcile": result,
     }
+
+
+def fetch_closed_filled_orders(
+    client: Any | None = None,
+    *,
+    symbols: list[str] | None = None,
+    limit: int = 500,
+) -> list[dict[str, Any]]:
+    """Return filled (closed) paper orders as plain dicts. Paper endpoint only."""
+    client = client or build_trading_client()
+    try:
+        from alpaca.trading.enums import QueryOrderStatus
+        from alpaca.trading.requests import GetOrdersRequest
+
+        orders = list(
+            client.get_orders(
+                filter=GetOrdersRequest(status=QueryOrderStatus.CLOSED, limit=limit, nested=True)
+            )
+            or []
+        )
+    except Exception:
+        orders = list(client.get_orders(status="closed", limit=limit) or [])
+
+    want = {s.upper() for s in symbols} if symbols else None
+    out: list[dict[str, Any]] = []
+    for o in orders:
+        sym = str(getattr(o, "symbol", "") or "").upper()
+        if want is not None and sym not in want:
+            continue
+        status = str(getattr(getattr(o, "status", ""), "value", getattr(o, "status", ""))).lower()
+        if status != "filled":
+            continue
+        side = str(getattr(getattr(o, "side", ""), "value", getattr(o, "side", ""))).lower()
+        filled_qty = float(getattr(o, "filled_qty", 0) or 0)
+        if filled_qty <= 0:
+            continue
+        px_raw = getattr(o, "filled_avg_price", None)
+        if px_raw is None or px_raw == "":
+            continue
+        price = float(px_raw)
+        filled_at = getattr(o, "filled_at", None) or getattr(o, "submitted_at", None)
+        if filled_at is None:
+            continue
+        if hasattr(filled_at, "strftime"):
+            # Alpaca returns aware datetime; normalize to UTC Z
+            from datetime import timezone as _tz
+
+            if getattr(filled_at, "tzinfo", None) is None:
+                ts = filled_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            else:
+                ts = filled_at.astimezone(_tz.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        else:
+            ts = str(filled_at).replace("+00:00", "Z")
+        out.append(
+            {
+                "order_id": str(getattr(o, "id", "")),
+                "ticker": sym,
+                "side": side,
+                "qty": filled_qty,
+                "price": price,
+                "filled_at": ts,
+                "status": status,
+            }
+        )
+    out.sort(key=lambda r: (r["filled_at"], r["order_id"]))
+    return out
+
+
+def tickers_with_sells_missing_buys(tracker: Tracker) -> list[str]:
+    """Tickers that have sell fills but no buy fills at all in Tracker."""
+    rows = tracker.conn.execute(
+        """
+        SELECT DISTINCT s.ticker AS ticker
+        FROM fills s
+        WHERE s.side = 'sell'
+          AND NOT EXISTS (
+            SELECT 1 FROM fills b
+            WHERE b.ticker = s.ticker AND b.side = 'buy'
+          )
+        ORDER BY s.ticker
+        """
+    ).fetchall()
+    return [str(r["ticker"]).upper() for r in rows]
+
+
+def backfill_missing_buy_fills(
+    tracker: Tracker,
+    client: Any | None = None,
+    *,
+    symbols: list[str] | None = None,
+) -> dict[str, Any]:
+    """Insert missing Alpaca paper buy fills that Closed Book needs for entry/PnL.
+
+    Does **not** apply fills to positions (avoids corrupting reconciled open qty).
+    Dedupes by Alpaca order_id and by ticker+side+qty+time prefix.
+    """
+    from quant_system.models.ticket import TicketSide, TicketStatus, TradeTicket
+
+    missing = symbols or tickers_with_sells_missing_buys(tracker)
+    missing = [s.upper() for s in missing]
+    if not missing:
+        return {"inserted": [], "skipped": [], "missing_tickers": [], "unresolved": []}
+
+    orders = fetch_closed_filled_orders(client, symbols=missing)
+    buys = [o for o in orders if o["side"] == "buy"]
+    inserted: list[dict[str, Any]] = []
+    skipped: list[dict[str, Any]] = []
+
+    for o in buys:
+        oid = o["order_id"]
+        if tracker.find_fill_by_order_id(oid):
+            skipped.append({**o, "reason": "order_id_exists"})
+            continue
+        if tracker.has_similar_fill(o["ticker"], "buy", o["qty"], o["filled_at"]):
+            skipped.append({**o, "reason": "similar_fill_exists"})
+            continue
+        ticket = TradeTicket(
+            ticker=o["ticker"],
+            side=TicketSide.BUY,
+            qty=float(o["qty"]),
+            order_type="market",
+            rationale=f"alpaca_backfill order_id={oid}",
+            status=TicketStatus.FILLED,
+            created_at=o["filled_at"],
+        )
+        tid = tracker.insert_ticket(ticket)
+        fill_id = tracker.insert_fill_historical(
+            tid,
+            o["ticker"],
+            "buy",
+            float(o["qty"]),
+            float(o["price"]),
+            "alpaca_backfill",
+            o["filled_at"],
+            order_id=oid,
+            apply_to_position=False,
+        )
+        inserted.append({**o, "ticket_id": tid, "fill_id": fill_id})
+
+    still_missing = tickers_with_sells_missing_buys(tracker)
+    unresolved = [t for t in missing if t in still_missing]
+    return {
+        "missing_tickers": missing,
+        "inserted": inserted,
+        "skipped": skipped,
+        "unresolved": unresolved,
+        "buy_orders_seen": len(buys),
+    }

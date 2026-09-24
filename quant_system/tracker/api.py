@@ -222,6 +222,111 @@ class Tracker:
         self._conn.commit()
         return fill_id
 
+    def insert_fill_historical(
+        self,
+        ticket_id: int,
+        ticker: str,
+        side: str,
+        qty: float,
+        price: float,
+        mode: str,
+        created_at: str,
+        *,
+        order_id: str | None = None,
+        apply_to_position: bool = False,
+    ) -> int:
+        """Insert a fill without mutating cash/positions (default).
+
+        Used for Alpaca paper backfills so Closed Book can reconstruct entry/PnL
+        without corrupting reconciled open qty/avg_cost.
+        """
+        if mode not in ("alpaca", "dry_run", "alpaca_backfill"):
+            raise ValueError(f"unsupported fill mode: {mode}")
+        ts = created_at
+        cur = self._conn.execute(
+            """
+            INSERT INTO fills(ticket_id, ticker, side, qty, price, mode, created_at)
+            VALUES (?,?,?,?,?,?,?)
+            """,
+            (ticket_id, ticker.upper(), side, qty, price, mode, ts),
+        )
+        fill_id = int(cur.lastrowid)
+        if apply_to_position:
+            self._apply_fill_to_position(ticker.upper(), side, qty, price, ts)
+        self.update_ticket_status(ticket_id, TicketStatus.FILLED)
+        payload = {
+            "fill_id": fill_id,
+            "ticket_id": ticket_id,
+            "side": side,
+            "qty": qty,
+            "price": price,
+            "mode": mode,
+            "apply_to_position": apply_to_position,
+        }
+        if order_id:
+            payload["order_id"] = order_id
+        self.log_decision(
+            decision_type="fill_historical",
+            actor="execution_agent",
+            ticker=ticker,
+            payload=payload,
+            reasoning=(
+                f"Historical {mode} fill {side} {qty} {ticker} @ {price}"
+                + (f" order_id={order_id}" if order_id else "")
+                + (" (positions untouched)" if not apply_to_position else "")
+            ),
+            created_at=ts,
+        )
+        self._conn.commit()
+        return fill_id
+
+    def find_fill_by_order_id(self, order_id: str) -> dict[str, Any] | None:
+        """Return a prior historical fill decision payload matching Alpaca order_id."""
+        if not order_id:
+            return None
+        rows = self._conn.execute(
+            """
+            SELECT payload FROM decisions
+            WHERE decision_type IN ('fill_historical', 'fill')
+            ORDER BY id DESC
+            LIMIT 5000
+            """
+        ).fetchall()
+        for row in rows:
+            try:
+                payload = json.loads(row["payload"]) if isinstance(row["payload"], str) else row["payload"]
+            except (TypeError, json.JSONDecodeError):
+                continue
+            if not isinstance(payload, dict):
+                continue
+            if str(payload.get("order_id") or "") == str(order_id):
+                return payload
+        return None
+
+    def has_similar_fill(
+        self,
+        ticker: str,
+        side: str,
+        qty: float,
+        created_at: str,
+        *,
+        qty_tol: float = 1e-6,
+        time_prefix_len: int = 16,
+    ) -> bool:
+        """True if a fill already exists for ticker+side+approx qty+time prefix."""
+        prefix = (created_at or "")[:time_prefix_len]
+        rows = self._conn.execute(
+            """
+            SELECT qty, created_at FROM fills
+            WHERE ticker = ? AND side = ? AND created_at LIKE ?
+            """,
+            (ticker.upper(), side, f"{prefix}%"),
+        ).fetchall()
+        for r in rows:
+            if abs(float(r["qty"]) - float(qty)) <= qty_tol:
+                return True
+        return False
+
     def _apply_fill_to_position(
         self, ticker: str, side: str, qty: float, price: float, ts: str
     ) -> None:

@@ -144,26 +144,45 @@ def _query_since(tracker: Tracker, table: str, since: str, limit: int = 2000) ->
 
 
 def _build_closed(tracker: Tracker, sector_of: dict[str, str]) -> list[dict[str, Any]]:
-    """Pair sells with prior avg_cost from buy fills when possible; else empty-ish list."""
-    sells = tracker.conn.execute(
-        "SELECT * FROM fills WHERE side = 'sell' ORDER BY id ASC"
+    """Pair sells with running avg entry from chronological lot ladder.
+
+    Walks all fills (including ``alpaca_backfill`` buys) by created_at/id so
+    historical backfills inserted later still attribute correctly. Entry/PnL
+    stay null when no prior buy qty exists for that ticker.
+    """
+    fills = tracker.conn.execute(
+        """
+        SELECT * FROM fills
+        ORDER BY created_at ASC, id ASC
+        """
     ).fetchall()
-    if not sells:
+    if not fills:
         return []
+
+    # Per-ticker running position for cost basis (qty, avg_cost)
+    books: dict[str, dict[str, float]] = {}
     closed: list[dict[str, Any]] = []
-    for s in sells:
-        ticker = str(s["ticker"]).upper()
-        # best-effort: last buy avg before this sell
-        buy = tracker.conn.execute(
-            """
-            SELECT AVG(price) AS avg_price FROM fills
-            WHERE ticker = ? AND side = 'buy' AND id < ?
-            """,
-            (ticker, s["id"]),
-        ).fetchone()
-        entry = float(buy["avg_price"]) if buy and buy["avg_price"] is not None else None
-        exit_px = float(s["price"])
-        qty = float(s["qty"])
+    for f in fills:
+        ticker = str(f["ticker"]).upper()
+        side = str(f["side"]).lower()
+        qty = float(f["qty"])
+        price = float(f["price"])
+        book = books.setdefault(ticker, {"qty": 0.0, "avg_cost": 0.0})
+        if side == "buy":
+            old_qty = book["qty"]
+            new_qty = old_qty + qty
+            if new_qty > 1e-12:
+                book["avg_cost"] = (
+                    ((old_qty * book["avg_cost"]) + (qty * price)) / new_qty
+                    if old_qty > 1e-12
+                    else price
+                )
+            book["qty"] = new_qty
+            continue
+        if side != "sell":
+            continue
+        entry = book["avg_cost"] if book["qty"] > 1e-12 else None
+        exit_px = price
         pnl = None if entry is None else (exit_px - entry) * qty
         closed.append(
             {
@@ -173,10 +192,16 @@ def _build_closed(tracker: Tracker, sector_of: dict[str, str]) -> list[dict[str,
                 "exit": exit_px,
                 "pnl": pnl,
                 "sector": sector_of.get(ticker),
-                "closed_at": s["created_at"],
-                "mode": s["mode"],
+                "closed_at": f["created_at"],
+                "mode": f["mode"],
             }
         )
+        # Reduce open qty after realizing; keep avg_cost for residual
+        new_qty = book["qty"] - qty
+        if new_qty <= 1e-12:
+            books[ticker] = {"qty": 0.0, "avg_cost": 0.0}
+        else:
+            book["qty"] = new_qty
     return closed
 
 

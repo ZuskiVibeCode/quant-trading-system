@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 # Frozen DDL — do not rename/drop columns without a versioned migration.
 DDL = """
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS fills (
     side TEXT NOT NULL,
     qty REAL NOT NULL,
     price REAL NOT NULL,
-    mode TEXT NOT NULL CHECK(mode IN ('alpaca', 'dry_run')),
+    mode TEXT NOT NULL CHECK(mode IN ('alpaca', 'dry_run', 'alpaca_backfill')),
     created_at TEXT NOT NULL,
     FOREIGN KEY(ticket_id) REFERENCES trade_tickets(id)
 );

@@ -1,4 +1,4 @@
-"""CLI: python -m quant_system run-once | halt | resume | status | digest | cancel-open-orders | reconcile | export-dashboard"""
+"""CLI: python -m quant_system run-once | halt | resume | status | digest | cancel-open-orders | reconcile | backfill-fills | export-dashboard"""
 
 from __future__ import annotations
 
@@ -153,6 +153,49 @@ def cmd_reconcile(args: argparse.Namespace) -> int:
         return 1
 
 
+
+def cmd_backfill_fills(args: argparse.Namespace) -> int:
+    """Backfill missing Alpaca paper buy fills for Closed Book entry/PnL (no position mutate)."""
+    from quant_system.execution.broker import backfill_missing_buy_fills
+
+    tracker = Tracker(args.db)
+    symbols = None
+    if args.tickers:
+        symbols = [t.strip().upper() for t in args.tickers.split(",") if t.strip()]
+    try:
+        result = backfill_missing_buy_fills(tracker, symbols=symbols)
+        tracker.log_decision(
+            decision_type="backfill_fills",
+            actor="cli",
+            reasoning=(
+                f"Backfilled {len(result.get('inserted') or [])} buy fills; "
+                f"skipped {len(result.get('skipped') or [])}; "
+                f"unresolved {result.get('unresolved')}"
+            ),
+            payload={
+                "missing_tickers": result.get("missing_tickers"),
+                "inserted_count": len(result.get("inserted") or []),
+                "skipped_count": len(result.get("skipped") or []),
+                "unresolved": result.get("unresolved"),
+                "inserted": result.get("inserted"),
+                "skipped": result.get("skipped"),
+            },
+        )
+        print(json.dumps(_jsonable(result), indent=2, default=str))
+        tracker.close()
+        return 0 if not result.get("unresolved") else 1
+    except Exception as exc:  # noqa: BLE001
+        tracker.log_decision(
+            decision_type="backfill_fills",
+            actor="cli",
+            reasoning=f"backfill-fills failed: {exc}",
+            payload={"error": str(exc)},
+        )
+        print(json.dumps({"error": str(exc)}, indent=2))
+        tracker.close()
+        return 1
+
+
 def cmd_export_dashboard(args: argparse.Namespace) -> int:
     """Export Tracker (+ optional Alpaca snapshot) to docs/data/latest.json for GitHub Pages."""
     from pathlib import Path
@@ -232,6 +275,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Set tracker cash/equity/positions from Alpaca account+positions",
     )
     rc.set_defaults(func=cmd_reconcile)
+
+    bf = sub.add_parser(
+        "backfill-fills",
+        help="Insert missing Alpaca paper buy fills for Closed Book (no position mutate)",
+    )
+    bf.add_argument(
+        "--tickers",
+        default=None,
+        help="Comma-separated tickers (default: auto-detect sells-without-buys)",
+    )
+    bf.set_defaults(func=cmd_backfill_fills)
 
     ed = sub.add_parser(
         "export-dashboard",

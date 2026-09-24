@@ -38,6 +38,15 @@ def init_db(conn: sqlite3.Connection) -> None:
             "INSERT INTO schema_meta(key, value) VALUES ('schema_version', ?)",
             (str(SCHEMA_VERSION),),
         )
+        version = SCHEMA_VERSION
+    else:
+        try:
+            version = int(row["value"])
+        except (TypeError, ValueError):
+            version = 1
+        if version < SCHEMA_VERSION:
+            _migrate(conn, version, SCHEMA_VERSION)
+
     # Halt state defaults
     _ensure_state(conn, "halted", "false")
     _ensure_state(conn, "halt_reason", "")
@@ -63,6 +72,41 @@ def init_db(conn: sqlite3.Connection) -> None:
                 (agent_id, equal, now, "initial equal weight"),
             )
     conn.commit()
+
+
+def _migrate(conn: sqlite3.Connection, from_version: int, to_version: int) -> None:
+    """Additive migrations. v1→v2: allow fills.mode='alpaca_backfill'."""
+    if from_version < 2 <= to_version:
+        _migrate_fills_mode_backfill(conn)
+    conn.execute(
+        "UPDATE schema_meta SET value = ? WHERE key = 'schema_version'",
+        (str(to_version),),
+    )
+
+
+def _migrate_fills_mode_backfill(conn: sqlite3.Connection) -> None:
+    """Rebuild fills table so CHECK allows alpaca_backfill (preserves rows/ids)."""
+    conn.executescript(
+        """
+        PRAGMA foreign_keys = OFF;
+        CREATE TABLE fills_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticket_id INTEGER NOT NULL,
+            ticker TEXT NOT NULL,
+            side TEXT NOT NULL,
+            qty REAL NOT NULL,
+            price REAL NOT NULL,
+            mode TEXT NOT NULL CHECK(mode IN ('alpaca', 'dry_run', 'alpaca_backfill')),
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(ticket_id) REFERENCES trade_tickets(id)
+        );
+        INSERT INTO fills_new(id, ticket_id, ticker, side, qty, price, mode, created_at)
+            SELECT id, ticket_id, ticker, side, qty, price, mode, created_at FROM fills;
+        DROP TABLE fills;
+        ALTER TABLE fills_new RENAME TO fills;
+        PRAGMA foreign_keys = ON;
+        """
+    )
 
 
 def _ensure_state(conn: sqlite3.Connection, key: str, value: str) -> None:

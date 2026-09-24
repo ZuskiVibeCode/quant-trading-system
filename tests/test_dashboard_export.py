@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 import json
 from pathlib import Path
 
@@ -214,3 +216,86 @@ def test_build_payload_uses_et_day_for_evening_signals(tmp_path, monkeypatch):
     assert payload["meta"]["day_start_utc"].startswith("2026-09-21T04:00:00")
     assert payload["agents_today"]["momentum"]["count"] >= 1
     assert payload["agents_today"]["momentum"]["signals"][0]["ticker"] == "NVDA"
+
+
+def test_build_closed_with_alpaca_backfill_buys(tmp_path):
+    """Backfilled buys (later id, earlier created_at) supply entry/pnl for prior sells."""
+    from quant_system.dashboard_export import _build_closed
+    from quant_system.models.ticket import TicketSide, TicketStatus, TradeTicket
+
+    db = str(tmp_path / "closed_bf.db")
+    tracker = Tracker(db)
+    # Sell logged first (missing buy) — mirrors IONQ/LUNR gap
+    sell_t = TradeTicket(
+        ticker="IONQ",
+        side=TicketSide.SELL,
+        qty=0.1,
+        rationale="trim",
+        status=TicketStatus.FILLED,
+        created_at="2026-09-17T13:52:37.000000Z",
+    )
+    sid = tracker.insert_ticket(sell_t)
+    # Use historical path so we can seed sell without an open position
+    tracker.insert_fill_historical(
+        sid, "IONQ", "sell", 0.1, 39.0, "alpaca", "2026-09-17T13:52:37.000000Z",
+        apply_to_position=False,
+    )
+    closed = _build_closed(tracker, {"IONQ": "quantum"})
+    assert len(closed) == 1
+    assert closed[0]["entry"] is None
+    assert closed[0]["pnl"] is None
+
+    buy_t = TradeTicket(
+        ticker="IONQ",
+        side=TicketSide.BUY,
+        qty=0.5,
+        rationale="alpaca_backfill order_id=abc",
+        status=TicketStatus.FILLED,
+        created_at="2026-09-08T13:30:02.000000Z",
+    )
+    bid = tracker.insert_ticket(buy_t)
+    tracker.insert_fill_historical(
+        bid,
+        "IONQ",
+        "buy",
+        0.5,
+        42.29,
+        "alpaca_backfill",
+        "2026-09-08T13:30:02.000000Z",
+        order_id="abc",
+        apply_to_position=False,
+    )
+    # Positions must stay untouched
+    assert tracker.list_positions() == []
+
+    closed2 = _build_closed(tracker, {"IONQ": "quantum"})
+    assert len(closed2) == 1
+    assert closed2[0]["entry"] == pytest.approx(42.29)
+    assert closed2[0]["exit"] == pytest.approx(39.0)
+    assert closed2[0]["pnl"] == pytest.approx((39.0 - 42.29) * 0.1)
+    tracker.close()
+
+
+def test_build_closed_missing_buys_stay_null(tmp_path):
+    from quant_system.dashboard_export import _build_closed
+    from quant_system.models.ticket import TicketSide, TicketStatus, TradeTicket
+
+    db = str(tmp_path / "closed_null.db")
+    tracker = Tracker(db)
+    t = TradeTicket(
+        ticker="LUNR",
+        side=TicketSide.SELL,
+        qty=0.2,
+        rationale="trim",
+        status=TicketStatus.FILLED,
+        created_at="2026-09-18T14:04:52.000000Z",
+    )
+    tid = tracker.insert_ticket(t)
+    tracker.insert_fill_historical(
+        tid, "LUNR", "sell", 0.2, 13.99, "alpaca", "2026-09-18T14:04:52.000000Z",
+        apply_to_position=False,
+    )
+    closed = _build_closed(tracker, {"LUNR": "space"})
+    assert closed[0]["entry"] is None
+    assert closed[0]["pnl"] is None
+    tracker.close()
