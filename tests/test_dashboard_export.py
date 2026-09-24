@@ -67,6 +67,7 @@ def test_build_payload_agents_shape(tmp_path):
     errs = validate_payload(payload)
     assert errs == []
     assert isinstance(payload["watchlist"], list)
+    assert payload["snapshot"]["unrealized"] is None
     assert "quantum" in payload["sectors"]
     tracker.close()
 
@@ -110,6 +111,7 @@ def test_holdings_enrich_from_alpaca_marks(tmp_path, monkeypatch):
     assert h["ticker"] == "IONQ"
     assert h["last"] == 22.0
     assert h["unrealized"] == 20.0
+    assert payload["snapshot"]["unrealized"] == 20.0
 
 
 def test_holdings_enrich_falls_back_to_market_value_over_qty(tmp_path, monkeypatch):

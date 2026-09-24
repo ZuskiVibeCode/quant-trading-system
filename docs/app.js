@@ -347,6 +347,7 @@
     const cards = [
       { label: "Equity", value: fmtUsd(s.equity) },
       { label: "Cash", value: fmtUsd(s.cash) },
+      { label: "Unrealized", value: fmtUsd(s.unrealized), cls: pnlClass(s.unrealized) },
       { label: "Daily PnL", value: fmtUsd(s.daily_pnl), cls: pnlClass(s.daily_pnl) },
       { label: "Drawdown", value: fmtPct(s.drawdown), cls: Number(s.drawdown) > 0 ? "loss" : "" },
     ];

@@ -17,6 +17,9 @@ def slim_signal(s, reason_n=200):
         "direction": s.get("direction"),
         "confidence": s.get("confidence"),
         "reasoning": trunc(s.get("reasoning") or "", reason_n),
+        # Keep the export's summarized research metrics in the slim deploy.
+        # The dashboard detail dialog relies on this field being present.
+        "supporting_data": s.get("supporting_data"),
         "created_at": s.get("created_at"),
     }
     if s.get("signal_id") is not None:

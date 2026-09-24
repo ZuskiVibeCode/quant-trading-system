@@ -710,6 +710,15 @@ def build_dashboard_payload(
                 except (TypeError, ValueError, ZeroDivisionError):
                     pass
 
+    # Sum only dollar marks that were actually supplied by the broker. If no
+    # holding has an unrealized mark, preserve that absence as JSON null.
+    unrealized_values = [
+        float(h["unrealized"])
+        for h in holdings
+        if h.get("unrealized") is not None
+    ]
+    unrealized = sum(unrealized_values) if unrealized_values else None
+
     signals = _query_since(tracker, "signals", day_start)
     decisions = _query_since(tracker, "decisions", day_start)
     flags = [
@@ -743,6 +752,7 @@ def build_dashboard_payload(
             "cash": cash,
             "peak_equity": peak,
             "daily_pnl": daily_pnl,
+            "unrealized": unrealized,
             "drawdown": drawdown,
             "halted": tracker.is_halted(),
             "day_halted": tracker.is_day_halted(),
@@ -798,7 +808,7 @@ def validate_payload(payload: dict[str, Any]) -> list[str]:
     if meta.get("paper") is not True:
         errors.append("meta.paper must be true")
     snap = payload.get("snapshot") or {}
-    for k in ("equity", "cash", "peak_equity", "daily_pnl", "drawdown", "halted", "day_halted"):
+    for k in ("equity", "cash", "peak_equity", "daily_pnl", "unrealized", "drawdown", "halted", "day_halted"):
         if k not in snap:
             errors.append(f"snapshot missing: {k}")
     agents = payload.get("agents_today") or {}
