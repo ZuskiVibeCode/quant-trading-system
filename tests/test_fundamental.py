@@ -503,31 +503,31 @@ def test_fmp_maps_profile_metrics_ratios(monkeypatch):
     monkeypatch.setenv("FMP_API_KEY", "test-key-not-real")
 
     def fake_get(url: str, *, timeout: float = 12.0):
-        if "/profile/" in url:
-            return [{"mktCap": 1_000_000_000, "price": 50.0, "description": "Test Co"}]
-        if "/key-metrics-ttm/" in url:
+        if "/profile?" in url:
+            return [{"marketCap": 1_000_000_000, "price": 50.0, "description": "Test Co"}]
+        if "/key-metrics-ttm?" in url:
             return [
                 {
-                    "peRatioTTM": 15.0,
                     "priceToSalesRatioTTM": 3.0,
                     "enterpriseValueTTM": 1_100_000_000,
                     "debtToEquityTTM": 0.5,
-                    "roeTTM": 0.18,
+                    "returnOnEquityTTM": 0.18,
                     "currentRatioTTM": 2.1,
                 }
             ]
-        if "/ratios-ttm/" in url:
+        if "/ratios-ttm?" in url:
             return [
                 {
+                    "priceToEarningsRatioTTM": 15.0,
                     "netProfitMarginTTM": 0.14,
                     "operatingProfitMarginTTM": 0.16,
                     "grossProfitMarginTTM": 0.40,
                     "pegRatioTTM": 1.2,
                 }
             ]
-        if "/income-statement/" in url:
+        if "/income-statement?" in url:
             return [{"revenue": 400_000_000, "netIncome": 56_000_000, "weightedAverageShsOut": 20_000_000}]
-        if "/balance-sheet-statement/" in url:
+        if "/balance-sheet-statement?" in url:
             return [
                 {
                     "cashAndCashEquivalents": 80_000_000,
@@ -536,12 +536,21 @@ def test_fmp_maps_profile_metrics_ratios(monkeypatch):
                     "totalAssets": 500_000_000,
                 }
             ]
-        if "/cash-flow-statement/" in url:
+        if "/cash-flow-statement?" in url:
             return [{"freeCashFlow": 70_000_000, "operatingCashFlow": 90_000_000}]
         return None
 
-    monkeypatch.setattr("quant_system.research.fundamental._fmp_http_get_json", fake_get)
+    urls: list[str] = []
+
+    def capture_get(url: str, *, timeout: float = 12.0):
+        urls.append(url)
+        return fake_get(url, timeout=timeout)
+
+    monkeypatch.setattr("quant_system.research.fundamental._fmp_http_get_json", capture_get)
     out = fetch_fmp_fundamentals("IBM")
+    assert urls
+    assert all(url.startswith("https://financialmodelingprep.com/stable/") for url in urls)
+    assert all("?symbol=IBM&" in url for url in urls)
     assert out["fundamentals_source"] == "fmp"
     assert out["marketCap"] == pytest.approx(1_000_000_000)
     assert out["trailingPE"] == pytest.approx(15.0)

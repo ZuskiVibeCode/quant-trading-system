@@ -499,7 +499,7 @@ def fetch_yfinance_fundamentals(ticker: str) -> dict[str, Any]:
 #   yfinance_info | yfinance_statements | mixed — Yahoo-only paths
 #   fmp                                          — FMP-only (Yahoo empty/failed)
 #   yahoo_fmp                                    — Yahoo primary + FMP fill gaps
-_FMP_BASE = "https://financialmodelingprep.com/api/v3"
+_FMP_BASE = "https://financialmodelingprep.com/stable"
 _CORE_FUNDAMENTAL_KEYS: tuple[str, ...] = (
     "totalRevenue",
     "freeCashflow",
@@ -592,7 +592,8 @@ def _map_fmp_to_yfinance_keys(
             out[key] = val
             return
 
-    put("marketCap", profile.get("mktCap"), profile.get("marketCap"))
+    # Stable profile responses use ``marketCap`` (legacy v3 used ``mktCap``).
+    put("marketCap", profile.get("marketCap"), profile.get("mktCap"))
     put("currentPrice", profile.get("price"))
     put("regularMarketPrice", profile.get("price"))
     desc = profile.get("description")
@@ -602,31 +603,58 @@ def _map_fmp_to_yfinance_keys(
         out["_info_text"] = desc.strip()[:8000]
 
     put("enterpriseValue", key_metrics.get("enterpriseValueTTM"), key_metrics.get("enterpriseValue"))
-    put("trailingPE", key_metrics.get("peRatioTTM"), ratios.get("peRatioTTM"), ratios.get("priceEarningsRatioTTM"))
+    put(
+        "trailingPE",
+        key_metrics.get("peRatioTTM"),
+        ratios.get("priceToEarningsRatioTTM"),
+        ratios.get("peRatioTTM"),
+        ratios.get("priceEarningsRatioTTM"),
+    )
     put(
         "priceToSalesTrailing12Months",
         key_metrics.get("priceToSalesRatioTTM"),
         ratios.get("priceToSalesRatioTTM"),
     )
-    put("priceToBook", key_metrics.get("pbRatioTTM"), key_metrics.get("ptbRatioTTM"), ratios.get("priceToBookRatioTTM"))
-    put("enterpriseToRevenue", key_metrics.get("evToSalesTTM"))
-    put("enterpriseToEbitda", key_metrics.get("enterpriseValueOverEBITDATTM"))
-    put("pegRatio", key_metrics.get("pegRatioTTM"), ratios.get("pegRatioTTM"))
+    put(
+        "priceToBook",
+        key_metrics.get("pbRatioTTM"),
+        key_metrics.get("ptbRatioTTM"),
+        ratios.get("priceToBookRatioTTM"),
+    )
+    put(
+        "enterpriseToRevenue",
+        key_metrics.get("evToSalesTTM"),
+        key_metrics.get("enterpriseValueOverSalesTTM"),
+    )
+    put(
+        "enterpriseToEbitda",
+        key_metrics.get("enterpriseValueOverEBITDATTM"),
+        key_metrics.get("evToEBITDA"),
+    )
+    put(
+        "pegRatio",
+        key_metrics.get("pegRatioTTM"),
+        ratios.get("pegRatioTTM"),
+        ratios.get("priceEarningsToGrowthRatioTTM"),
+    )
     put("currentRatio", key_metrics.get("currentRatioTTM"), ratios.get("currentRatioTTM"))
     put(
         "debtToEquity",
         key_metrics.get("debtToEquityTTM"),
         ratios.get("debtEquityRatioTTM"),
+        ratios.get("debtToEquityTTM"),
         transform=_fmp_de_to_yfinance,
     )
     put(
         "returnOnEquity",
+        key_metrics.get("returnOnEquityTTM"),
         key_metrics.get("roeTTM"),
         ratios.get("returnOnEquityTTM"),
         transform=_fmp_pct_or_ratio_to_decimal,
     )
     put(
         "returnOnAssets",
+        key_metrics.get("returnOnAssetsTTM"),
         key_metrics.get("returnOnTangibleAssetsTTM"),
         ratios.get("returnOnAssetsTTM"),
         transform=_fmp_pct_or_ratio_to_decimal,
@@ -694,7 +722,7 @@ def _map_fmp_to_yfinance_keys(
 
 
 def fetch_fmp_fundamentals(ticker: str, api_key: str | None = None) -> dict[str, Any]:
-    """Pull fundamentals from Financial Modeling Prep (free-tier v3 endpoints).
+    """Pull fundamentals from Financial Modeling Prep's stable endpoints.
 
     Reads ``FMP_API_KEY`` from the environment when ``api_key`` is not passed.
     Returns {} if no key or on any HTTP/parse failure — never raises into the pipeline.
@@ -708,19 +736,21 @@ def fetch_fmp_fundamentals(ticker: str, api_key: str | None = None) -> dict[str,
     if not symbol or not re.fullmatch(r"[A-Z0-9.\-]{1,12}", symbol):
         return {}
 
-    q = urllib.parse.urlencode({"apikey": key})
-    q1 = urllib.parse.urlencode({"apikey": key, "limit": "1"})
+    # Stable API endpoints take the symbol as a query parameter.  Do not use
+    # the legacy ``/api/v3/<endpoint>/<symbol>`` routes: new keys receive 403.
+    q = urllib.parse.urlencode({"symbol": symbol, "apikey": key})
+    q1 = urllib.parse.urlencode({"symbol": symbol, "limit": "1", "apikey": key})
 
     try:
-        profile = _fmp_first_obj(_fmp_http_get_json(f"{_FMP_BASE}/profile/{symbol}?{q}"))
-        key_metrics = _fmp_first_obj(_fmp_http_get_json(f"{_FMP_BASE}/key-metrics-ttm/{symbol}?{q}"))
-        ratios = _fmp_first_obj(_fmp_http_get_json(f"{_FMP_BASE}/ratios-ttm/{symbol}?{q}"))
-        income = _fmp_first_obj(_fmp_http_get_json(f"{_FMP_BASE}/income-statement/{symbol}?{q1}"))
+        profile = _fmp_first_obj(_fmp_http_get_json(f"{_FMP_BASE}/profile?{q}"))
+        key_metrics = _fmp_first_obj(_fmp_http_get_json(f"{_FMP_BASE}/key-metrics-ttm?{q}"))
+        ratios = _fmp_first_obj(_fmp_http_get_json(f"{_FMP_BASE}/ratios-ttm?{q}"))
+        income = _fmp_first_obj(_fmp_http_get_json(f"{_FMP_BASE}/income-statement?{q1}"))
         balance = _fmp_first_obj(
-            _fmp_http_get_json(f"{_FMP_BASE}/balance-sheet-statement/{symbol}?{q1}")
+            _fmp_http_get_json(f"{_FMP_BASE}/balance-sheet-statement?{q1}")
         )
         cashflow = _fmp_first_obj(
-            _fmp_http_get_json(f"{_FMP_BASE}/cash-flow-statement/{symbol}?{q1}")
+            _fmp_http_get_json(f"{_FMP_BASE}/cash-flow-statement?{q1}")
         )
         out = _map_fmp_to_yfinance_keys(
             profile=profile,
