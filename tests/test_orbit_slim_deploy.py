@@ -18,3 +18,12 @@ def test_slim_signal_preserves_supporting_data():
     )
 
     assert slimmed["supporting_data"] == supporting_data
+
+
+def test_slim_latest_preserves_sector_board():
+    from scripts.build_orbit_slim_deploy import slim_latest
+
+    board = [{"theme": "quantum", "buy": 0.1, "sell": 0.0, "net": 0.1}]
+    out = slim_latest({"sectors": {"quantum": ["IONQ"]}, "sector_board": board})
+    assert out["sector_board"] == board
+    assert out["sectors"]["quantum"] == ["IONQ"]

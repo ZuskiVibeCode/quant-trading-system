@@ -96,6 +96,7 @@ def slim_latest(d: dict) -> dict:
         "mission_log": (d.get("mission_log") or [])[-20:],
         "watchlist": [],
         "sectors": d.get("sectors") or {},
+        "sector_board": d.get("sector_board") or [],
         "rotation": d.get("rotation"),
         "cold": d.get("cold") or [],
         "zones": d.get("zones"),
