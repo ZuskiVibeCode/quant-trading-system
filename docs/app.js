@@ -595,6 +595,90 @@
       ${extra || `<p class="muted" style="margin-top:1rem">No additional reasoning or linked fill payloads in this feed.</p>`}`);
   }
 
+  function drawLifetimeCumChart(series) {
+    if (!series || series.length < 2) {
+      return `<p class="muted" style="margin-top:0.75rem">Chart needs 2+ realized exits</p>`;
+    }
+    const w = 520;
+    const h = 160;
+    const pad = { t: 16, r: 12, b: 28, l: 48 };
+    const vals = series.map((p) => Number(p.cum) || 0);
+    const lo = Math.min(0, ...vals);
+    const hi = Math.max(0, ...vals);
+    const span = hi - lo || 1;
+    const x = (i) => pad.l + (i / Math.max(series.length - 1, 1)) * (w - pad.l - pad.r);
+    const y = (v) => pad.t + (1 - (v - lo) / span) * (h - pad.t - pad.b);
+    const pts = series.map((p, i) => `${x(i).toFixed(1)},${y(Number(p.cum) || 0).toFixed(1)}`).join(" ");
+    const end = vals[vals.length - 1];
+    const stroke = end > 0 ? "#8aa58f" : end < 0 ? "#c48980" : "#8b949e";
+    const zeroY = y(0);
+    const first = String(series[0].at || "").slice(0, 10);
+    const last = String(series[series.length - 1].at || "").slice(0, 10);
+    return `<div class="zone-chart"><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Cumulative realized PnL">
+      <line x1="${pad.l}" x2="${w - pad.r}" y1="${zeroY}" y2="${zeroY}" stroke="#232a32" stroke-dasharray="3 4"/>
+      <text x="4" y="${y(hi) + 3}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono">${hi.toFixed(2)}</text>
+      <text x="4" y="${y(lo) + 3}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono">${lo.toFixed(2)}</text>
+      <polyline points="${pts}" fill="none" stroke="${stroke}" stroke-width="1.8"/>
+      <text x="${pad.l}" y="${h - 8}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono">${first}</text>
+      <text x="${w - pad.r}" y="${h - 8}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono" text-anchor="end">${last}</text>
+      <text x="${pad.l + 4}" y="12" fill="${stroke}" font-size="10" font-family="IBM Plex Mono">cum realized</text>
+    </svg></div>`;
+  }
+
+  function renderLifetime() {
+    const host = $("lifetimeTable");
+    if (!host) return;
+    const rows = (DATA.ticker_pnl || []).filter((r) =>
+      matchesSector(r.sector || sectorOf(r.ticker))
+    );
+    if (!rows.length) {
+      host.innerHTML = `<div class="empty">No lifetime ticker PnL${filter !== "all" ? " in this sector" : ""}</div>`;
+      return;
+    }
+    host.innerHTML = `
+      <table>
+        <thead><tr><th>Ticker</th><th>Sector</th><th>Realized</th><th>Unrealized</th><th>Total</th><th>Closes</th><th>Last activity</th></tr></thead>
+        <tbody>
+          ${rows
+            .map(
+              (r, i) => `<tr data-life-idx="${i}" aria-label="Open lifetime PnL for ${r.ticker}">
+                <td class="mono">${r.ticker}</td>
+                <td class="muted">${r.sector || "—"}</td>
+                <td class="mono ${pnlClass(r.realized)}">${fmtUsd(r.realized)}</td>
+                <td class="mono ${pnlClass(r.unrealized)}">${fmtUsd(r.unrealized)}</td>
+                <td class="mono ${pnlClass(r.total)}">${fmtUsd(r.total)}</td>
+                <td class="mono">${r.close_events != null ? r.close_events : "—"}</td>
+                <td class="mono subtle">${fmtTime(r.last_activity_at)}</td>
+              </tr>`
+            )
+            .join("")}
+        </tbody>
+      </table>`;
+    host.querySelectorAll("tr[data-life-idx]").forEach((tr) => {
+      const idx = Number(tr.getAttribute("data-life-idx"));
+      bindRowActivation(tr, () => openLifetimeDetail(rows[idx]));
+    });
+  }
+
+  function openLifetimeDetail(r) {
+    const series = Array.isArray(r.series) ? r.series : [];
+    openDialogHtml(`
+      <p class="kicker">Lifetime book</p>
+      <h3>${r.ticker} · <span class="muted">${r.sector || "—"}</span></h3>
+      <p class="muted">First buy ${fmtTime(r.first_buy_at)} · last activity ${fmtTime(r.last_activity_at)}</p>
+      <div class="grid-stats" style="margin-top:1rem">
+        <div class="stat"><p class="label">Realized</p><p class="value mono ${pnlClass(r.realized)}">${fmtUsd(r.realized)}</p></div>
+        <div class="stat"><p class="label">Unrealized</p><p class="value mono ${pnlClass(r.unrealized)}">${fmtUsd(r.unrealized)}</p></div>
+        <div class="stat"><p class="label">Total</p><p class="value mono ${pnlClass(r.total)}">${fmtUsd(r.total)}</p></div>
+        <div class="stat"><p class="label">Closes</p><p class="value mono">${r.close_events != null ? r.close_events : "—"}</p></div>
+        <div class="stat"><p class="label">Buys</p><p class="value mono">${r.buy_events != null ? r.buy_events : "—"}</p></div>
+        <div class="stat"><p class="label">Qty open</p><p class="value mono">${r.qty_open != null ? Number(r.qty_open).toFixed(4) : "—"}</p></div>
+        <div class="stat"><p class="label">Avg cost open</p><p class="value mono">${fmtUsd(r.avg_cost_open)}</p></div>
+      </div>
+      <p class="kicker" style="margin-top:1rem">Cumulative realized</p>
+      ${drawLifetimeCumChart(series)}`);
+  }
+
   function renderAgents() {
     const agents = DATA.agents_today || {};
     const host = $("agentGrid");
@@ -1005,6 +1089,7 @@
     renderSnapshot();
     renderHoldings();
     renderClosed();
+    renderLifetime();
     renderAgents();
     renderResearch();
     renderMission();

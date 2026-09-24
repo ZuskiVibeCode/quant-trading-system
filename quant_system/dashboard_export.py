@@ -205,6 +205,161 @@ def _build_closed(tracker: Tracker, sector_of: dict[str, str]) -> list[dict[str,
     return closed
 
 
+def build_ticker_pnl(
+    tracker: Tracker,
+    sector_of: dict[str, str],
+    holdings: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Lifetime realized/unrealized PnL per ticker ever bought or sold.
+
+    Reuses the same chronological avg-cost lot ladder as ``_build_closed``
+    (ORDER BY created_at ASC, id ASC; includes ``alpaca_backfill`` fills).
+    On each sell with a known entry, appends a cumulative series point
+    ``{at, pnl, cum}``. Sells without prior buy qty contribute neither to
+    ``realized`` nor to ``series`` / ``close_events``.
+
+    ``realized`` is ``None`` only when every sell for the ticker lacked
+    entry; otherwise the sum of known sell PnLs (0 if no sells).
+    ``unrealized`` is joined from holdings marks (null if not held).
+    Rows sort by ``last_activity_at`` descending so recent names float up.
+    """
+    fills = tracker.conn.execute(
+        """
+        SELECT * FROM fills
+        ORDER BY created_at ASC, id ASC
+        """
+    ).fetchall()
+
+    holdings = holdings or []
+    hold_by: dict[str, dict[str, Any]] = {
+        str(h.get("ticker") or "").upper(): h for h in holdings if h.get("ticker")
+    }
+
+    # Per-ticker state accumulated while walking fills
+    books: dict[str, dict[str, float]] = {}
+    state: dict[str, dict[str, Any]] = {}
+
+    def _ensure(ticker: str) -> dict[str, Any]:
+        if ticker not in state:
+            state[ticker] = {
+                "ticker": ticker,
+                "sector": sector_of.get(ticker),
+                "realized_sum": 0.0,
+                "known_close": 0,
+                "unknown_close": 0,
+                "buy_events": 0,
+                "close_events": 0,
+                "series": [],
+                "first_buy_at": None,
+                "last_activity_at": None,
+                "cum": 0.0,
+            }
+        return state[ticker]
+
+    for f in fills:
+        ticker = str(f["ticker"]).upper()
+        side = str(f["side"]).lower()
+        qty = float(f["qty"])
+        price = float(f["price"])
+        at = f["created_at"]
+        st = _ensure(ticker)
+        st["last_activity_at"] = at
+        book = books.setdefault(ticker, {"qty": 0.0, "avg_cost": 0.0})
+
+        if side == "buy":
+            st["buy_events"] += 1
+            if st["first_buy_at"] is None:
+                st["first_buy_at"] = at
+            old_qty = book["qty"]
+            new_qty = old_qty + qty
+            if new_qty > 1e-12:
+                book["avg_cost"] = (
+                    ((old_qty * book["avg_cost"]) + (qty * price)) / new_qty
+                    if old_qty > 1e-12
+                    else price
+                )
+            book["qty"] = new_qty
+            continue
+
+        if side != "sell":
+            continue
+
+        entry = book["avg_cost"] if book["qty"] > 1e-12 else None
+        if entry is None:
+            st["unknown_close"] += 1
+        else:
+            pnl = (price - entry) * qty
+            st["known_close"] += 1
+            st["close_events"] += 1
+            st["realized_sum"] += pnl
+            st["cum"] += pnl
+            st["series"].append({"at": at, "pnl": pnl, "cum": st["cum"]})
+
+        new_qty = book["qty"] - qty
+        if new_qty <= 1e-12:
+            books[ticker] = {"qty": 0.0, "avg_cost": 0.0}
+        else:
+            book["qty"] = new_qty
+
+    rows: list[dict[str, Any]] = []
+    for ticker, st in state.items():
+        book = books.get(ticker) or {"qty": 0.0, "avg_cost": 0.0}
+        qty_open = float(book["qty"])
+        avg_cost_open = float(book["avg_cost"]) if qty_open > 1e-12 else None
+        if qty_open <= 1e-12:
+            qty_open = 0.0
+            avg_cost_open = None
+
+        h = hold_by.get(ticker)
+        unrealized = None
+        if h is not None:
+            u = h.get("unrealized")
+            unrealized = None if u is None else float(u)
+            # Prefer holdings qty/avg when book residual is empty but still held
+            if qty_open <= 1e-12 and h.get("qty") is not None and float(h["qty"]) > 1e-12:
+                qty_open = float(h["qty"])
+                avg_cost_open = float(h["avg_cost"]) if h.get("avg_cost") is not None else None
+
+        if st["known_close"] > 0:
+            realized: float | None = float(st["realized_sum"])
+        elif st["unknown_close"] > 0:
+            # Every sell lacked a known entry
+            realized = None
+        else:
+            # No sells (open-only / buys-only)
+            realized = 0.0
+
+        total: float | None
+        if realized is not None and unrealized is not None:
+            total = realized + unrealized
+        elif realized is not None:
+            total = realized
+        elif unrealized is not None:
+            total = unrealized
+        else:
+            total = None
+
+        rows.append(
+            {
+                "ticker": ticker,
+                "sector": st["sector"],
+                "realized": realized,
+                "unrealized": unrealized,
+                "total": total,
+                "qty_open": qty_open,
+                "avg_cost_open": avg_cost_open,
+                "close_events": int(st["close_events"]),
+                "buy_events": int(st["buy_events"]),
+                "first_buy_at": st["first_buy_at"],
+                "last_activity_at": st["last_activity_at"],
+                "series": st["series"],
+            }
+        )
+
+    rows.sort(key=lambda r: str(r.get("last_activity_at") or ""), reverse=True)
+    return rows
+
+
 def _agents_today(signals: list[dict[str, Any]]) -> dict[str, Any]:
     by_agent: dict[str, list[dict[str, Any]]] = {a: [] for a in DEFAULT_AGENT_IDS}
     for s in signals:
@@ -982,6 +1137,7 @@ def build_dashboard_payload(
         },
         "holdings": holdings,
         "closed": _build_closed(tracker, sector_of),
+        "ticker_pnl": build_ticker_pnl(tracker, sector_of, holdings),
         "equity_curve": _equity_curve(tracker),
         "agents_today": _agents_today(signals),
         "decisions_today": _decisions_today(decisions),

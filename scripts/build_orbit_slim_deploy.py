@@ -97,6 +97,7 @@ def slim_latest(d: dict) -> dict:
         "watchlist": [],
         "sectors": d.get("sectors") or {},
         "sector_board": d.get("sector_board") or [],
+        "ticker_pnl": d.get("ticker_pnl") or [],
         "rotation": d.get("rotation"),
         "cold": d.get("cold") or [],
         "zones": d.get("zones"),

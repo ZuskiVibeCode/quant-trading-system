@@ -27,3 +27,29 @@ def test_slim_latest_preserves_sector_board():
     out = slim_latest({"sectors": {"quantum": ["IONQ"]}, "sector_board": board})
     assert out["sector_board"] == board
     assert out["sectors"]["quantum"] == ["IONQ"]
+
+
+def test_slim_latest_preserves_ticker_pnl():
+    from scripts.build_orbit_slim_deploy import slim_latest
+
+    rows = [
+        {
+            "ticker": "IONQ",
+            "sector": "quantum",
+            "realized": 1.5,
+            "unrealized": None,
+            "total": 1.5,
+            "qty_open": 0.0,
+            "avg_cost_open": None,
+            "close_events": 2,
+            "buy_events": 2,
+            "first_buy_at": "2026-09-01T00:00:00Z",
+            "last_activity_at": "2026-09-10T00:00:00Z",
+            "series": [
+                {"at": "2026-09-05T00:00:00Z", "pnl": 1.0, "cum": 1.0},
+                {"at": "2026-09-10T00:00:00Z", "pnl": 0.5, "cum": 1.5},
+            ],
+        }
+    ]
+    out = slim_latest({"sectors": {}, "ticker_pnl": rows})
+    assert out["ticker_pnl"] == rows
