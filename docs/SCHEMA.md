@@ -91,12 +91,20 @@ sector_board: [{
   buy, sell, net,         # mean per-ticker zone pressures (signaled only)
   long, short, neutral,   # ticker counts by majority of latest agent directions
   zones: {buy_zone, sell_zone, conflicted, quiet}  # ticker counts by zone_label
+  returns: { "1d", "5d", "20d" },   # eq-wt simple returns (float|null)
+  returns_n: { "1d", "5d", "20d" }  # tickers that contributed per horizon
 }]
 ```
 
 **Pressure:** same per-ticker math as Zones (`compute_zone_pressures` on latest
 signal per agent); theme buy/sell/net = mean across theme tickers that have
 signals. Tickers with no signals that day are excluded from the mean.
+
+**Tape (eq-wt):** for each theme ticker with usable daily closes, simple return
+`(close_t / close_{t-N}) - 1` for N ∈ {1, 5, 20}; theme return = equal-weight
+mean of those ticker returns (skip missing history / failed fetch). Offline
+tolerant — nulls when market data is unavailable. `returns_n` is the count of
+contributors per horizon.
 
 **Breadth:** for each signaled ticker, majority of latest agent directions →
 long / short / neutral (ties → neutral). Zone bucket counts use `zone_label`.

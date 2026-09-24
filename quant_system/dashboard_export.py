@@ -420,14 +420,102 @@ def build_zones_block(
     }
 
 
+
+# ---------------------------------------------------------------------------
+# Relative tape (equal-weight theme returns) for Orbit Sectors
+# ---------------------------------------------------------------------------
+
+SECTOR_TAPE_HORIZONS = ("1d", "5d", "20d")
+SECTOR_TAPE_DAYS = {"1d": 1, "5d": 5, "20d": 20}
+# Enough bars for 20 trading days + buffer; shared cache key within one export.
+SECTOR_TAPE_HISTORY_PERIOD = "3mo"
+
+
+def _simple_return(closes, n: int) -> float | None:
+    """(close_t / close_{t-n}) - 1 when enough history exists."""
+    if closes is None:
+        return None
+    try:
+        series = closes.dropna() if hasattr(closes, "dropna") else closes
+        if len(series) < n + 1:
+            return None
+        c_t = float(series.iloc[-1])
+        c_prev = float(series.iloc[-(n + 1)])
+        if c_prev == 0 or c_t != c_t or c_prev != c_prev:  # NaN guards
+            return None
+        return (c_t / c_prev) - 1.0
+    except (TypeError, ValueError, IndexError, AttributeError, ZeroDivisionError):
+        return None
+
+
+def _ticker_closes(market_data, ticker: str, cache: dict[str, object]) -> object | None:
+    """Fetch Close series once per ticker for this export; None on failure."""
+    key = ticker.upper()
+    if key in cache:
+        return cache[key]
+    try:
+        df = market_data.history(key, period=SECTOR_TAPE_HISTORY_PERIOD, interval="1d")
+        if df is None or getattr(df, "empty", True) or "Close" not in df.columns:
+            cache[key] = None
+            return None
+        cache[key] = df["Close"]
+        return cache[key]
+    except Exception:  # noqa: BLE001 — offline-tolerant
+        cache[key] = None
+        return None
+
+
+def compute_theme_tape_returns(
+    tickers: list[str],
+    market_data,
+    *,
+    cache: dict[str, object] | None = None,
+    horizons: tuple[str, ...] = SECTOR_TAPE_HORIZONS,
+) -> tuple[dict[str, float | None], dict[str, int]]:
+    """Equal-weight mean of simple N-day returns across theme tickers.
+
+    Tickers missing enough history (or whose fetch fails) are skipped for that
+    horizon. Empty contribution → null return and n=0.
+    """
+    close_cache: dict[str, object] = cache if cache is not None else {}
+    returns: dict[str, float | None] = {h: None for h in horizons}
+    returns_n: dict[str, int] = {h: 0 for h in horizons}
+    if market_data is None:
+        return returns, returns_n
+
+    per_horizon: dict[str, list[float]] = {h: [] for h in horizons}
+    for raw in tickers or []:
+        t = str(raw or "").upper()
+        if not t:
+            continue
+        closes = _ticker_closes(market_data, t, close_cache)
+        if closes is None:
+            continue
+        for h in horizons:
+            n = SECTOR_TAPE_DAYS[h]
+            ret = _simple_return(closes, n)
+            if ret is not None:
+                per_horizon[h].append(ret)
+
+    for h in horizons:
+        vals = per_horizon[h]
+        returns_n[h] = len(vals)
+        if vals:
+            returns[h] = round(sum(vals) / len(vals), 6)
+        else:
+            returns[h] = None
+    return returns, returns_n
+
+
 def build_sector_board(
     agents_today: dict[str, Any],
     sectors: dict[str, list[str]],
     holdings: list[dict[str, Any]],
     *,
     equity: float | None = None,
+    market_data: Any = None,
 ) -> list[dict[str, Any]]:
-    """Per-theme Orbit Sectors board row (pressure / breadth / book).
+    """Per-theme Orbit Sectors board row (pressure / breadth / book / tape).
 
     Pressure aggregation (same math as Zones, then averaged across theme):
       For each ticker in the theme that has ≥1 latest agent signal that day:
@@ -445,6 +533,13 @@ def build_sector_board(
       weight = sum(market value of theme holdings) / equity when equity > 0
       (market value = qty*last, else qty*avg_cost); unrealized = sum of dollar
       unrealized marks on those holdings (null if none have a mark).
+
+    Tape (equal-weight relative returns; optional market_data):
+      For each theme ticker with usable daily closes, simple return over N
+      trading days: (close_t / close_{t-N}) - 1 for N in {1, 5, 20}.
+      Theme return = equal-weight mean (skip tickers missing history / failed
+      fetch). Offline-tolerant: missing market_data or fetch failure → nulls.
+      returns_n reports how many tickers contributed per horizon.
     """
     by_ticker = latest_signals_by_agent_ticker(agents_today)
     holdings_by_ticker: dict[str, dict[str, Any]] = {}
@@ -454,6 +549,7 @@ def build_sector_board(
             holdings_by_ticker[t] = h
 
     eq = float(equity) if equity is not None else 0.0
+    tape_cache: dict[str, object] = {}
     board: list[dict[str, Any]] = []
     for theme in sorted((sectors or {}).keys()):
         tickers = [str(t).upper() for t in (sectors.get(theme) or [])]
@@ -515,6 +611,10 @@ def build_sector_board(
         ]
         unrealized = sum(unrealized_vals) if unrealized_vals else None
 
+        tape_returns, tape_n = compute_theme_tape_returns(
+            tickers, market_data, cache=tape_cache
+        )
+
         board.append(
             {
                 "theme": theme,
@@ -535,6 +635,8 @@ def build_sector_board(
                     "conflicted": zones_counts["conflicted"],
                     "quiet": zones_counts["quiet"],
                 },
+                "returns": tape_returns,
+                "returns_n": tape_n,
             }
         )
     return board
@@ -913,12 +1015,20 @@ def build_dashboard_payload(
         sector_of=sector_of,
         holdings=holdings,
     )
-    # Additive Orbit Sectors comparison board (theme cards)
+    # Additive Orbit Sectors comparison board (theme cards + relative tape)
+    md = None
+    try:
+        from quant_system.pipeline import build_market_data
+
+        md = build_market_data(mock=False)
+    except Exception:  # noqa: BLE001 — offline-tolerant; returns stay null
+        md = None
     payload["sector_board"] = build_sector_board(
         payload["agents_today"],
         themes,
         holdings,
         equity=equity,
+        market_data=md,
     )
     return payload
 

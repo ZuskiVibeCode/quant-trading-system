@@ -37,6 +37,13 @@
     return `${(Number(n) * 100).toFixed(2)}%`;
   }
 
+  function fmtSignedPct(n) {
+    if (n == null || Number.isNaN(Number(n))) return "—";
+    const v = Number(n) * 100;
+    const sign = v > 0 ? "+" : "";
+    return `${sign}${v.toFixed(2)}%`;
+  }
+
   function fmtTime(iso) {
     if (!iso) return "—";
     try {
@@ -931,6 +938,8 @@
           short: 0,
           neutral: 0,
           zones: { buy_zone: 0, sell_zone: 0, conflicted: 0, quiet: 0 },
+          returns: { "1d": null, "5d": null, "20d": null },
+          returns_n: { "1d": 0, "5d": 0, "20d": 0 },
         };
         const pressed = filter === theme;
         const netCls = Number(r.net) > 0 ? "gain" : Number(r.net) < 0 ? "loss" : "flat";
@@ -946,6 +955,14 @@
       <div class="pressure-row"><span>Buy</span><div class="bar-track"><div class="bar-fill buy" style="width:${barPct(r.buy)}%"></div></div><span class="gain">${fmtPressure(r.buy)}</span></div>
       <div class="pressure-row"><span>Sell</span><div class="bar-track"><div class="bar-fill sell" style="width:${barPct(r.sell)}%"></div></div><span class="loss">${fmtPressure(r.sell)}</span></div>
       <div class="pressure-row"><span>Net</span><div class="bar-track"><div class="bar-fill net ${netCls}" style="width:${barPct(r.net)}%"></div></div><span class="${pnlClass(r.net)}">${fmtPressure(r.net)}</span></div>
+    </div>
+  </div>
+  <div>
+    <p class="sector-subhead">Tape (eq-wt)</p>
+    <div class="sector-stats">
+      <div class="stat"><p class="label">1d</p><p class="value mono ${pnlClass((r.returns || {})["1d"])}">${fmtSignedPct((r.returns || {})["1d"])}</p></div>
+      <div class="stat"><p class="label">5d</p><p class="value mono ${pnlClass((r.returns || {})["5d"])}">${fmtSignedPct((r.returns || {})["5d"])}</p></div>
+      <div class="stat"><p class="label">20d</p><p class="value mono ${pnlClass((r.returns || {})["20d"])}">${fmtSignedPct((r.returns || {})["20d"])}</p></div>
     </div>
   </div>
   <div>
