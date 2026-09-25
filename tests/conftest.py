@@ -6,6 +6,8 @@ def _isolate_alpaca_env(monkeypatch):
     """Unit tests expect dry-run unless explicitly testing Alpaca."""
     if os.environ.get("QUANT_ALLOW_ALPACA_IN_TESTS") == "1":
         return
+    # Prevent load_project_dotenv() from re-injecting keys from a local .env
+    monkeypatch.setenv("QUANT_SKIP_DOTENV", "1")
     for k in (
         "ALPACA_API_KEY",
         "ALPACA_SECRET_KEY",

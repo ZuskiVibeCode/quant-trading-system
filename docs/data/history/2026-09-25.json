@@ -1,6 +1,6 @@
 {
   "meta": {
-    "exported_at": "2026-09-25T17:05:45.697614Z",
+    "exported_at": "2026-09-25T17:12:06.616662Z",
     "account": "paper",
     "starting_equity": 100.0,
     "paper": true,
@@ -14,7 +14,7 @@
     "cash": 1.238983,
     "peak_equity": 100.0,
     "daily_pnl": -4.989999999999995,
-    "unrealized": null,
+    "unrealized": -1.9702870000000001,
     "drawdown": 0.04989999999999995,
     "halted": false,
     "day_halted": false,
@@ -24,127 +24,127 @@
     {
       "ticker": "AMD",
       "qty": 0.005341,
-      "avg_cost": 614.3983617300132,
-      "last": null,
+      "avg_cost": 614.398362,
+      "last": 630.075,
       "sector": "quantum",
-      "unrealized": null,
+      "unrealized": 0.083729,
       "updated_at": "2026-09-24T15:08:44.501917Z"
     },
     {
       "ticker": "GOOGL",
       "qty": 0.01407,
       "avg_cost": 338.586,
-      "last": null,
+      "last": 343.7,
       "sector": "quantum",
-      "unrealized": null,
+      "unrealized": 0.071954,
       "updated_at": "2026-09-24T13:53:07.576532Z"
     },
     {
       "ticker": "IBM",
       "qty": 0.0558,
       "avg_cost": 236.159478,
-      "last": null,
+      "last": 226.04,
       "sector": "quantum",
-      "unrealized": null,
+      "unrealized": -0.564667,
       "updated_at": "2026-09-24T13:53:07.576532Z"
     },
     {
       "ticker": "IONQ",
       "qty": 2.399999999999845e-05,
       "avg_cost": 42.29,
-      "last": null,
+      "last": 46.14,
       "sector": "quantum",
-      "unrealized": null,
+      "unrealized": 9.2e-05,
       "updated_at": "2026-09-25T16:53:44.262472Z"
     },
     {
       "ticker": "IRDM",
       "qty": 0.098431,
       "avg_cost": 48.446,
-      "last": null,
+      "last": 48.71,
       "sector": "space",
-      "unrealized": null,
+      "unrealized": 0.025986,
       "updated_at": "2026-09-24T13:53:07.576532Z"
     },
     {
       "ticker": "ISRG",
       "qty": 0.023288,
-      "avg_cost": 385.6219674008932,
-      "last": null,
+      "avg_cost": 385.621967,
+      "last": 401.95,
       "sector": "robotics",
-      "unrealized": null,
+      "unrealized": 0.380248,
       "updated_at": "2026-09-25T15:49:19.259562Z"
     },
     {
       "ticker": "LHX",
       "qty": 0.019901,
       "avg_cost": 239.632,
-      "last": null,
+      "last": 238.905,
       "sector": "space",
-      "unrealized": null,
+      "unrealized": -0.014468,
       "updated_at": "2026-09-24T13:53:07.576532Z"
     },
     {
       "ticker": "LUNR",
       "qty": 0.0002719999999999833,
       "avg_cost": 14.95,
-      "last": null,
+      "last": 15.78,
       "sector": "space",
-      "unrealized": null,
+      "unrealized": 0.000226,
       "updated_at": "2026-09-25T16:53:46.182144Z"
     },
     {
       "ticker": "MSFT",
       "qty": 0.022018,
       "avg_cost": 496.78049,
-      "last": null,
+      "last": 517.0,
       "sector": "quantum",
-      "unrealized": null,
+      "unrealized": 0.445193,
       "updated_at": "2026-09-24T13:53:07.576532Z"
     },
     {
       "ticker": "NVDA",
       "qty": 0.058552,
-      "avg_cost": 223.4137113676732,
-      "last": null,
+      "avg_cost": 223.413711,
+      "last": 225.06,
       "sector": "robotics",
-      "unrealized": null,
+      "unrealized": 0.096393,
       "updated_at": "2026-09-24T18:49:28.846112Z"
     },
     {
       "ticker": "PATH",
       "qty": 1.316656,
       "avg_cost": 15.12,
-      "last": null,
+      "last": 12.525,
       "sector": "robotics",
-      "unrealized": null,
+      "unrealized": -3.416723,
       "updated_at": "2026-09-24T13:53:07.576532Z"
     },
     {
       "ticker": "QUBT",
       "qty": 0.5030899999999999,
       "avg_cost": 8.64,
-      "last": null,
+      "last": 9.22,
       "sector": "quantum",
-      "unrealized": null,
+      "unrealized": 0.291792,
       "updated_at": "2026-09-25T16:53:47.116665Z"
     },
     {
       "ticker": "RGTI",
       "qty": 1.6999999999998963e-05,
       "avg_cost": 16.66,
-      "last": null,
+      "last": 17.06,
       "sector": "quantum",
-      "unrealized": null,
+      "unrealized": 7e-06,
       "updated_at": "2026-09-25T16:53:45.233419Z"
     },
     {
       "ticker": "TER",
       "qty": 0.025391,
       "avg_cost": 372.08,
-      "last": null,
+      "last": 396.89,
       "sector": "robotics",
-      "unrealized": null,
+      "unrealized": 0.629951,
       "updated_at": "2026-09-24T13:53:07.576532Z"
     }
   ],
@@ -11272,8 +11272,8 @@
       "ticker": "QUBT",
       "sector": "quantum",
       "realized": 0.8172493679999995,
-      "unrealized": null,
-      "total": 0.8172493679999995,
+      "unrealized": 0.291792,
+      "total": 1.1090413679999995,
       "qty_open": 0.5030899999999999,
       "avg_cost_open": 8.64,
       "close_events": 6,
@@ -11325,8 +11325,8 @@
       "ticker": "LUNR",
       "sector": "space",
       "realized": -0.009591405999998892,
-      "unrealized": null,
-      "total": -0.009591405999998892,
+      "unrealized": 0.000226,
+      "total": -0.009365405999998891,
       "qty_open": 0.00027200000000001106,
       "avg_cost_open": 14.95,
       "close_events": 19,
@@ -11443,8 +11443,8 @@
       "ticker": "RGTI",
       "sector": "quantum",
       "realized": 0.4703537155504156,
-      "unrealized": null,
-      "total": 0.4703537155504156,
+      "unrealized": 7e-06,
+      "total": 0.4703607155504156,
       "qty_open": 0.1437410000000001,
       "avg_cost_open": 15.199999809265137,
       "close_events": 20,
@@ -11566,8 +11566,8 @@
       "ticker": "IONQ",
       "sector": "quantum",
       "realized": -0.7482385619999994,
-      "unrealized": null,
-      "total": -0.7482385619999994,
+      "unrealized": 9.2e-05,
+      "total": -0.7481465619999994,
       "qty_open": 2.3999999999970693e-05,
       "avg_cost_open": 42.29,
       "close_events": 19,
@@ -11684,8 +11684,8 @@
       "ticker": "ISRG",
       "sector": "robotics",
       "realized": 0.0,
-      "unrealized": null,
-      "total": 0.0,
+      "unrealized": 0.380248,
+      "total": 0.380248,
       "qty_open": 0.023288,
       "avg_cost_open": 385.6219671934044,
       "close_events": 0,
@@ -11702,8 +11702,8 @@
       "ticker": "NVDA",
       "sector": "robotics",
       "realized": 0.0,
-      "unrealized": null,
-      "total": 0.0,
+      "unrealized": 0.096393,
+      "total": 0.096393,
       "qty_open": 0.058552,
       "avg_cost_open": 223.4137113676732,
       "close_events": 0,
@@ -11720,8 +11720,8 @@
       "ticker": "AMD",
       "sector": "quantum",
       "realized": 0.0,
-      "unrealized": null,
-      "total": 0.0,
+      "unrealized": 0.083729,
+      "total": 0.083729,
       "qty_open": 0.005341,
       "avg_cost_open": 614.3983617300132,
       "close_events": 0,
@@ -11738,8 +11738,8 @@
       "ticker": "MSFT",
       "sector": "quantum",
       "realized": 0.0,
-      "unrealized": null,
-      "total": 0.0,
+      "unrealized": 0.445193,
+      "total": 0.445193,
       "qty_open": 0.022018,
       "avg_cost_open": 496.7804899627577,
       "close_events": 0,
@@ -11756,8 +11756,8 @@
       "ticker": "IRDM",
       "sector": "space",
       "realized": 0.0,
-      "unrealized": null,
-      "total": 0.0,
+      "unrealized": 0.025986,
+      "total": 0.025986,
       "qty_open": 0.098431,
       "avg_cost_open": 48.446,
       "close_events": 0,
@@ -11774,8 +11774,8 @@
       "ticker": "LHX",
       "sector": "space",
       "realized": 0.0,
-      "unrealized": null,
-      "total": 0.0,
+      "unrealized": -0.014468,
+      "total": -0.014468,
       "qty_open": 0.019901,
       "avg_cost_open": 239.632,
       "close_events": 0,
@@ -11792,8 +11792,8 @@
       "ticker": "GOOGL",
       "sector": "quantum",
       "realized": 0.0,
-      "unrealized": null,
-      "total": 0.0,
+      "unrealized": 0.071954,
+      "total": 0.071954,
       "qty_open": 0.073161,
       "avg_cost_open": 338.4842248612241,
       "close_events": 0,
@@ -11810,8 +11810,8 @@
       "ticker": "IBM",
       "sector": "quantum",
       "realized": 0.0,
-      "unrealized": null,
-      "total": 0.0,
+      "unrealized": -0.564667,
+      "total": -0.564667,
       "qty_open": 0.14094600000000002,
       "avg_cost_open": 235.3925811589616,
       "close_events": 0,
@@ -11828,8 +11828,8 @@
       "ticker": "TER",
       "sector": "robotics",
       "realized": -0.245543,
-      "unrealized": null,
-      "total": -0.245543,
+      "unrealized": 0.629951,
+      "total": 0.384408,
       "qty_open": 0.025391,
       "avg_cost_open": 372.08,
       "close_events": 1,
@@ -48224,6 +48224,127 @@
       "ABB"
     ]
   },
+  "alpaca_snapshot": {
+    "cash": 1.21,
+    "equity": 96.71,
+    "buying_power": 1.21,
+    "open_orders_count": 0,
+    "positions": [
+      {
+        "ticker": "AMD",
+        "qty": 0.005341,
+        "avg_cost": 614.398362,
+        "market_value": 3.365231,
+        "current_price": 630.075,
+        "unrealized_pl": 0.083729
+      },
+      {
+        "ticker": "GOOGL",
+        "qty": 0.01407,
+        "avg_cost": 338.586,
+        "market_value": 4.835859,
+        "current_price": 343.7,
+        "unrealized_pl": 0.071954
+      },
+      {
+        "ticker": "IBM",
+        "qty": 0.0558,
+        "avg_cost": 236.159478,
+        "market_value": 12.613032,
+        "current_price": 226.04,
+        "unrealized_pl": -0.564667
+      },
+      {
+        "ticker": "IONQ",
+        "qty": 2.4e-05,
+        "avg_cost": 42.29,
+        "market_value": 0.001107,
+        "current_price": 46.14,
+        "unrealized_pl": 9.2e-05
+      },
+      {
+        "ticker": "IRDM",
+        "qty": 0.098431,
+        "avg_cost": 48.446,
+        "market_value": 4.794574,
+        "current_price": 48.71,
+        "unrealized_pl": 0.025986
+      },
+      {
+        "ticker": "ISRG",
+        "qty": 0.023288,
+        "avg_cost": 385.621967,
+        "market_value": 9.360612,
+        "current_price": 401.95,
+        "unrealized_pl": 0.380248
+      },
+      {
+        "ticker": "LHX",
+        "qty": 0.019901,
+        "avg_cost": 239.632,
+        "market_value": 4.754448,
+        "current_price": 238.905,
+        "unrealized_pl": -0.014468
+      },
+      {
+        "ticker": "LUNR",
+        "qty": 0.000272,
+        "avg_cost": 14.95,
+        "market_value": 0.004292,
+        "current_price": 15.78,
+        "unrealized_pl": 0.000226
+      },
+      {
+        "ticker": "MSFT",
+        "qty": 0.022018,
+        "avg_cost": 496.78049,
+        "market_value": 11.383306,
+        "current_price": 517.0,
+        "unrealized_pl": 0.445193
+      },
+      {
+        "ticker": "NVDA",
+        "qty": 0.058552,
+        "avg_cost": 223.413711,
+        "market_value": 13.177713,
+        "current_price": 225.06,
+        "unrealized_pl": 0.096393
+      },
+      {
+        "ticker": "PATH",
+        "qty": 1.316656,
+        "avg_cost": 15.12,
+        "market_value": 16.491116,
+        "current_price": 12.525,
+        "unrealized_pl": -3.416723
+      },
+      {
+        "ticker": "QUBT",
+        "qty": 0.50309,
+        "avg_cost": 8.64,
+        "market_value": 4.63849,
+        "current_price": 9.22,
+        "unrealized_pl": 0.291792
+      },
+      {
+        "ticker": "RGTI",
+        "qty": 1.7e-05,
+        "avg_cost": 16.66,
+        "market_value": 0.00029,
+        "current_price": 17.06,
+        "unrealized_pl": 7e-06
+      },
+      {
+        "ticker": "TER",
+        "qty": 0.025391,
+        "avg_cost": 372.08,
+        "market_value": 10.077434,
+        "current_price": 396.89,
+        "unrealized_pl": 0.629951
+      }
+    ],
+    "paper": true
+  },
   "rotation": {
     "active": {
       "quantum": [
@@ -48289,7 +48410,7 @@
     }
   ],
   "zones": {
-    "as_of": "2026-09-25T17:05:45.697614Z",
+    "as_of": "2026-09-25T17:12:06.616662Z",
     "day_local": "2026-09-25",
     "thresholds": {
       "buy_zone_min": 0.35,
@@ -48369,7 +48490,7 @@
             "confidence": 74.4
           }
         ],
-        "weight": 0.033668
+        "weight": 0.035239
       },
       {
         "ticker": "ASTS",
@@ -48586,7 +48707,7 @@
             "confidence": 42.0
           }
         ],
-        "weight": 0.048877
+        "weight": 0.050639
       },
       {
         "ticker": "HON",
@@ -48659,7 +48780,7 @@
             "confidence": 64.68
           }
         ],
-        "weight": 0.135201
+        "weight": 0.132077
       },
       {
         "ticker": "IONQ",
@@ -48696,7 +48817,7 @@
             "confidence": 64.14
           }
         ],
-        "weight": 1e-05
+        "weight": 1.2e-05
       },
       {
         "ticker": "IRDM",
@@ -48733,7 +48854,7 @@
             "confidence": 64.6125
           }
         ],
-        "weight": 0.048925
+        "weight": 0.050206
       },
       {
         "ticker": "ISRG",
@@ -48770,7 +48891,7 @@
             "confidence": 58.74000000000001
           }
         ],
-        "weight": 0.092137
+        "weight": 0.098019
       },
       {
         "ticker": "LHX",
@@ -48807,7 +48928,7 @@
             "confidence": 73.59
           }
         ],
-        "weight": 0.048928
+        "weight": 0.049786
       },
       {
         "ticker": "LMT",
@@ -48880,7 +49001,7 @@
             "confidence": 69.0
           }
         ],
-        "weight": 4.2e-05
+        "weight": 4.5e-05
       },
       {
         "ticker": "MSFT",
@@ -48917,7 +49038,7 @@
             "confidence": 67.9875
           }
         ],
-        "weight": 0.112223
+        "weight": 0.1192
       },
       {
         "ticker": "NOC",
@@ -48990,7 +49111,7 @@
             "confidence": 55.5
           }
         ],
-        "weight": 0.134212
+        "weight": 0.13799
       },
       {
         "ticker": "PATH",
@@ -49027,7 +49148,7 @@
             "confidence": 79.80000000000001
           }
         ],
-        "weight": 0.20425
+        "weight": 0.172686
       },
       {
         "ticker": "QBTS",
@@ -49136,7 +49257,7 @@
             "confidence": 55.77
           }
         ],
-        "weight": 0.044596
+        "weight": 0.048572
       },
       {
         "ticker": "RDW",
@@ -49354,7 +49475,7 @@
             "confidence": 42.0
           }
         ],
-        "weight": 0.096929
+        "weight": 0.105526
       },
       {
         "ticker": "TSLA",
@@ -49400,8 +49521,8 @@
       "tickers_n": 10,
       "held_n": 7,
       "signaled_n": 10,
-      "weight": 0.384267,
-      "unrealized": null,
+      "weight": 0.38772,
+      "unrealized": 0.3281,
       "buy": 0.200065,
       "sell": 0.224677,
       "net": -0.024612,
@@ -49415,9 +49536,9 @@
         "quiet": 5
       },
       "returns": {
-        "1d": 0.013867,
-        "5d": 0.059765,
-        "20d": 0.043899
+        "1d": 0.01444,
+        "5d": 0.060373,
+        "20d": 0.044522
       },
       "returns_n": {
         "1d": 10,
@@ -49430,8 +49551,8 @@
       "tickers_n": 10,
       "held_n": 4,
       "signaled_n": 9,
-      "weight": 0.541175,
-      "unrealized": null,
+      "weight": 0.51686,
+      "unrealized": -2.310131,
       "buy": 0.305379,
       "sell": 0.064098,
       "net": 0.241281,
@@ -49445,9 +49566,9 @@
         "quiet": 6
       },
       "returns": {
-        "1d": -1.9e-05,
-        "5d": 0.007779,
-        "20d": -0.011434
+        "1d": -0.001391,
+        "5d": 0.006403,
+        "20d": -0.012815
       },
       "returns_n": {
         "1d": 9,
@@ -49460,8 +49581,8 @@
       "tickers_n": 10,
       "held_n": 3,
       "signaled_n": 10,
-      "weight": 0.100427,
-      "unrealized": null,
+      "weight": 0.100551,
+      "unrealized": 0.011744,
       "buy": 0.211891,
       "sell": 0.20532,
       "net": 0.006571,
@@ -49475,9 +49596,9 @@
         "quiet": 8
       },
       "returns": {
-        "1d": 0.004968,
-        "5d": 0.046189,
-        "20d": -0.01814
+        "1d": 0.003972,
+        "5d": 0.045052,
+        "20d": -0.019181
       },
       "returns_n": {
         "1d": 10,

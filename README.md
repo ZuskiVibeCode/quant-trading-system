@@ -99,9 +99,12 @@ python -m quant_system status --broker     # tracker + Alpaca cash/equity/BP/ope
 python -m quant_system export-dashboard
 ```
 
-Optional Alpaca paper keys (never commit secrets):
+Optional Alpaca paper keys (never commit secrets). Prefer a gitignored project `.env`
+(see `.env.example`); `python -m quant_system …` and `export_dashboard` auto-load it
+via `load_project_dotenv()` (does not override vars already in the environment):
 
 ```bash
+# .env (gitignored) or:
 export ALPACA_API_KEY=...
 export ALPACA_SECRET_KEY=...
 export ALPACA_PAPER=true

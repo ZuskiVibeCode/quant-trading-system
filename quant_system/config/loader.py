@@ -148,6 +148,35 @@ class AppConfig(BaseModel):
     config_dir: str
 
 
+def load_project_dotenv() -> bool:
+    """Load repo `.env` into os.environ (setdefault; never overrides).
+
+    Skipped when QUANT_SKIP_DOTENV is truthy (unit tests set this so Alpaca
+    isolation is not undone by re-reading a local .env).
+    Returns True if a file was loaded.
+    """
+    if os.environ.get("QUANT_SKIP_DOTENV", "").lower() in ("1", "true", "yes"):
+        return False
+    candidates = [
+        Path.cwd() / ".env",
+        Path(__file__).resolve().parents[2] / ".env",
+    ]
+    for env_path in candidates:
+        if not env_path.is_file():
+            continue
+        for line in env_path.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, val = line.split("=", 1)
+            key = key.strip()
+            val = val.strip().strip('"').strip("'")
+            if key:
+                os.environ.setdefault(key, val)
+        return True
+    return False
+
+
 def default_config_dir() -> Path:
     env = os.environ.get("QUANT_CONFIG_DIR")
     if env:
@@ -169,6 +198,7 @@ def load_config(config_dir: Path | str | None = None) -> AppConfig:
 
 
 def alpaca_credentials() -> dict[str, Any]:
+    load_project_dotenv()
     key = os.environ.get("ALPACA_API_KEY") or os.environ.get("APCA_API_KEY_ID")
     secret = (
         os.environ.get("ALPACA_SECRET_KEY")

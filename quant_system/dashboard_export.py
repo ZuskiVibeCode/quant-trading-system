@@ -1259,6 +1259,10 @@ def export_dashboard(
     close_tracker: bool = False,
 ) -> dict[str, Any]:
     """Write docs/data/latest.json (+ optional history/YYYY-MM-DD.json)."""
+    # Durable: load repo .env even when callers import this without CLI main().
+    from quant_system.config.loader import load_project_dotenv
+
+    load_project_dotenv()
     own = tracker is None
     tr = tracker or Tracker()
     try:
