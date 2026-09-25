@@ -31,8 +31,8 @@ def env(tmp_path):
     cfg = load_config()
     assert cfg.risk.min_confidence_to_trade == 55.0
     assert cfg.risk.min_confidence_to_sell == 40.0
-    assert cfg.risk.cash_buffer_min_pct == 0.10
-    assert cfg.risk.cash_buffer_target_pct == 0.15
+    assert cfg.risk.cash_buffer_min_pct == 0.03
+    assert cfg.risk.cash_buffer_target_pct == 0.05
     assert cfg.risk.buffer_trim_frac == 0.20
     assert cfg.risk.max_buffer_trims_per_cycle == 1
     yield tracker, md, cfg
@@ -118,11 +118,11 @@ def test_bullish_conf_50_holds_buy_floor(env):
 
 
 def test_cash_buffer_trim_weakest_score_le_zero(env):
-    """Cash < 10%, no buys, weakest score<=0 → one buffer SELL."""
+    """Cash < 3%, no buys, weakest score<=0 → one buffer SELL."""
     tracker, md, cfg = env
-    # cash 5, IONQ 5*10=50, NVDA 2.25*20=45 → equity 100; cash/eq=5%
+    # cash 2, IONQ 5*10=50, NVDA 2.25*20=45 → equity 100; cash/eq=2%
     tracker.reconcile_portfolio(
-        cash=5.0,
+        cash=2.0,
         equity=100.0,
         positions=[
             {"ticker": "IONQ", "qty": 5.0, "avg_cost": 10.0},
@@ -154,7 +154,7 @@ def test_no_buffer_trim_when_all_scores_positive(env):
     """All holdings score>0 → no buffer trim even if cash low."""
     tracker, md, cfg = env
     tracker.reconcile_portfolio(
-        cash=5.0,
+        cash=2.0,
         equity=100.0,
         positions=[
             {"ticker": "IONQ", "qty": 5.0, "avg_cost": 10.0},
@@ -182,7 +182,7 @@ def test_max_one_buffer_trim_per_cycle(env):
     tracker, md, cfg = env
     assert cfg.risk.max_buffer_trims_per_cycle == 1
     tracker.reconcile_portfolio(
-        cash=5.0,
+        cash=2.0,
         equity=100.0,
         positions=[
             {"ticker": "IONQ", "qty": 5.0, "avg_cost": 10.0},

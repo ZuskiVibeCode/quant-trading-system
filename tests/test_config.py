@@ -13,8 +13,8 @@ def test_universe_and_risk():
     assert cfg.risk.max_drawdown_pct == 0.15
     assert cfg.risk.min_confidence_to_trade == 55.0
     assert cfg.risk.min_confidence_to_sell == 40.0
-    assert cfg.risk.cash_buffer_min_pct == 0.10
-    assert cfg.risk.cash_buffer_target_pct == 0.15
+    assert cfg.risk.cash_buffer_min_pct == 0.03
+    assert cfg.risk.cash_buffer_target_pct == 0.05
     assert cfg.risk.buffer_trim_frac == 0.20
     assert cfg.risk.max_buffer_trims_per_cycle == 1
     assert cfg.risk.opportunity_rotate_enabled is True
