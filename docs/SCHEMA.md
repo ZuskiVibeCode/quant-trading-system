@@ -83,12 +83,13 @@ Days sorted ascending. `zones_series` in `latest.json` is the trailing window of
 ### `sector_board` (additive)
 
 One row per universe theme (quantum / space / robotics). Built at export from
-`agents_today`, `sectors`, and `holdings`. Never contains secrets.
+`agents_today`, `sectors`, `holdings`, and `closed` (realized). Never contains secrets.
 
 ```
 sector_board: [{
   theme, tickers_n, held_n, signaled_n,
   weight,                 # theme holdings market value / equity
+  realized,               # sum of closed-lot pnl for theme tickers (0 if none)
   unrealized,             # sum of dollar unrealized marks (or null)
   buy, sell, net,         # mean per-ticker zone pressures (signaled only)
   long, short, neutral,   # ticker counts by majority of latest agent directions
@@ -112,7 +113,9 @@ contributors per horizon.
 long / short / neutral (ties → neutral). Zone bucket counts use `zone_label`.
 
 **Book:** `held_n` open holdings in theme vs `tickers_n` universe size;
-`weight` = Σ|qty·last| (else qty·avg_cost) / equity; `unrealized` = Σ dollar marks.
+`weight` = Σ|qty·last| (else qty·avg_cost) / equity; `realized` = Σ numeric
+closed-lot `pnl` for theme tickers (0.0 when no closes; null pnls ignored);
+`unrealized` = Σ dollar marks.
 
 ## History
 

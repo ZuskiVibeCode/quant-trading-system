@@ -110,6 +110,7 @@ def test_build_sector_board_pressure_breadth_book():
     # weight = |2*12| / 100 = 0.24
     assert abs(q["weight"] - 0.24) < 1e-9
     assert abs(q["unrealized"] - 4.0) < 1e-9
+    assert q["realized"] == 0.0  # no closed list → 0.0
     # No market_data → null tape
     assert q["returns"] == {"1d": None, "5d": None, "20d": None}
     assert q["returns_n"] == {"1d": 0, "5d": 0, "20d": 0}
@@ -122,6 +123,7 @@ def test_build_sector_board_pressure_breadth_book():
     assert s["held_n"] == 0
     assert s["weight"] == 0.0
     assert s["unrealized"] is None
+    assert s["realized"] == 0.0
 
     r = by["robotics"]
     assert r["buy"] == 0.0 and r["sell"] == 0.0 and r["net"] == 0.0
@@ -131,6 +133,7 @@ def test_build_sector_board_pressure_breadth_book():
     # PATH mv = 18 / 100
     assert abs(r["weight"] - 0.18) < 1e-9
     assert abs(r["unrealized"] - (-2.0)) < 1e-9
+    assert r["realized"] == 0.0
     assert r["zones"] == {"buy_zone": 0, "sell_zone": 0, "conflicted": 0, "quiet": 0}
 
 
@@ -283,3 +286,125 @@ def test_slim_latest_preserves_returns_on_sector_board():
     out = slim_latest({"sectors": {"quantum": ["IONQ"]}, "sector_board": board})
     assert out["sector_board"] == board
     assert out["sector_board"][0]["returns"]["1d"] == 0.01
+
+def test_build_sector_board_realized_from_closed():
+    """Quantum realized = sum of closed-lot pnl for IONQ (theme ticker)."""
+    closed = [
+        {"ticker": "IONQ", "qty": 1.0, "entry": 10.0, "exit": 15.0, "pnl": 5.0, "sector": "quantum"},
+        {"ticker": "IONQ", "qty": 2.0, "entry": 12.0, "exit": 11.0, "pnl": -2.0, "sector": "quantum"},
+        {"ticker": "IONQ", "qty": 1.0, "entry": None, "exit": 9.0, "pnl": None, "sector": "quantum"},  # ignored
+        {"ticker": "RKLB", "qty": 1.0, "entry": 5.0, "exit": 8.0, "pnl": 3.0, "sector": "space"},
+        {"ticker": "PATH", "qty": 1.0, "entry": 20.0, "exit": 18.0, "pnl": -2.0, "sector": "robotics"},
+    ]
+    board = build_sector_board(
+        _agents_fixture(), SECTORS, HOLDINGS, equity=100.0, closed=closed
+    )
+    by = {r["theme"]: r for r in board}
+    # IONQ known pnls: 5 + (-2) = 3; null ignored
+    assert abs(by["quantum"]["realized"] - 3.0) < 1e-9
+    assert abs(by["quantum"]["unrealized"] - 4.0) < 1e-9
+    assert abs(by["space"]["realized"] - 3.0) < 1e-9
+    assert abs(by["robotics"]["realized"] - (-2.0)) < 1e-9
+
+
+def test_build_sector_board_realized_empty_closed_is_zero():
+    board = build_sector_board(
+        _agents_fixture(), SECTORS, HOLDINGS, equity=100.0, closed=[]
+    )
+    by = {r["theme"]: r for r in board}
+    assert by["quantum"]["realized"] == 0.0
+    assert by["space"]["realized"] == 0.0
+    assert by["robotics"]["realized"] == 0.0
+
+
+def test_build_sector_board_realized_from_ticker_pnl_fallback():
+    ticker_pnl = [
+        {"ticker": "IONQ", "realized": 7.5, "unrealized": 4.0},
+        {"ticker": "RGTI", "realized": -1.5, "unrealized": None},
+        {"ticker": "RKLB", "realized": 0.0, "unrealized": None},
+    ]
+    board = build_sector_board(
+        _agents_fixture(),
+        SECTORS,
+        HOLDINGS,
+        equity=100.0,
+        ticker_pnl=ticker_pnl,
+    )
+    by = {r["theme"]: r for r in board}
+    assert abs(by["quantum"]["realized"] - 6.0) < 1e-9  # 7.5 + (-1.5)
+    assert by["space"]["realized"] == 0.0
+    assert by["robotics"]["realized"] == 0.0  # PATH not in ticker_pnl → no rows → 0
+
+
+def test_export_sector_board_realized_matches_closed_ionq(tmp_path):
+    """End-to-end: buy+sell IONQ fills → quantum.realized == closed pnl sum."""
+    from quant_system.models.ticket import TicketSide, TicketStatus, TradeTicket
+
+    db = str(tmp_path / "realized.db")
+    docs = tmp_path / "docs"
+    tracker = Tracker(db)
+    tracker.reconcile_portfolio(
+        cash=90.0,
+        equity=100.0,
+        positions=[{"ticker": "IONQ", "qty": 1.0, "avg_cost": 10.0}],
+        source="test",
+    )
+    # Buy 2 @ 10, sell 1 @ 14 → realized = 4
+    buy_t = TradeTicket(
+        ticker="IONQ",
+        side=TicketSide.BUY,
+        qty=2.0,
+        rationale="test buy",
+        status=TicketStatus.FILLED,
+        created_at="2026-09-01T13:00:00.000000Z",
+    )
+    bid = tracker.insert_ticket(buy_t)
+    tracker.insert_fill_historical(
+        bid, "IONQ", "buy", 2.0, 10.0, "alpaca_backfill", "2026-09-01T13:00:00.000000Z",
+        order_id="b1",
+        apply_to_position=False,
+    )
+    sell_t = TradeTicket(
+        ticker="IONQ",
+        side=TicketSide.SELL,
+        qty=1.0,
+        rationale="test sell",
+        status=TicketStatus.FILLED,
+        created_at="2026-09-10T14:00:00.000000Z",
+    )
+    sid = tracker.insert_ticket(sell_t)
+    tracker.insert_fill_historical(
+        sid, "IONQ", "sell", 1.0, 14.0, "alpaca", "2026-09-10T14:00:00.000000Z",
+        order_id="s1",
+        apply_to_position=False,
+    )
+    tracker.insert_signal(
+        Signal(
+            agent_id="momentum",
+            ticker="IONQ",
+            direction=Direction.LONG,
+            confidence=80.0,
+            reasoning="realized e2e",
+            supporting_data={},
+        )
+    )
+    tracker.close()
+
+    result = export_dashboard(
+        Tracker(db),
+        docs_dir=docs,
+        include_alpaca=False,
+        close_tracker=True,
+    )
+    payload = json.loads(Path(result["latest"]).read_text())
+    assert validate_payload(payload) == []
+    closed_ionq = [c for c in payload["closed"] if c["ticker"] == "IONQ"]
+    assert len(closed_ionq) == 1
+    assert abs(closed_ionq[0]["pnl"] - 4.0) < 1e-9
+    quantum = next(r for r in payload["sector_board"] if r["theme"] == "quantum")
+    assert abs(quantum["realized"] - 4.0) < 1e-9
+    # Themes with no closes stay at 0
+    for theme in ("space", "robotics"):
+        row = next(r for r in payload["sector_board"] if r["theme"] == theme)
+        assert row["realized"] == 0.0
+

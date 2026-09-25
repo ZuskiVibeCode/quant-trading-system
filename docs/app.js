@@ -1107,6 +1107,7 @@
           held_n: 0,
           weight: 0,
           unrealized: null,
+          realized: null,
           buy: 0,
           sell: 0,
           net: 0,
@@ -1159,6 +1160,7 @@
     <p class="sector-subhead">Book</p>
     <div class="sector-stats">
       <div class="stat"><p class="label">Weight</p><p class="value mono">${fmtPct(r.weight)}</p></div>
+      <div class="stat"><p class="label">Realized</p><p class="value mono ${pnlClass(r.realized)}">${fmtUsd(r.realized)}</p></div>
       <div class="stat"><p class="label">Unrealized</p><p class="value mono ${pnlClass(r.unrealized)}">${fmtUsd(r.unrealized)}</p></div>
       <div class="stat"><p class="label">Held</p><p class="value mono">${r.held_n}/${r.tickers_n}</p></div>
     </div>

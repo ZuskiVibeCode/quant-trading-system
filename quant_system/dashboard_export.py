@@ -669,6 +669,8 @@ def build_sector_board(
     *,
     equity: float | None = None,
     market_data: Any = None,
+    closed: list[dict[str, Any]] | None = None,
+    ticker_pnl: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """Per-theme Orbit Sectors board row (pressure / breadth / book / tape).
 
@@ -688,6 +690,11 @@ def build_sector_board(
       weight = sum(market value of theme holdings) / equity when equity > 0
       (market value = qty*last, else qty*avg_cost); unrealized = sum of dollar
       unrealized marks on those holdings (null if none have a mark).
+      realized = lifetime closed-lot PnL for theme tickers. Prefer summing numeric
+      ``pnl`` from ``closed`` rows whose ticker is in the theme universe (null
+      pnls ignored). If the theme has zero closed rows → 0.0. When ``closed`` is
+      omitted, fall back to summing non-null ``realized`` from ``ticker_pnl``
+      rows for theme tickers (same empty → 0.0 rule).
 
     Tape (equal-weight relative returns; optional market_data):
       For each theme ticker with usable daily closes, simple return over N
@@ -766,6 +773,40 @@ def build_sector_board(
         ]
         unrealized = sum(unrealized_vals) if unrealized_vals else None
 
+        theme_set = set(tickers)
+        if closed is not None:
+            theme_closed = [
+                c
+                for c in closed
+                if str((c or {}).get("ticker") or "").upper() in theme_set
+            ]
+            if not theme_closed:
+                realized = 0.0
+            else:
+                known = [
+                    float(c["pnl"])
+                    for c in theme_closed
+                    if c.get("pnl") is not None
+                ]
+                realized = float(sum(known)) if known else 0.0
+        elif ticker_pnl is not None:
+            theme_tp = [
+                r
+                for r in ticker_pnl
+                if str((r or {}).get("ticker") or "").upper() in theme_set
+            ]
+            if not theme_tp:
+                realized = 0.0
+            else:
+                known_r = [
+                    float(r["realized"])
+                    for r in theme_tp
+                    if r.get("realized") is not None
+                ]
+                realized = float(sum(known_r)) if known_r else 0.0
+        else:
+            realized = 0.0
+
         tape_returns, tape_n = compute_theme_tape_returns(
             tickers, market_data, cache=tape_cache
         )
@@ -777,6 +818,7 @@ def build_sector_board(
                 "held_n": held_n,
                 "signaled_n": n_sig,
                 "weight": round(weight, 6),
+                "realized": round(realized, 6),
                 "unrealized": None if unrealized is None else round(unrealized, 6),
                 "buy": round(buy_avg, 6),
                 "sell": round(sell_avg, 6),
@@ -1186,6 +1228,8 @@ def build_dashboard_payload(
         holdings,
         equity=equity,
         market_data=md,
+        closed=payload.get("closed") or [],
+        ticker_pnl=payload.get("ticker_pnl"),
     )
 
     # Additive trade reviews (fact-tied closed-lot postmortems + evidence)
