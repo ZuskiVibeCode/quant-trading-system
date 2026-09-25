@@ -82,6 +82,50 @@ def top_signals(sigs, n=18):
                 break
     return picked
 
+
+def slim_review(r):
+    """Pass through trade review; truncate long rationales/reasoning only."""
+    if not isinstance(r, dict):
+        return r
+    keep = [
+        "ticker", "qty", "entry", "exit", "pnl", "pnl_pct",
+        "opened_at", "closed_at", "hold_hours",
+        "exit_reason", "exit_rationale",
+        "entry_ticket_id", "exit_ticket_id", "entry_fill_id", "exit_fill_id",
+        "entry_score", "agents_at_entry", "mix", "path",
+        "verdict", "verdict_tags", "completeness", "evidence", "mode", "sector",
+    ]
+    out = {k: r.get(k) for k in keep if k in r}
+    if "exit_rationale" in out:
+        out["exit_rationale"] = trunc(out.get("exit_rationale") or "", 220)
+    if "verdict" in out:
+        out["verdict"] = trunc(out.get("verdict") or "", 500)
+    agents = out.get("agents_at_entry")
+    if isinstance(agents, list):
+        slim_agents = []
+        for a in agents:
+            if not isinstance(a, dict):
+                continue
+            sa = {k: a.get(k) for k in ["agent_id", "direction", "confidence", "signal_id", "created_at"] if k in a}
+            if "reasoning_trunc" in a:
+                sa["reasoning_trunc"] = trunc(a.get("reasoning_trunc") or "", 140)
+            slim_agents.append(sa)
+        out["agents_at_entry"] = slim_agents
+    ev = out.get("evidence")
+    if isinstance(ev, list):
+        slim_ev = []
+        for e in ev[:40]:
+            if not isinstance(e, dict):
+                continue
+            slim_ev.append({
+                "kind": e.get("kind"),
+                "id": e.get("id"),
+                "label": e.get("label"),
+                "detail": trunc(e.get("detail") or "", 220),
+            })
+        out["evidence"] = slim_ev
+    return out
+
 def slim_latest(d: dict) -> dict:
     out = {
         "meta": d.get("meta"),
@@ -98,6 +142,7 @@ def slim_latest(d: dict) -> dict:
         "sectors": d.get("sectors") or {},
         "sector_board": d.get("sector_board") or [],
         "ticker_pnl": d.get("ticker_pnl") or [],
+        "trade_reviews": [slim_review(r) for r in (d.get("trade_reviews") or []) if isinstance(r, dict)],
         "rotation": d.get("rotation"),
         "cold": d.get("cold") or [],
         "zones": d.get("zones"),
@@ -114,6 +159,8 @@ def slim_latest(d: dict) -> dict:
             nc["buy"] = slim_buy_sell(c["buy"])
         if "sell" in c:
             nc["sell"] = slim_buy_sell(c["sell"])
+        if isinstance(c.get("review"), dict):
+            nc["review"] = slim_review(c["review"])
         out["closed"].append(nc)
     for aid, block in (d.get("agents_today") or {}).items():
         nb = {k: block.get(k) for k in ["agent_id", "count", "long", "short", "neutral"] if k in block}

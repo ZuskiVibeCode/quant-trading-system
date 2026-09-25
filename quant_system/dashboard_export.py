@@ -1138,6 +1138,7 @@ def build_dashboard_payload(
         "holdings": holdings,
         "closed": _build_closed(tracker, sector_of),
         "ticker_pnl": build_ticker_pnl(tracker, sector_of, holdings),
+        "trade_reviews": [],  # filled after market_data init below
         "equity_curve": _equity_curve(tracker),
         "agents_today": _agents_today(signals),
         "decisions_today": _decisions_today(decisions),
@@ -1186,6 +1187,24 @@ def build_dashboard_payload(
         equity=equity,
         market_data=md,
     )
+
+    # Additive trade reviews (fact-tied closed-lot postmortems + evidence)
+    try:
+        from quant_system.research.trade_review import (
+            attach_reviews_to_closed,
+            build_trade_reviews,
+            summarize_reviews_for_ticker_pnl,
+        )
+
+        reviews = build_trade_reviews(tracker, market_data=md, sector_of=sector_of)
+        payload["trade_reviews"] = reviews
+        payload["closed"] = attach_reviews_to_closed(payload["closed"], reviews)
+        payload["ticker_pnl"] = summarize_reviews_for_ticker_pnl(
+            payload["ticker_pnl"], reviews
+        )
+    except Exception:  # noqa: BLE001 — reviews are additive; never block export
+        payload["trade_reviews"] = payload.get("trade_reviews") or []
+
     return payload
 
 
@@ -1257,6 +1276,21 @@ def export_dashboard(
 
         latest_path = data_dir / "latest.json"
         latest_path.write_text(json.dumps(payload, indent=2, default=str) + "\n")
+
+        # Sidecar for trade review history (export-time; no schema migration)
+        reviews_path = data_dir / "trade_reviews.json"
+        reviews_path.write_text(
+            json.dumps(
+                {
+                    "exported_at": payload.get("meta", {}).get("exported_at"),
+                    "count": len(payload.get("trade_reviews") or []),
+                    "reviews": payload.get("trade_reviews") or [],
+                },
+                indent=2,
+                default=str,
+            )
+            + "\n"
+        )
 
         history_path = None
         if append_history:

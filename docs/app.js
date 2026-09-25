@@ -146,6 +146,89 @@
   }
 
 
+  function reviewsForTicker(ticker) {
+    const want = tickerKey(ticker);
+    return (DATA?.trade_reviews || [])
+      .filter((r) => tickerKey(r.ticker) === want)
+      .slice()
+      .sort((a, b) => String(b.closed_at || "").localeCompare(String(a.closed_at || "")));
+  }
+
+  function reviewTagsHtml(tags) {
+    const list = Array.isArray(tags) ? tags : [];
+    if (!list.length) return "";
+    return `<div class="badge-row" style="margin-top:0.5rem">${list.map((t) =>
+      `<span class="chip review-tag ${String(t)}">${t}</span>`
+    ).join("")}</div>`;
+  }
+
+  function reviewEvidenceHtml(evidence) {
+    const list = Array.isArray(evidence) ? evidence : [];
+    if (!list.length) {
+      return `<p class="muted" style="margin-top:0.5rem">No evidence recorded.</p>`;
+    }
+    return `<ul class="review-evidence" style="margin:0.35rem 0 0;padding-left:1.1rem;color:var(--muted);font-size:0.8rem">
+      ${list.map((e) => {
+        const idBit = e && e.id != null ? `<span class="mono">#${e.id}</span> · ` : `<span class="mono">—</span> · `;
+        const kind = e && e.kind ? e.kind : "?";
+        const label = e && e.label ? e.label : "";
+        const detail = e && e.detail ? trunc(String(e.detail), 160) : "";
+        return `<li><span class="mono subtle">${kind}</span> ${idBit}<strong>${label}</strong> — ${detail}</li>`;
+      }).join("")}
+    </ul>`;
+  }
+
+  function reviewMixHtml(mix, agents) {
+    const m = mix || {};
+    const rows = Array.isArray(agents) ? agents : [];
+    let table = "";
+    if (rows.length) {
+      table = `<table style="margin-top:0.5rem;font-size:0.85rem">
+        <thead><tr><th>Agent</th><th>Dir</th><th>Conf</th><th>Signal</th></tr></thead>
+        <tbody>
+          ${rows.map((a) => `<tr>
+            <td class="mono">${a.agent_id || "—"}</td>
+            <td><span class="dir ${a.direction || ""}">${a.direction || "—"}</span></td>
+            <td class="mono">${a.confidence != null ? Number(a.confidence).toFixed(1) : "—"}</td>
+            <td class="mono subtle">${a.signal_id != null ? "#" + a.signal_id : "—"}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>`;
+    }
+    const lead = m.lead_agent ? `lead=${m.lead_agent}` : "lead=—";
+    const split = m.disagreement ? "split_book" : "aligned";
+    return `<p class="muted" style="margin-top:0.35rem">${lead} · ${split} · L[${(m.long || []).join(",") || "—"}] S[${(m.short || []).join(",") || "—"}] N[${(m.neutral || []).join(",") || "—"}]</p>${table}`;
+  }
+
+  function reviewBlockHtml(review, { heading } = {}) {
+    if (!review || typeof review !== "object") {
+      return `<p class="muted" style="margin-top:1rem">No trade review for this close.</p>`;
+    }
+    const path = review.path || {};
+    const title = heading || "Review";
+    const completeness = review.completeness || "—";
+    return `
+      <p class="kicker" style="margin-top:1rem">${title}
+        <span class="chip review-completeness ${completeness}" style="margin-left:0.5rem">${completeness}</span>
+      </p>
+      <p style="margin-top:0.4rem">${review.verdict || "—"}</p>
+      ${reviewTagsHtml(review.verdict_tags)}
+      <div class="grid-stats" style="margin-top:0.75rem">
+        <div class="stat"><p class="label">Exit reason</p><p class="value mono" style="font-size:0.85rem">${review.exit_reason || "—"}</p></div>
+        <div class="stat"><p class="label">Hold h</p><p class="value mono">${review.hold_hours != null ? Number(review.hold_hours).toFixed(1) : "—"}</p></div>
+        <div class="stat"><p class="label">Ret %</p><p class="value mono ${pnlClass(path.ret_pct)}">${path.ret_pct != null ? Number(path.ret_pct).toFixed(2) + "%" : "—"}</p></div>
+        <div class="stat"><p class="label">MFE %</p><p class="value mono">${path.mfe_pct != null ? Number(path.mfe_pct).toFixed(2) + "%" : "—"}</p></div>
+        <div class="stat"><p class="label">MAE %</p><p class="value mono">${path.mae_pct != null ? Number(path.mae_pct).toFixed(2) + "%" : "—"}</p></div>
+        <div class="stat"><p class="label">PnL</p><p class="value mono ${pnlClass(review.pnl)}">${fmtUsd(review.pnl)}</p></div>
+      </div>
+      <p class="kicker" style="margin-top:0.85rem">Agent mix at entry</p>
+      ${reviewMixHtml(review.mix, review.agents_at_entry)}
+      <p class="kicker" style="margin-top:0.85rem">Evidence</p>
+      ${reviewEvidenceHtml(review.evidence)}`;
+  }
+
+
+
   function zonePointForTicker(ticker) {
     const want = tickerKey(ticker);
     const pts = DATA?.zones?.points || [];
@@ -582,6 +665,7 @@
         <pre>${JSON.stringify({ buy: c.buy || null, sell: c.sell || null }, null, 2)}</pre>`;
     }
 
+    const review = c.review || null;
     openDialogHtml(`
       <p class="kicker">Closed book</p>
       <h3>${c.ticker} · <span class="muted">${c.sector || "—"}</span></h3>
@@ -592,6 +676,7 @@
         <div class="stat"><p class="label">Exit</p><p class="value mono">${fmtUsd(c.exit)}</p></div>
         <div class="stat"><p class="label">Realized P/L</p><p class="value mono ${pnlClass(c.pnl)}">${fmtUsd(c.pnl)}</p></div>
       </div>
+      ${reviewBlockHtml(review)}
       ${extra || `<p class="muted" style="margin-top:1rem">No additional reasoning or linked fill payloads in this feed.</p>`}`);
   }
 
@@ -662,6 +747,11 @@
 
   function openLifetimeDetail(r) {
     const series = Array.isArray(r.series) ? r.series : [];
+    const reviews = reviewsForTicker(r.ticker);
+    const lastReview = reviews[0] || null;
+    const reviewSummary = r.last_verdict
+      ? `<p class="muted" style="margin-top:0.75rem">Reviews: ${r.review_count != null ? r.review_count : reviews.length} · last completeness ${r.last_completeness || (lastReview && lastReview.completeness) || "—"}</p>`
+      : (reviews.length ? `<p class="muted" style="margin-top:0.75rem">Reviews: ${reviews.length}</p>` : "");
     openDialogHtml(`
       <p class="kicker">Lifetime book</p>
       <h3>${r.ticker} · <span class="muted">${r.sector || "—"}</span></h3>
@@ -676,7 +766,9 @@
         <div class="stat"><p class="label">Avg cost open</p><p class="value mono">${fmtUsd(r.avg_cost_open)}</p></div>
       </div>
       <p class="kicker" style="margin-top:1rem">Cumulative realized</p>
-      ${drawLifetimeCumChart(series)}`);
+      ${drawLifetimeCumChart(series)}
+      ${reviewSummary}
+      ${reviewBlockHtml(lastReview, { heading: "Latest close review" })}`);
   }
 
   function renderAgents() {

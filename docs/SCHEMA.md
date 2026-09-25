@@ -29,6 +29,8 @@ Optional: `--no-alpaca`, `--no-history`, `--docs PATH`.
 | `zones_series` | object? | **Additive.** Compact recent history `{days:[{day, points}]}` (≤20 days) for charts |
 | `sector_board` | array? | **Additive.** Per-theme pressure / breadth / book — see below |
 | `cold` | array? | **Additive.** Compact `[{ticker, checkup_date, reason, theme}]` (same as `rotation.cold`) |
+| `ticker_pnl` | array? | **Additive.** Lifetime per-ticker realized/unrealized + series |
+| `trade_reviews` | array? | **Additive.** Closed-lot postmortems — see below |
 
 ### `agents_today[].signals[]`
 
@@ -122,3 +124,32 @@ When history is enabled (default), the same payload is also written to:
 
 - `meta.paper` must always be `true`
 - Never embed Alpaca API keys / secrets in JSON under `docs/`
+
+
+### `trade_reviews` (additive)
+
+Built at export from fills / tickets / signals (no schema migration). Also
+written to `docs/data/trade_reviews.json`. Matching `review` objects are
+attached onto `closed[]` rows; `ticker_pnl` gains `review_count` /
+`last_verdict` / `last_verdict_tags` / `last_completeness`.
+
+```
+trade_reviews: [{
+  ticker, qty, entry, exit, pnl, pnl_pct,
+  opened_at, closed_at, hold_hours,
+  exit_reason,   # signal_sell | cash_buffer_trim | opportunity_rotate | other | unknown
+  exit_rationale,
+  entry_ticket_id, exit_ticket_id, entry_fill_id, exit_fill_id,
+  entry_score: {weighted_score, blended_conf} | null,
+  agents_at_entry: [{agent_id, direction, confidence, reasoning_trunc, signal_id}],
+  mix: {long, short, neutral, disagreement, lead_agent, lead_confidence},
+  path: {mfe_pct, mae_pct, ret_pct},
+  verdict,                 # 1–2 fact-tied sentences
+  verdict_tags: [...],     # winner|loser|scratch, aligned|split_book, forced_exit|signal_exit, ...
+  completeness: full|partial|thin,
+  evidence: [{kind, id, label, detail}]  # mandatory citations (fill/ticket/signal/path/score)
+}]
+```
+
+Never invent motives. Thin/backfill lots keep `completeness=thin` and evidence
+lists what is absent.

@@ -710,3 +710,18 @@ tr.clickable:focus {
   font-size: 0.62rem;
   padding: 0.15rem 0.45rem;
 }
+
+
+/* Trade review tags / completeness (Orbit closed + lifetime detail) */
+.chip.review-tag.winner { color: var(--gain); }
+.chip.review-tag.loser { color: var(--loss); }
+.chip.review-tag.scratch { color: var(--subtle); }
+.chip.review-tag.split_book { color: #c4b08f; }
+.chip.review-tag.aligned { color: var(--accent); }
+.chip.review-tag.forced_exit { color: var(--loss); }
+.chip.review-tag.signal_exit { color: var(--accent); }
+.chip.review-tag.thin_data { color: var(--subtle); }
+.chip.review-completeness.full { color: var(--gain); }
+.chip.review-completeness.partial { color: #c4b08f; }
+.chip.review-completeness.thin { color: var(--subtle); }
+.review-evidence li { margin: 0.2rem 0; }
