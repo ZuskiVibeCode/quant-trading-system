@@ -37,6 +37,7 @@
     <div class="topbar">
       <nav class="nav" id="nav">
         <a href="#snapshot">Snapshot</a>
+        <a href="#sectors">Sectors</a>
         <a href="#holdings">Open</a>
         <a href="#closed">Closed</a>
         <a href="#lifetime">Lifetime</a>
@@ -65,6 +66,16 @@
       <div class="panel chart-wrap">
         <p class="kicker">Equity curve</p>
         <div id="equityChart"></div>
+      </div>
+      <div id="sectors">
+        <div class="section-head">
+          <div>
+            <p class="kicker">01b · Sectors</p>
+            <h2>Theme comparison</h2>
+          </div>
+          <p class="hint">Pressure, relative tape (eq-wt 1d/5d/20d), breadth, and book weight per theme. Click a card to filter Zones, watchlist, and agents — click again or All to clear.</p>
+        </div>
+        <div class="sector-board" id="sectorBoard"></div>
       </div>
     </section>
 
@@ -124,17 +135,6 @@
       <div class="panel table-scroll" id="researchTable"></div>
       <div style="height:0.75rem"></div>
       <div class="panel table-scroll" id="flagsTable"></div>
-    </section>
-
-    <section id="sectors">
-      <div class="section-head">
-        <div>
-          <p class="kicker">06 · Sectors</p>
-          <h2>Theme comparison</h2>
-        </div>
-        <p class="hint">Pressure, relative tape (eq-wt 1d/5d/20d), breadth, and book weight per theme. Click a card to filter Zones, watchlist, and agents — click again or All to clear.</p>
-      </div>
-      <div class="sector-board" id="sectorBoard"></div>
     </section>
 
     <section id="zones">
