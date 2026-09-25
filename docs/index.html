@@ -39,11 +39,11 @@
         <a href="#snapshot">Snapshot</a>
         <a href="#sectors">Sectors</a>
         <a href="#holdings">Open</a>
+        <a href="#zones">Zones</a>
         <a href="#closed">Closed</a>
         <a href="#lifetime">Lifetime</a>
         <a href="#agents">Agents</a>
         <a href="#research">Research</a>
-        <a href="#zones">Zones</a>
         <a href="#watch">Watchlist</a>
         <a href="#mission">Mission log</a>
       </nav>
@@ -89,57 +89,10 @@
       <div class="panel table-scroll" id="holdingsTable"></div>
     </section>
 
-    <section id="closed">
-      <div class="section-head">
-        <div>
-          <p class="kicker">03 · Closed book</p>
-          <h2>Realized exits</h2>
-        </div>
-        <p class="hint">Sell fills from Tracker — entry/P&amp;L shown only when a prior buy cost is known.</p>
-      </div>
-      <div class="panel table-scroll" id="closedTable"></div>
-    </section>
-
-    <section id="lifetime">
-      <div class="section-head">
-        <div>
-          <p class="kicker">03b · Lifetime book</p>
-          <h2>Per-ticker PnL</h2>
-        </div>
-        <p class="hint">Every name ever bought or sold — lifetime realized, open unrealized, and cumulative realized chart when closed 2+ times. Click a row for detail.</p>
-      </div>
-      <div class="panel table-scroll" id="lifetimeTable"></div>
-    </section>
-
-    <section id="agents">
-      <div class="section-head">
-        <div>
-          <p class="kicker">04 · Agents</p>
-          <h2>Today's research work</h2>
-        </div>
-        <p class="hint">Per-agent signals for today (ET) — direction, confidence, truncated reasoning.</p>
-      </div>
-      <div class="agent-grid" id="agentGrid"></div>
-    </section>
-
-    <section id="research">
-      <div class="section-head">
-        <div>
-          <p class="kicker">05 · Research</p>
-          <h2>Signals &amp; decisions</h2>
-        </div>
-        <p class="hint">Tickets, holds, fills, and auditor flags from today (ET).</p>
-      </div>
-      <div class="grid-stats" id="decisionStats" style="margin-bottom:1rem"></div>
-      <div class="panel table-scroll" id="researchTable"></div>
-      <div style="height:0.75rem"></div>
-      <div class="panel table-scroll" id="flagsTable"></div>
-    </section>
-
     <section id="zones">
       <div class="section-head">
         <div>
-          <p class="kicker">07 · Zones</p>
+          <p class="kicker">03 · Zones</p>
           <h2>Buy vs sell pressure</h2>
         </div>
         <p class="hint">Universe map of aggregated research pressure. Held = filled markers; watch = open. Click a point for history.</p>
@@ -150,10 +103,58 @@
       </div>
     </section>
 
+    <section id="closed">
+      <div class="section-head">
+        <div>
+          <p class="kicker">04 · Closed book</p>
+          <h2>Realized exits</h2>
+        </div>
+        <p class="hint">Sell fills from Tracker — entry/P&amp;L shown only when a prior buy cost is known.</p>
+      </div>
+      <div class="panel table-scroll" id="closedTable"></div>
+    </section>
+
+    <section id="lifetime">
+      <div class="section-head">
+        <div>
+          <p class="kicker">04b · Lifetime book</p>
+          <h2>Per-ticker PnL</h2>
+        </div>
+        <p class="hint">Every name ever bought or sold — lifetime realized, open unrealized, and cumulative realized chart when closed 2+ times. Click a row for detail.</p>
+      </div>
+      <div class="panel table-scroll" id="lifetimeTable"></div>
+    </section>
+
+    <section id="agents">
+      <div class="section-head">
+        <div>
+          <p class="kicker">05 · Agents</p>
+          <h2>Today's research work</h2>
+        </div>
+        <p class="hint">Per-agent signals for today (ET) — direction, confidence, truncated reasoning.</p>
+      </div>
+      <div class="agent-grid" id="agentGrid"></div>
+    </section>
+
+    <section id="research">
+      <div class="section-head">
+        <div>
+          <p class="kicker">06 · Research</p>
+          <h2>Signals &amp; decisions</h2>
+        </div>
+        <p class="hint">Tickets, holds, fills, and auditor flags from today (ET).</p>
+      </div>
+      <div class="grid-stats" id="decisionStats" style="margin-bottom:1rem"></div>
+      <div class="panel table-scroll" id="researchTable"></div>
+      <div style="height:0.75rem"></div>
+      <div class="panel table-scroll" id="flagsTable"></div>
+    </section>
+
+
     <section id="watch">
       <div class="section-head">
         <div>
-          <p class="kicker">08 · Watchlist</p>
+          <p class="kicker">07 · Watchlist</p>
           <h2>Universe not held</h2>
         </div>
         <p class="hint">Tickers outside the open book with the strongest agent signal today (ET).</p>
@@ -164,7 +165,7 @@
     <section id="mission">
       <div class="section-head">
         <div>
-          <p class="kicker">09 · Mission log</p>
+          <p class="kicker">08 · Mission log</p>
           <h2>Timeline</h2>
         </div>
         <p class="hint">Recent decisions as a readable mission trail.</p>
