@@ -1,6 +1,6 @@
 {
-  "exported_at": "2026-09-25T17:41:40.967840Z",
-  "count": 65,
+  "exported_at": "2026-09-25T17:51:01.827313Z",
+  "count": 68,
   "reviews": [
     {
       "ticker": "RGTI",
@@ -10468,6 +10468,489 @@
       ],
       "mode": "alpaca",
       "sector": "quantum"
+    },
+    {
+      "ticker": "IONQ",
+      "qty": 1.5e-05,
+      "entry": 42.29,
+      "exit": 45.534,
+      "pnl": 4.866e-05,
+      "pnl_pct": 7.6708,
+      "opened_at": "2026-09-08T13:30:02.159861Z",
+      "closed_at": "2026-09-25T17:50:49.998415Z",
+      "hold_hours": 412.347,
+      "exit_reason": "signal_sell",
+      "exit_rationale": "SELL 1.5e-05 IONQ @~45.42; weighted_score=-0.316; reduce risk",
+      "entry_ticket_id": 155,
+      "exit_ticket_id": 209,
+      "entry_fill_id": 39,
+      "exit_fill_id": 93,
+      "entry_score": {
+        "weighted_score": 0.068029,
+        "blended_conf": 55.686
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "macro",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning_trunc": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (quantum); VIX contained (15.3); Dollar stable (+0.0% 20d); Rates stable (-0.3%); Benc\u2026",
+          "signal_id": 605,
+          "created_at": "2026-09-08T13:24:56.582703Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 59.721930555555566,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.32; avg source credibility 0.81; 'IonQ Raises 2026 Revenue Outlook Following SkyWater Acquisition' (InvestorsHub, p\u2026",
+          "signal_id": 604,
+          "created_at": "2026-09-08T13:24:56.013168Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "short",
+          "confidence": 77.1,
+          "reasoning_trunc": "price near MA20 (z=-0.90); strong 20d down-momentum -11.1%; 60d trend down -30.2%; cross-sectional mom rank mid (50%); vol regime=normal",
+          "signal_id": 603,
+          "created_at": "2026-09-08T13:24:55.549719Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning_trunc": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "signal_id": 602,
+          "created_at": "2026-09-08T13:24:53.918584Z"
+        },
+        {
+          "agent_id": "momentum",
+          "direction": "short",
+          "confidence": 37.60755809830994,
+          "reasoning_trunc": "MA20 > MA50 (short-term uptrend); MA50 < MA200 (intermediate downtrend); MACD histogram negative; 20d RS vs SPY: -10.65%",
+          "signal_id": 601,
+          "created_at": "2026-09-08T13:24:52.657466Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "macro",
+          "sentiment"
+        ],
+        "short": [
+          "statistical_ml",
+          "momentum"
+        ],
+        "neutral": [
+          "fundamental"
+        ],
+        "disagreement": true,
+        "lead_agent": "macro",
+        "lead_confidence": 89.0
+      },
+      "path": {
+        "mfe_pct": 10.0731,
+        "mae_pct": -17.2381,
+        "ret_pct": 7.6708
+      },
+      "verdict": "Made money: Realized PnL=0.0000. Entered with a split book: long=[macro, sentiment] vs short=[statistical_ml, momentum] (see macro signal #605 long @ conf=89.0). Entry weighted_score=0.068029. Exit was a signal-driven sell (reduce risk). Held 412.3h.",
+      "verdict_tags": [
+        "winner",
+        "split_book",
+        "signal_exit"
+      ],
+      "completeness": "partial",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 39,
+          "label": "entry fill",
+          "detail": "buy qty=1.5e-05 @ 42.29"
+        },
+        {
+          "kind": "fill",
+          "id": 93,
+          "label": "exit fill",
+          "detail": "sell @ 45.534"
+        },
+        {
+          "kind": "ticket",
+          "id": 155,
+          "label": "entry ticket",
+          "detail": "alpaca_backfill order_id=39e7528d-8cfa-49b6-bab8-f85ab386de45"
+        },
+        {
+          "kind": "ticket",
+          "id": 209,
+          "label": "exit ticket",
+          "detail": "SELL 1.5e-05 IONQ @~45.42; weighted_score=-0.316; reduce risk"
+        },
+        {
+          "kind": "signal",
+          "id": 605,
+          "label": "macro @ entry",
+          "detail": "long @ conf=89.0"
+        },
+        {
+          "kind": "signal",
+          "id": 604,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=59.7"
+        },
+        {
+          "kind": "signal",
+          "id": 603,
+          "label": "statistical_ml @ entry",
+          "detail": "short @ conf=77.1"
+        },
+        {
+          "kind": "signal",
+          "id": 602,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=15.0"
+        },
+        {
+          "kind": "signal",
+          "id": 601,
+          "label": "momentum @ entry",
+          "detail": "short @ conf=37.6"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.068029; blended_conf=55.686"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=10.0731; mae_pct=-17.2381; ret_pct=7.6708"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "quantum"
+    },
+    {
+      "ticker": "RGTI",
+      "qty": 1.3e-05,
+      "entry": 15.199999809265137,
+      "exit": 16.842,
+      "pnl": 2.1346002479553206e-05,
+      "pnl_pct": 10.8026,
+      "opened_at": "2026-09-06T20:07:40.210624Z",
+      "closed_at": "2026-09-25T17:50:50.898220Z",
+      "hold_hours": 453.72,
+      "exit_reason": "signal_sell",
+      "exit_rationale": "SELL 1.3e-05 RGTI @~16.82; weighted_score=-0.378; reduce risk",
+      "entry_ticket_id": 1,
+      "exit_ticket_id": 210,
+      "entry_fill_id": 1,
+      "exit_fill_id": 94,
+      "entry_score": {
+        "weighted_score": 0.06,
+        "blended_conf": 64.3
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "short",
+          "confidence": 32.07433105965153,
+          "reasoning_trunc": "MA20 > MA50 (short-term uptrend); MA50 < MA200 (intermediate downtrend); RSI soft (43.0); MACD histogram negative; 20d RS vs SPY: -14.88%",
+          "signal_id": 156,
+          "created_at": "2026-09-06T20:07:26.496807Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 51.8,
+          "reasoning_trunc": "Strong revenue growth (185.3%); Thin profit margin (0.0%); Negative operating margin (-546.2%); Positive FCF (26,453,624); FCF/rev 198.1%; Moderate leverage (D\u2026",
+          "signal_id": 157,
+          "created_at": "2026-09-06T20:07:27.120696Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "short",
+          "confidence": 87.9,
+          "reasoning_trunc": "price near MA20 (z=-1.19); strong 20d down-momentum -15.3%; 60d trend down -21.8%; cross-sectional mom rank bottom (20%); vol regime=normal",
+          "signal_id": 158,
+          "created_at": "2026-09-06T20:07:27.125882Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 59.72939634146342,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.31; avg source credibility 0.82; 'Where Will Rigetti Computing Stock Be in 3 Years?' (Motley Fool, pol=+1.00); 'Ion\u2026",
+          "signal_id": 159,
+          "created_at": "2026-09-06T20:07:27.345372Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "long",
+          "confidence": 90.0,
+          "reasoning_trunc": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (quantum); VIX low (14.5) \u2014 complacent / risk-on; Dollar stable (+0.0% 20d); Rates sta\u2026",
+          "signal_id": 160,
+          "created_at": "2026-09-06T20:07:27.348763Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "sentiment",
+          "macro"
+        ],
+        "short": [
+          "momentum",
+          "statistical_ml"
+        ],
+        "neutral": [
+          "fundamental"
+        ],
+        "disagreement": true,
+        "lead_agent": "macro",
+        "lead_confidence": 90.0
+      },
+      "path": {
+        "mfe_pct": 16.1842,
+        "mae_pct": -5.1974,
+        "ret_pct": 10.8026
+      },
+      "verdict": "Made money: Realized PnL=0.0000. Entered with a split book: long=[sentiment, macro] vs short=[momentum, statistical_ml] (see macro signal #160 long @ conf=90.0). Entry weighted_score=0.06. Exit was a signal-driven sell (reduce risk). Held 453.7h.",
+      "verdict_tags": [
+        "winner",
+        "split_book",
+        "signal_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 1,
+          "label": "entry fill",
+          "detail": "buy qty=1.3e-05 @ 15.199999809265137"
+        },
+        {
+          "kind": "fill",
+          "id": 94,
+          "label": "exit fill",
+          "detail": "sell @ 16.842"
+        },
+        {
+          "kind": "ticket",
+          "id": 1,
+          "label": "entry ticket",
+          "detail": "BUY 1.315789 RGTI @~15.20; weighted_score=0.060; blended_conf=64.3; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 210,
+          "label": "exit ticket",
+          "detail": "SELL 1.3e-05 RGTI @~16.82; weighted_score=-0.378; reduce risk"
+        },
+        {
+          "kind": "signal",
+          "id": 156,
+          "label": "momentum @ entry",
+          "detail": "short @ conf=32.1"
+        },
+        {
+          "kind": "signal",
+          "id": 157,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=51.8"
+        },
+        {
+          "kind": "signal",
+          "id": 158,
+          "label": "statistical_ml @ entry",
+          "detail": "short @ conf=87.9"
+        },
+        {
+          "kind": "signal",
+          "id": 159,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=59.7"
+        },
+        {
+          "kind": "signal",
+          "id": 160,
+          "label": "macro @ entry",
+          "detail": "long @ conf=90.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.06; blended_conf=64.3"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=16.1842; mae_pct=-5.1974; ret_pct=10.8026"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "quantum"
+    },
+    {
+      "ticker": "LUNR",
+      "qty": 4.2e-05,
+      "entry": 14.95,
+      "exit": 15.802,
+      "pnl": 3.578400000000001e-05,
+      "pnl_pct": 5.699,
+      "opened_at": "2026-09-08T13:34:13.196282Z",
+      "closed_at": "2026-09-25T17:50:51.803160Z",
+      "hold_hours": 412.277,
+      "exit_reason": "signal_sell",
+      "exit_rationale": "SELL 4.2e-05 LUNR @~15.81; weighted_score=-0.077; reduce risk",
+      "entry_ticket_id": 156,
+      "exit_ticket_id": 211,
+      "entry_fill_id": 40,
+      "exit_fill_id": 95,
+      "entry_score": {
+        "weighted_score": 0.076511,
+        "blended_conf": 55.66
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "macro",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning_trunc": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (space); VIX contained (15.3); Dollar stable (+0.0% 20d); Rates stable (-0.3%); Benchm\u2026",
+          "signal_id": 640,
+          "created_at": "2026-09-08T13:25:06.912460Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 61.77686842105264,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.41; avg source credibility 0.76; 'Management Reiterates Optimistic FY26 Guidance for Intuitive Machines (LUNR)' (In\u2026",
+          "signal_id": 639,
+          "created_at": "2026-09-08T13:25:06.907414Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "short",
+          "confidence": 77.1,
+          "reasoning_trunc": "price near MA20 (z=-1.17); strong 20d down-momentum -9.7%; 60d trend down -44.2%; cross-sectional mom rank mid (70%); vol regime=normal",
+          "signal_id": 638,
+          "created_at": "2026-09-08T13:25:06.696734Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning_trunc": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "signal_id": 637,
+          "created_at": "2026-09-08T13:25:06.690131Z"
+        },
+        {
+          "agent_id": "momentum",
+          "direction": "short",
+          "confidence": 35.421142434333554,
+          "reasoning_trunc": "MA20 > MA50 (short-term uptrend); MA50 < MA200 (intermediate downtrend); RSI soft (40.9); MACD histogram negative; 20d RS vs SPY: -9.30%",
+          "signal_id": 636,
+          "created_at": "2026-09-08T13:25:05.328519Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "macro",
+          "sentiment"
+        ],
+        "short": [
+          "statistical_ml",
+          "momentum"
+        ],
+        "neutral": [
+          "fundamental"
+        ],
+        "disagreement": true,
+        "lead_agent": "macro",
+        "lead_confidence": 89.0
+      },
+      "path": {
+        "mfe_pct": 8.7625,
+        "mae_pct": -9.8328,
+        "ret_pct": 5.699
+      },
+      "verdict": "Made money: Realized PnL=0.0000. Entered with a split book: long=[macro, sentiment] vs short=[statistical_ml, momentum] (see macro signal #640 long @ conf=89.0). Entry weighted_score=0.076511. Exit was a signal-driven sell (reduce risk). Held 412.3h.",
+      "verdict_tags": [
+        "winner",
+        "split_book",
+        "signal_exit"
+      ],
+      "completeness": "partial",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 40,
+          "label": "entry fill",
+          "detail": "buy qty=4.2e-05 @ 14.95"
+        },
+        {
+          "kind": "fill",
+          "id": 95,
+          "label": "exit fill",
+          "detail": "sell @ 15.802"
+        },
+        {
+          "kind": "ticket",
+          "id": 156,
+          "label": "entry ticket",
+          "detail": "alpaca_backfill order_id=e85a9f9d-b857-4948-8f37-3b9ba88ae5d5"
+        },
+        {
+          "kind": "ticket",
+          "id": 211,
+          "label": "exit ticket",
+          "detail": "SELL 4.2e-05 LUNR @~15.81; weighted_score=-0.077; reduce risk"
+        },
+        {
+          "kind": "signal",
+          "id": 640,
+          "label": "macro @ entry",
+          "detail": "long @ conf=89.0"
+        },
+        {
+          "kind": "signal",
+          "id": 639,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=61.8"
+        },
+        {
+          "kind": "signal",
+          "id": 638,
+          "label": "statistical_ml @ entry",
+          "detail": "short @ conf=77.1"
+        },
+        {
+          "kind": "signal",
+          "id": 637,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=15.0"
+        },
+        {
+          "kind": "signal",
+          "id": 636,
+          "label": "momentum @ entry",
+          "detail": "short @ conf=35.4"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.076511; blended_conf=55.66"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=8.7625; mae_pct=-9.8328; ret_pct=5.699"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "space"
     }
   ]
 }
