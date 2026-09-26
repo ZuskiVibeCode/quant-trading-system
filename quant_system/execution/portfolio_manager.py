@@ -286,7 +286,8 @@ class PortfolioManager:
             "contributions": detail,
         }
 
-        if abs(score) < 0.05:
+        min_abs = float(getattr(self.risk, "min_abs_score", 0.05) or 0.05)
+        if abs(score) < min_abs:
             return _ScoredTicker(
                 ticker=ticker,
                 signal_ids=signal_ids,
@@ -297,7 +298,7 @@ class PortfolioManager:
                     ticker=ticker,
                     rationale=(
                         f"HOLD {ticker}: score={score:.3f}, blended_conf={blended_conf:.1f} "
-                        f"(flat |score| < 0.05)"
+                        f"(flat |score| < {min_abs})"
                     ),
                     signal_ids=signal_ids,
                     data_snapshot=snapshot,

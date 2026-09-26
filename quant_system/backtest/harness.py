@@ -183,13 +183,20 @@ def _run_sleeve_day(
     *,
     slippage_bps: float,
     fill_on: str,
+    fundamentals_cache_dir: Path | str | None = None,
+    fundamentals_bundles: dict[str, dict] | None = None,
 ) -> None:
     _clear_day_halt(sleeve.tracker)
     # Reset day-start equity for daily loss checks
     eq_now = float(sleeve.tracker.get_state("equity", "100"))
     sleeve.tracker.set_state("day_start_equity", f"{eq_now:.6f}")
 
-    agents = build_backtest_agents(md, universe=sleeve.tickers)
+    agents = build_backtest_agents(
+        md,
+        universe=sleeve.tickers,
+        fundamentals_cache_dir=fundamentals_cache_dir,
+        fundamentals_bundles=fundamentals_bundles,
+    )
     pm = PortfolioManager(sleeve.tracker, md, cfg)
     ex = SimExecutionAgent(sleeve.tracker, md, slippage_bps=slippage_bps, fill_on=fill_on)
     benchmark = cfg.universe.benchmark
@@ -222,6 +229,27 @@ def _run_sleeve_day(
     sleeve.equity_curve.append(equity)
 
 
+def _apply_backtest_risk_overrides(
+    cfg: AppConfig,
+    *,
+    min_confidence_to_trade: float | None = None,
+    min_confidence_to_sell: float | None = None,
+    min_abs_score: float | None = None,
+) -> AppConfig:
+    """Return a copy of cfg with optional risk knobs (never mutates live YAML)."""
+    risk_updates: dict[str, float] = {}
+    if min_confidence_to_trade is not None:
+        risk_updates["min_confidence_to_trade"] = float(min_confidence_to_trade)
+    if min_confidence_to_sell is not None:
+        risk_updates["min_confidence_to_sell"] = float(min_confidence_to_sell)
+    if min_abs_score is not None:
+        risk_updates["min_abs_score"] = float(min_abs_score)
+    if not risk_updates:
+        return cfg
+    new_risk = cfg.risk.model_copy(update=risk_updates)
+    return cfg.model_copy(update={"risk": new_risk})
+
+
 def run_theme_backtest(
     *,
     start: str,
@@ -229,6 +257,7 @@ def run_theme_backtest(
     cash_per_sleeve: float = DEFAULT_CASH_PER_SLEEVE,
     config: AppConfig | None = None,
     cache_dir: Path | str | None = None,
+    fundamentals_cache_dir: Path | str | None = None,
     slippage_bps: float = DEFAULT_SLIPPAGE_BPS,
     fill_on: str = "close",
     force_download: bool = False,
@@ -236,13 +265,31 @@ def run_theme_backtest(
     themes: list[str] | None = None,
     output_dir: Path | str | None = None,
     work_dir: Path | str | None = None,
+    min_confidence_to_trade: float | None = None,
+    min_confidence_to_sell: float | None = None,
+    min_abs_score: float | None = None,
 ) -> dict[str, Any]:
     """Replay each theme sleeve over [start, end] on as-of daily bars.
 
     If ``bars`` is provided, skips network download (used by unit tests).
+    Confidence / score floors are backtest-only overrides on a config copy —
+    they never rewrite ``config/risk.yaml`` or live ``run-once`` defaults.
     """
-    cfg = config or load_config()
+    from quant_system.backtest.fundamentals_asof import (
+        APPROXIMATION_DOC,
+        default_fundamentals_cache_dir,
+        ensure_fundamentals,
+    )
+
+    base_cfg = config or load_config()
+    cfg = _apply_backtest_risk_overrides(
+        base_cfg,
+        min_confidence_to_trade=min_confidence_to_trade,
+        min_confidence_to_sell=min_confidence_to_sell,
+        min_abs_score=min_abs_score,
+    )
     cdir = Path(cache_dir) if cache_dir else default_cache_dir()
+    fdir = Path(fundamentals_cache_dir) if fundamentals_cache_dir else default_fundamentals_cache_dir()
     theme_names = themes or list(cfg.universe.themes.keys())
     if not theme_names:
         raise ValueError("No themes configured")
@@ -275,6 +322,16 @@ def run_theme_backtest(
         )
     else:
         loaded = {k.upper(): v for k, v in bars.items()}
+
+    # Warm as-of fundamentals cache (FMP when allowed, else yfinance statements).
+    # When ``bars`` is injected (unit tests), never hit the network — empty bundles
+    # yield honest insufficient-data neutrals from FundamentalAgent.
+    fund_tickers = sorted({t for tlist in theme_tickers.values() for t in tlist})
+    fund_bundles: dict[str, dict] = {}
+    if bars is None:
+        fund_bundles = ensure_fundamentals(
+            fund_tickers, cache_dir=fdir, force=force_download
+        )
 
     md = AsOfMarketData(loaded)
     days = md.trading_days(start, end, reference=cfg.universe.benchmark)
@@ -324,6 +381,8 @@ def run_theme_backtest(
                     cfg,
                     slippage_bps=slippage_bps,
                     fill_on=fill_on,
+                    fundamentals_cache_dir=fdir,
+                    fundamentals_bundles=fund_bundles,
                 )
     finally:
         for k, v in prev_keys.items():
@@ -367,6 +426,19 @@ def run_theme_backtest(
             "fill_on": fill_on,
             "agents": dict(AGENT_STATUS),
             "cache_dir": str(cdir),
+            "fundamentals_cache_dir": str(fdir),
+            "fundamentals_asof": APPROXIMATION_DOC,
+            "fundamentals_tickers_cached": sorted(fund_bundles.keys()),
+            "risk_overrides": {
+                "min_confidence_to_trade": float(cfg.risk.min_confidence_to_trade),
+                "min_confidence_to_sell": float(cfg.risk.min_confidence_to_sell),
+                "min_abs_score": float(getattr(cfg.risk, "min_abs_score", 0.05)),
+                "live_defaults": {
+                    "min_confidence_to_trade": float(base_cfg.risk.min_confidence_to_trade),
+                    "min_confidence_to_sell": float(base_cfg.risk.min_confidence_to_sell),
+                    "min_abs_score": float(getattr(base_cfg.risk, "min_abs_score", 0.05)),
+                },
+            },
             "generated_at": datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds"),
             "paper_only": True,
         },

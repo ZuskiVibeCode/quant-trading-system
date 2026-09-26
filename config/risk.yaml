@@ -18,6 +18,7 @@ review_1y: fuller_sharpe        # fuller Sharpe weighting
 allow_short: false              # paper long-biased for small account
 min_confidence_to_trade: 55     # buy / open floor
 min_confidence_to_sell: 40      # easier exits / reduces
+min_abs_score: 0.05             # |blended score| floor before HOLD
 min_order_notional: 1.0         # dollars
 
 # Cash buffer trim (when flat broke: sell weakest score<=0 holding)

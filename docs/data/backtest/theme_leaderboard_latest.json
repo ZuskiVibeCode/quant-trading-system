@@ -9,92 +9,213 @@
     "fill_on": "close",
     "agents": {
       "momentum": "live (OHLCV as-of)",
-      "fundamental": "stubbed (neutral; no PIT fundamentals)",
+      "fundamental": "as-of statements (FMP filingDate when available; else yfinance frames + filing lag; cache under data/backtest/fundamentals/; no live Yahoo .info)",
       "statistical_ml": "live (OHLCV as-of)",
-      "sentiment": "stubbed (neutral; no historical news)",
+      "sentiment": "proxy (5d return + volume shock; not historical news)",
       "macro": "live (cached proxy bars as-of; missing proxies \u2192 soft neutral)"
     },
     "cache_dir": "/workspace/quant-trading-system/data/backtest/bars",
-    "generated_at": "2026-09-26T12:50:27-04:00",
+    "fundamentals_cache_dir": "/workspace/quant-trading-system/data/backtest/fundamentals",
+    "fundamentals_asof": "as-of statement snapshots: FMP filingDate/acceptedDate when available; else yfinance statement columns gated by period_end + 45d (Q) / 60d (A) lag; marketCap from as-of close \u00d7 shares; not full SEC point-in-time",
+    "fundamentals_tickers_cached": [
+      "AMD",
+      "ASTS",
+      "AVAV",
+      "BA",
+      "BKSY",
+      "CGNX",
+      "GOOGL",
+      "HON",
+      "IBM",
+      "IONQ",
+      "IRDM",
+      "ISRG",
+      "LHX",
+      "LMT",
+      "LUNR",
+      "MSFT",
+      "NOC",
+      "NVDA",
+      "PATH",
+      "QBTS",
+      "QSI",
+      "QUBT",
+      "RDW",
+      "RGTI",
+      "RKLB",
+      "ROK",
+      "SYM",
+      "TER",
+      "TSLA"
+    ],
+    "risk_overrides": {
+      "min_confidence_to_trade": 35.0,
+      "min_confidence_to_sell": 25.0,
+      "min_abs_score": 0.02,
+      "live_defaults": {
+        "min_confidence_to_trade": 55.0,
+        "min_confidence_to_sell": 40.0,
+        "min_abs_score": 0.05
+      }
+    },
+    "generated_at": "2026-09-26T13:15:57-04:00",
     "paper_only": true
   },
   "leaderboard": [
     {
       "theme": "quantum",
       "starting_cash": 100.0,
-      "ending_cash": 79.990181,
-      "ending_equity": 100.99365377459718,
-      "realized_pnl": 0.9936537745971776,
-      "return_pct": 0.009936537745971776,
-      "max_dd": 0.009369500728800204,
-      "trade_count": 1,
-      "turnover": 0.19993410982159188,
-      "turnover_notional": 20.009818887058362,
+      "ending_cash": 0.414008,
+      "ending_equity": 104.94088968850707,
+      "realized_pnl": 4.94088968850707,
+      "return_pct": 0.049408896885070705,
+      "max_dd": 0.104580857757821,
+      "trade_count": 99,
+      "turnover": 2.785030092758109,
+      "turnover_notional": 279.9199706824898,
       "final_positions": [
         {
+          "ticker": "AMD",
+          "qty": 0.038794,
+          "avg_cost": 509.1775580801368,
+          "updated_at": "2026-09-26T17:15:38.636305Z"
+        },
+        {
+          "ticker": "GOOGL",
+          "qty": 0.061027000000000005,
+          "avg_cost": 341.14667343970774,
+          "updated_at": "2026-09-26T17:15:55.650678Z"
+        },
+        {
+          "ticker": "HON",
+          "qty": 0.08358999999999997,
+          "avg_cost": 222.57111284725823,
+          "updated_at": "2026-09-26T17:15:55.646768Z"
+        },
+        {
+          "ticker": "IBM",
+          "qty": 0.07204200000000001,
+          "avg_cost": 236.83137147658502,
+          "updated_at": "2026-09-26T17:15:53.598063Z"
+        },
+        {
           "ticker": "MSFT",
-          "qty": 0.040691,
-          "avg_cost": 491.7504825897216,
-          "updated_at": "2026-09-26T16:50:02.040142Z"
+          "qty": 0.048551,
+          "avg_cost": 372.5806308461838,
+          "updated_at": "2026-09-26T17:13:54.750479Z"
         }
       ],
-      "fill_count": 1,
+      "fill_count": 99,
       "rank": 1
     },
     {
       "theme": "space",
       "starting_cash": 100.0,
-      "ending_cash": 79.98998,
-      "ending_equity": 99.31774625,
-      "realized_pnl": -0.682253750000001,
-      "return_pct": -0.00682253750000001,
-      "max_dd": 0.024798700705261183,
-      "trade_count": 1,
-      "turnover": 0.20193286420362827,
-      "turnover_notional": 20.010019688099934,
+      "ending_cash": 0.162755,
+      "ending_equity": 97.31084611663435,
+      "realized_pnl": -2.6891538833656483,
+      "return_pct": -0.026891538833656484,
+      "max_dd": 0.12290091062447642,
+      "trade_count": 57,
+      "turnover": 1.8232545814831587,
+      "turnover_notional": 187.97119557055376,
       "final_positions": [
         {
+          "ticker": "BA",
+          "qty": 0.10029999999999999,
+          "avg_cost": 216.8165141796627,
+          "updated_at": "2026-09-26T17:15:43.222444Z"
+        },
+        {
           "ticker": "IRDM",
-          "qty": 0.396467,
-          "avg_cost": 50.47083285140991,
-          "updated_at": "2026-09-26T16:49:43.047759Z"
+          "qty": 0.440069,
+          "avg_cost": 44.95881811568822,
+          "updated_at": "2026-09-26T17:14:31.323970Z"
+        },
+        {
+          "ticker": "LHX",
+          "qty": 0.055820999999999996,
+          "avg_cost": 279.7680109316257,
+          "updated_at": "2026-09-26T17:15:56.011917Z"
+        },
+        {
+          "ticker": "LMT",
+          "qty": 0.037183999999999995,
+          "avg_cost": 509.5437938918024,
+          "updated_at": "2026-09-26T17:15:53.976158Z"
+        },
+        {
+          "ticker": "NOC",
+          "qty": 0.039372,
+          "avg_cost": 511.2453239256163,
+          "updated_at": "2026-09-26T17:14:18.494943Z"
+        },
+        {
+          "ticker": "RDW",
+          "qty": 0.27028399999999997,
+          "avg_cost": 11.625806220857372,
+          "updated_at": "2026-09-26T17:15:56.016451Z"
         }
       ],
-      "fill_count": 1,
+      "fill_count": 57,
       "rank": 2
     },
     {
       "theme": "robotics",
       "starting_cash": 100.0,
-      "ending_cash": 68.062125,
-      "ending_equity": 90.28847770353698,
-      "realized_pnl": -9.711522296463016,
-      "return_pct": -0.09711522296463017,
-      "max_dd": 0.12511389661558334,
-      "trade_count": 11,
-      "turnover": 0.8965382389221147,
-      "turnover_notional": 85.46694884087152,
+      "ending_cash": 0.094856,
+      "ending_equity": 96.5617875821066,
+      "realized_pnl": -3.4382124178933964,
+      "return_pct": -0.034382124178933965,
+      "max_dd": 0.1286294085652606,
+      "trade_count": 138,
+      "turnover": 4.124599373923559,
+      "turnover_notional": 413.2946252353017,
       "final_positions": [
         {
           "ticker": "CGNX",
-          "qty": 0.13017299999999998,
-          "avg_cost": 69.42728968048095,
-          "updated_at": "2026-09-26T16:50:27.461044Z"
+          "qty": 0.099442,
+          "avg_cost": 62.862381179844476,
+          "updated_at": "2026-09-26T17:15:57.307737Z"
+        },
+        {
+          "ticker": "ISRG",
+          "qty": 0.048268,
+          "avg_cost": 386.018902705635,
+          "updated_at": "2026-09-26T17:15:51.038564Z"
+        },
+        {
+          "ticker": "NVDA",
+          "qty": 0.098753,
+          "avg_cost": 199.08557311313527,
+          "updated_at": "2026-09-26T17:14:30.547788Z"
         },
         {
           "ticker": "PATH",
-          "qty": 0.832932,
-          "avg_cost": 15.587789923667907,
-          "updated_at": "2026-09-26T16:50:27.456966Z"
+          "qty": 0.18844700000000006,
+          "avg_cost": 11.422570541513792,
+          "updated_at": "2026-09-26T17:15:57.294042Z"
+        },
+        {
+          "ticker": "ROK",
+          "qty": 0.04059499999999999,
+          "avg_cost": 437.8379953384904,
+          "updated_at": "2026-09-26T17:15:57.316224Z"
         },
         {
           "ticker": "TER",
-          "qty": 0.010572999999999999,
-          "avg_cost": 420.16865853881836,
-          "updated_at": "2026-09-26T16:50:22.641341Z"
+          "qty": 0.044001000000000005,
+          "avg_cost": 390.458458496846,
+          "updated_at": "2026-09-26T17:15:57.312060Z"
+        },
+        {
+          "ticker": "TSLA",
+          "qty": 0.030498000000000004,
+          "avg_cost": 362.37908018065576,
+          "updated_at": "2026-09-26T17:15:57.320476Z"
         }
       ],
-      "fill_count": 11,
+      "fill_count": 138,
       "rank": 3
     }
   ],
@@ -102,77 +223,155 @@
     "quantum": {
       "theme": "quantum",
       "starting_cash": 100.0,
-      "ending_cash": 79.990181,
-      "ending_equity": 100.99365377459718,
-      "realized_pnl": 0.9936537745971776,
-      "return_pct": 0.009936537745971776,
-      "max_dd": 0.009369500728800204,
-      "trade_count": 1,
-      "turnover": 0.19993410982159188,
-      "turnover_notional": 20.009818887058362,
+      "ending_cash": 0.414008,
+      "ending_equity": 104.94088968850707,
+      "realized_pnl": 4.94088968850707,
+      "return_pct": 0.049408896885070705,
+      "max_dd": 0.104580857757821,
+      "trade_count": 99,
+      "turnover": 2.785030092758109,
+      "turnover_notional": 279.9199706824898,
       "final_positions": [
         {
+          "ticker": "AMD",
+          "qty": 0.038794,
+          "avg_cost": 509.1775580801368,
+          "updated_at": "2026-09-26T17:15:38.636305Z"
+        },
+        {
+          "ticker": "GOOGL",
+          "qty": 0.061027000000000005,
+          "avg_cost": 341.14667343970774,
+          "updated_at": "2026-09-26T17:15:55.650678Z"
+        },
+        {
+          "ticker": "HON",
+          "qty": 0.08358999999999997,
+          "avg_cost": 222.57111284725823,
+          "updated_at": "2026-09-26T17:15:55.646768Z"
+        },
+        {
+          "ticker": "IBM",
+          "qty": 0.07204200000000001,
+          "avg_cost": 236.83137147658502,
+          "updated_at": "2026-09-26T17:15:53.598063Z"
+        },
+        {
           "ticker": "MSFT",
-          "qty": 0.040691,
-          "avg_cost": 491.7504825897216,
-          "updated_at": "2026-09-26T16:50:02.040142Z"
+          "qty": 0.048551,
+          "avg_cost": 372.5806308461838,
+          "updated_at": "2026-09-26T17:13:54.750479Z"
         }
       ],
-      "fill_count": 1
+      "fill_count": 99
     },
     "space": {
       "theme": "space",
       "starting_cash": 100.0,
-      "ending_cash": 79.98998,
-      "ending_equity": 99.31774625,
-      "realized_pnl": -0.682253750000001,
-      "return_pct": -0.00682253750000001,
-      "max_dd": 0.024798700705261183,
-      "trade_count": 1,
-      "turnover": 0.20193286420362827,
-      "turnover_notional": 20.010019688099934,
+      "ending_cash": 0.162755,
+      "ending_equity": 97.31084611663435,
+      "realized_pnl": -2.6891538833656483,
+      "return_pct": -0.026891538833656484,
+      "max_dd": 0.12290091062447642,
+      "trade_count": 57,
+      "turnover": 1.8232545814831587,
+      "turnover_notional": 187.97119557055376,
       "final_positions": [
         {
+          "ticker": "BA",
+          "qty": 0.10029999999999999,
+          "avg_cost": 216.8165141796627,
+          "updated_at": "2026-09-26T17:15:43.222444Z"
+        },
+        {
           "ticker": "IRDM",
-          "qty": 0.396467,
-          "avg_cost": 50.47083285140991,
-          "updated_at": "2026-09-26T16:49:43.047759Z"
+          "qty": 0.440069,
+          "avg_cost": 44.95881811568822,
+          "updated_at": "2026-09-26T17:14:31.323970Z"
+        },
+        {
+          "ticker": "LHX",
+          "qty": 0.055820999999999996,
+          "avg_cost": 279.7680109316257,
+          "updated_at": "2026-09-26T17:15:56.011917Z"
+        },
+        {
+          "ticker": "LMT",
+          "qty": 0.037183999999999995,
+          "avg_cost": 509.5437938918024,
+          "updated_at": "2026-09-26T17:15:53.976158Z"
+        },
+        {
+          "ticker": "NOC",
+          "qty": 0.039372,
+          "avg_cost": 511.2453239256163,
+          "updated_at": "2026-09-26T17:14:18.494943Z"
+        },
+        {
+          "ticker": "RDW",
+          "qty": 0.27028399999999997,
+          "avg_cost": 11.625806220857372,
+          "updated_at": "2026-09-26T17:15:56.016451Z"
         }
       ],
-      "fill_count": 1
+      "fill_count": 57
     },
     "robotics": {
       "theme": "robotics",
       "starting_cash": 100.0,
-      "ending_cash": 68.062125,
-      "ending_equity": 90.28847770353698,
-      "realized_pnl": -9.711522296463016,
-      "return_pct": -0.09711522296463017,
-      "max_dd": 0.12511389661558334,
-      "trade_count": 11,
-      "turnover": 0.8965382389221147,
-      "turnover_notional": 85.46694884087152,
+      "ending_cash": 0.094856,
+      "ending_equity": 96.5617875821066,
+      "realized_pnl": -3.4382124178933964,
+      "return_pct": -0.034382124178933965,
+      "max_dd": 0.1286294085652606,
+      "trade_count": 138,
+      "turnover": 4.124599373923559,
+      "turnover_notional": 413.2946252353017,
       "final_positions": [
         {
           "ticker": "CGNX",
-          "qty": 0.13017299999999998,
-          "avg_cost": 69.42728968048095,
-          "updated_at": "2026-09-26T16:50:27.461044Z"
+          "qty": 0.099442,
+          "avg_cost": 62.862381179844476,
+          "updated_at": "2026-09-26T17:15:57.307737Z"
+        },
+        {
+          "ticker": "ISRG",
+          "qty": 0.048268,
+          "avg_cost": 386.018902705635,
+          "updated_at": "2026-09-26T17:15:51.038564Z"
+        },
+        {
+          "ticker": "NVDA",
+          "qty": 0.098753,
+          "avg_cost": 199.08557311313527,
+          "updated_at": "2026-09-26T17:14:30.547788Z"
         },
         {
           "ticker": "PATH",
-          "qty": 0.832932,
-          "avg_cost": 15.587789923667907,
-          "updated_at": "2026-09-26T16:50:27.456966Z"
+          "qty": 0.18844700000000006,
+          "avg_cost": 11.422570541513792,
+          "updated_at": "2026-09-26T17:15:57.294042Z"
+        },
+        {
+          "ticker": "ROK",
+          "qty": 0.04059499999999999,
+          "avg_cost": 437.8379953384904,
+          "updated_at": "2026-09-26T17:15:57.316224Z"
         },
         {
           "ticker": "TER",
-          "qty": 0.010572999999999999,
-          "avg_cost": 420.16865853881836,
-          "updated_at": "2026-09-26T16:50:22.641341Z"
+          "qty": 0.044001000000000005,
+          "avg_cost": 390.458458496846,
+          "updated_at": "2026-09-26T17:15:57.312060Z"
+        },
+        {
+          "ticker": "TSLA",
+          "qty": 0.030498000000000004,
+          "avg_cost": 362.37908018065576,
+          "updated_at": "2026-09-26T17:15:57.320476Z"
         }
       ],
-      "fill_count": 11
+      "fill_count": 138
     }
   }
 }

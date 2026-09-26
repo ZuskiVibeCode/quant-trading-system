@@ -253,7 +253,11 @@ def cmd_backtest_themes(args: argparse.Namespace) -> int:
         fill_on=args.fill_on,
         force_download=bool(args.force_download),
         cache_dir=args.cache_dir,
+        fundamentals_cache_dir=args.fundamentals_cache_dir,
         output_dir=out_dir,
+        min_confidence_to_trade=float(args.min_confidence_to_trade),
+        min_confidence_to_sell=float(args.min_confidence_to_sell),
+        min_abs_score=float(args.min_abs_score),
     )
     print(format_leaderboard_table(result))
     print()
@@ -380,6 +384,38 @@ def build_parser() -> argparse.ArgumentParser:
         "--force-download",
         action="store_true",
         help="Re-download Yahoo bars even if cache looks fresh",
+    )
+    bt.add_argument(
+        "--fundamentals-cache-dir",
+        default=None,
+        help="As-of fundamentals cache (default: data/backtest/fundamentals)",
+    )
+    bt.add_argument(
+        "--min-confidence-to-trade",
+        type=float,
+        default=35.0,
+        help=(
+            "Backtest-only buy confidence floor (default: 35; live run-once uses "
+            "config/risk.yaml 55). Does not rewrite live defaults."
+        ),
+    )
+    bt.add_argument(
+        "--min-confidence-to-sell",
+        type=float,
+        default=25.0,
+        help=(
+            "Backtest-only sell confidence floor (default: 25; live run-once uses "
+            "config/risk.yaml 40)."
+        ),
+    )
+    bt.add_argument(
+        "--min-abs-score",
+        type=float,
+        default=0.02,
+        help=(
+            "Backtest-only |blended score| floor before HOLD (default: 0.02; "
+            "live run-once uses 0.05)."
+        ),
     )
     bt.set_defaults(func=cmd_backtest_themes)
 

@@ -197,11 +197,15 @@ def test_e2e_fixture_leaderboard(tmp_path):
         assert "turnover" in row
         assert row["starting_cash"] == 100.0
 
-    # Agents status documented
+    # Agents status documented (v2: as-of fund + proxy sentiment)
     agents = result["meta"]["agents"]
-    assert "stubbed" in agents["sentiment"]
-    assert "stubbed" in agents["fundamental"]
+    assert "proxy" in agents["sentiment"].lower()
+    assert "as-of" in agents["fundamental"].lower() or "statement" in agents["fundamental"].lower()
     assert "live" in agents["momentum"]
+    # Backtest knobs recorded; live defaults untouched in risk_overrides.live_defaults
+    ov = result["meta"]["risk_overrides"]
+    assert "min_confidence_to_trade" in ov
+    assert ov["live_defaults"]["min_confidence_to_trade"] == 55.0
 
     latest = tmp_path / "out" / "theme_leaderboard_latest.json"
     assert latest.is_file()
@@ -216,3 +220,131 @@ def test_cli_backtest_themes_help():
     args = p.parse_args(["backtest-themes", "--start", "2024-01-01", "--end", "2024-03-01", "--cash", "100"])
     assert args.command == "backtest-themes"
     assert args.cash == 100.0
+    assert args.min_confidence_to_trade == 35.0
+    assert args.min_confidence_to_sell == 25.0
+    assert args.min_abs_score == 0.02
+
+
+def test_backtest_risk_overrides_do_not_mutate_live_defaults():
+    """Backtest knobs copy AppConfig; load_config() / risk.yaml stay at live floors."""
+    from quant_system.backtest.harness import _apply_backtest_risk_overrides
+    from quant_system.config.loader import load_config
+
+    live = load_config()
+    assert live.risk.min_confidence_to_trade == 55.0
+    assert live.risk.min_confidence_to_sell == 40.0
+    assert float(live.risk.min_abs_score) == 0.05
+
+    overridden = _apply_backtest_risk_overrides(
+        live,
+        min_confidence_to_trade=35.0,
+        min_confidence_to_sell=25.0,
+        min_abs_score=0.02,
+    )
+    assert overridden.risk.min_confidence_to_trade == 35.0
+    assert overridden.risk.min_confidence_to_sell == 25.0
+    assert overridden.risk.min_abs_score == 0.02
+    # Original object unchanged
+    assert live.risk.min_confidence_to_trade == 55.0
+    assert live.risk.min_confidence_to_sell == 40.0
+    assert float(live.risk.min_abs_score) == 0.05
+    # Reloading YAML still live
+    again = load_config()
+    assert again.risk.min_confidence_to_trade == 55.0
+
+
+def test_fundamentals_asof_no_lookahead(tmp_path):
+    """Statement columns after as_of (+ filing lag) must not enter metrics."""
+    from quant_system.backtest.fundamentals_asof import (
+        ANNUAL_FILING_LAG_DAYS,
+        metrics_asof,
+    )
+
+    # Fabricate a yfinance-style bundle: period ends 2024-06-30 and 2024-12-31
+    cols = ["2024-12-31", "2024-06-30"]
+    rows = {
+        "Total Revenue": {"2024-12-31": 200.0, "2024-06-30": 100.0},
+        "Net Income": {"2024-12-31": 20.0, "2024-06-30": 10.0},
+        "Operating Income": {"2024-12-31": 30.0, "2024-06-30": 15.0},
+        "Gross Profit": {"2024-12-31": 80.0, "2024-06-30": 40.0},
+    }
+    q_cols = ["2024-09-30", "2024-03-31"]
+    q_rows = {
+        "Total Revenue": {"2024-09-30": 55.0, "2024-03-31": 45.0},
+        "Net Income": {"2024-09-30": 5.0, "2024-03-31": 4.0},
+    }
+    bundle = {
+        "source": "yfinance_statements",
+        "ticker": "FAKE",
+        "frames": {
+            "income_stmt": {"columns": cols, "rows": rows},
+            "balance_sheet": {
+                "columns": cols,
+                "rows": {
+                    "Total Debt": {"2024-12-31": 10.0, "2024-06-30": 8.0},
+                    "Cash And Cash Equivalents": {"2024-12-31": 50.0, "2024-06-30": 40.0},
+                    "Ordinary Shares Number": {"2024-12-31": 100.0, "2024-06-30": 100.0},
+                    "Stockholders Equity": {"2024-12-31": 90.0, "2024-06-30": 80.0},
+                    "Total Assets": {"2024-12-31": 120.0, "2024-06-30": 100.0},
+                },
+            },
+            "cashflow": {
+                "columns": cols,
+                "rows": {
+                    "Free Cash Flow": {"2024-12-31": 12.0, "2024-06-30": 6.0},
+                    "Operating Cash Flow": {"2024-12-31": 15.0, "2024-06-30": 8.0},
+                },
+            },
+            "quarterly_income_stmt": {"columns": q_cols, "rows": q_rows},
+        },
+        "shares_hint": 100.0,
+    }
+    # Before FY2024 is available (period_end 2024-12-31 + 60d lag = ~2025-03-01)
+    early = metrics_asof(
+        "FAKE",
+        "2024-10-01",
+        asof_price=10.0,
+        bundle=bundle,
+    )
+    assert early.get("totalRevenue") == 100.0  # only mid-year visible
+    assert early.get("asof_date") == "2024-10-01"
+    # After lag, FY2024 becomes visible
+    available = pd.Timestamp("2024-12-31") + pd.Timedelta(days=ANNUAL_FILING_LAG_DAYS)
+    late = metrics_asof(
+        "FAKE",
+        available,
+        asof_price=10.0,
+        bundle=bundle,
+    )
+    assert late.get("totalRevenue") == 200.0
+    # marketCap from as-of price × shares (not live)
+    assert late.get("marketCap") == pytest.approx(10.0 * 100.0)
+
+
+def test_sentiment_proxy_uses_only_asof_history():
+    from quant_system.backtest.asof_market_data import AsOfMarketData
+    from quant_system.backtest.sentiment_proxy import ProxySentimentAgent
+
+    idx = pd.bdate_range("2024-01-02", periods=40)
+    # Strong rally in first half, crash after day 25 — as-of mid must not see crash
+    closes = np.linspace(50, 80, 25).tolist() + np.linspace(80, 40, 15).tolist()
+    df = pd.DataFrame(
+        {
+            "Open": closes,
+            "High": np.array(closes) + 1,
+            "Low": np.array(closes) - 1,
+            "Close": closes,
+            "Volume": [1_000_000] * 40,
+        },
+        index=idx,
+    )
+    md = AsOfMarketData({"AAA": df})
+    md.set_as_of(idx[20])  # still in rally
+    agent = ProxySentimentAgent(md)
+    sig = agent.analyze("AAA")
+    assert sig.supporting_data.get("proxy") is True
+    assert sig.direction.value in ("long", "neutral")  # not short from future crash
+    # Advance into crash
+    md.set_as_of(idx[35])
+    sig2 = agent.analyze("AAA")
+    assert sig2.direction.value in ("short", "neutral")

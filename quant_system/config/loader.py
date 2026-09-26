@@ -25,6 +25,8 @@ class RiskConfig(BaseModel):
     allow_short: bool = False
     min_confidence_to_trade: float = 55.0
     min_confidence_to_sell: float = 40.0
+    # |blended score| below this → HOLD (live default 0.05; backtest may lower)
+    min_abs_score: float = 0.05
     min_order_notional: float = 1.0
     # Cash buffer trim: when cash/equity < min, trim weakest score<=0 holding
     cash_buffer_min_pct: float = 0.03

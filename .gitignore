@@ -19,3 +19,7 @@ data/*.db-*
 # Backtest OHLCV cache (regenerable via yfinance)
 data/backtest/bars/*.csv
 !data/backtest/bars/.gitkeep
+
+# Backtest fundamentals statement cache (regenerable via FMP/yfinance)
+data/backtest/fundamentals/*
+!data/backtest/fundamentals/.gitkeep
