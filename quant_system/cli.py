@@ -1,4 +1,4 @@
-"""CLI: python -m quant_system run-once | halt | resume | status | digest | cancel-open-orders | reconcile | backfill-fills | export-dashboard"""
+"""CLI: python -m quant_system run-once | halt | resume | status | digest | cancel-open-orders | reconcile | backfill-fills | export-dashboard | backtest-themes"""
 
 from __future__ import annotations
 
@@ -227,6 +227,40 @@ def cmd_export_dashboard(args: argparse.Namespace) -> int:
         return 1
 
 
+
+def cmd_backtest_themes(args: argparse.Namespace) -> int:
+    """Replay quantum/space/robotics sleeves on cached daily OHLCV; print leaderboard."""
+    from datetime import date, timedelta
+    from pathlib import Path
+
+    from quant_system.backtest.harness import format_leaderboard_table, run_theme_backtest
+
+    end = args.end
+    start = args.start
+    if not end:
+        end = date.today().isoformat()
+    if not start:
+        start = (date.fromisoformat(end) - timedelta(days=90)).isoformat()
+
+    out_dir = Path(args.output) if args.output else (
+        Path(__file__).resolve().parents[1] / "artifacts" / "backtest"
+    )
+    result = run_theme_backtest(
+        start=start,
+        end=end,
+        cash_per_sleeve=float(args.cash),
+        slippage_bps=float(args.slippage_bps),
+        fill_on=args.fill_on,
+        force_download=bool(args.force_download),
+        cache_dir=args.cache_dir,
+        output_dir=out_dir,
+    )
+    print(format_leaderboard_table(result))
+    print()
+    print(json.dumps(_jsonable(result), indent=2, default=str))
+    return 0
+
+
 def _jsonable(obj: Any) -> Any:
     if isinstance(obj, dict):
         return {k: _jsonable(v) for k, v in obj.items()}
@@ -307,6 +341,47 @@ def build_parser() -> argparse.ArgumentParser:
         help="Do not append docs/data/history/YYYY-MM-DD.json",
     )
     ed.set_defaults(func=cmd_export_dashboard)
+
+    bt = sub.add_parser(
+        "backtest-themes",
+        help="Theme competition backtest (quantum/space/robotics) on cached daily OHLCV",
+    )
+    bt.add_argument("--start", default=None, help="Start date YYYY-MM-DD (default: end-90d)")
+    bt.add_argument("--end", default=None, help="End date YYYY-MM-DD (default: today)")
+    bt.add_argument(
+        "--cash",
+        type=float,
+        default=100.0,
+        help="Starting cash per sleeve (default: 100)",
+    )
+    bt.add_argument(
+        "--slippage-bps",
+        type=float,
+        default=5.0,
+        help="Constant fill slippage in bps (default: 5)",
+    )
+    bt.add_argument(
+        "--fill-on",
+        choices=("close", "next_open"),
+        default="close",
+        help="Fill model price: same-bar close (default) or next-bar open",
+    )
+    bt.add_argument(
+        "--cache-dir",
+        default=None,
+        help="OHLCV cache directory (default: data/backtest/bars)",
+    )
+    bt.add_argument(
+        "--output",
+        default=None,
+        help="Leaderboard JSON directory (default: artifacts/backtest)",
+    )
+    bt.add_argument(
+        "--force-download",
+        action="store_true",
+        help="Re-download Yahoo bars even if cache looks fresh",
+    )
+    bt.set_defaults(func=cmd_backtest_themes)
 
     return p
 

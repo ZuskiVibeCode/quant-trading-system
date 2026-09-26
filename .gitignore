@@ -15,3 +15,7 @@ data/*.db-*
 .ruff_cache/
 *.log
 .DS_Store
+
+# Backtest OHLCV cache (regenerable via yfinance)
+data/backtest/bars/*.csv
+!data/backtest/bars/.gitkeep

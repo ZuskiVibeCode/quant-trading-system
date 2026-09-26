@@ -1,0 +1,178 @@
+{
+  "meta": {
+    "start": "2026-06-23",
+    "end": "2026-09-25",
+    "trading_days": 67,
+    "cash_per_sleeve": 100.0,
+    "slippage_bps": 5.0,
+    "fill_model": "same-bar close + constant slippage_bps (default 5); buy pays close*(1+slip), sell receives close*(1-slip); instant full fills; no partials / no latency",
+    "fill_on": "close",
+    "agents": {
+      "momentum": "live (OHLCV as-of)",
+      "fundamental": "stubbed (neutral; no PIT fundamentals)",
+      "statistical_ml": "live (OHLCV as-of)",
+      "sentiment": "stubbed (neutral; no historical news)",
+      "macro": "live (cached proxy bars as-of; missing proxies \u2192 soft neutral)"
+    },
+    "cache_dir": "/workspace/quant-trading-system/data/backtest/bars",
+    "generated_at": "2026-09-26T12:50:27-04:00",
+    "paper_only": true
+  },
+  "leaderboard": [
+    {
+      "theme": "quantum",
+      "starting_cash": 100.0,
+      "ending_cash": 79.990181,
+      "ending_equity": 100.99365377459718,
+      "realized_pnl": 0.9936537745971776,
+      "return_pct": 0.009936537745971776,
+      "max_dd": 0.009369500728800204,
+      "trade_count": 1,
+      "turnover": 0.19993410982159188,
+      "turnover_notional": 20.009818887058362,
+      "final_positions": [
+        {
+          "ticker": "MSFT",
+          "qty": 0.040691,
+          "avg_cost": 491.7504825897216,
+          "updated_at": "2026-09-26T16:50:02.040142Z"
+        }
+      ],
+      "fill_count": 1,
+      "rank": 1
+    },
+    {
+      "theme": "space",
+      "starting_cash": 100.0,
+      "ending_cash": 79.98998,
+      "ending_equity": 99.31774625,
+      "realized_pnl": -0.682253750000001,
+      "return_pct": -0.00682253750000001,
+      "max_dd": 0.024798700705261183,
+      "trade_count": 1,
+      "turnover": 0.20193286420362827,
+      "turnover_notional": 20.010019688099934,
+      "final_positions": [
+        {
+          "ticker": "IRDM",
+          "qty": 0.396467,
+          "avg_cost": 50.47083285140991,
+          "updated_at": "2026-09-26T16:49:43.047759Z"
+        }
+      ],
+      "fill_count": 1,
+      "rank": 2
+    },
+    {
+      "theme": "robotics",
+      "starting_cash": 100.0,
+      "ending_cash": 68.062125,
+      "ending_equity": 90.28847770353698,
+      "realized_pnl": -9.711522296463016,
+      "return_pct": -0.09711522296463017,
+      "max_dd": 0.12511389661558334,
+      "trade_count": 11,
+      "turnover": 0.8965382389221147,
+      "turnover_notional": 85.46694884087152,
+      "final_positions": [
+        {
+          "ticker": "CGNX",
+          "qty": 0.13017299999999998,
+          "avg_cost": 69.42728968048095,
+          "updated_at": "2026-09-26T16:50:27.461044Z"
+        },
+        {
+          "ticker": "PATH",
+          "qty": 0.832932,
+          "avg_cost": 15.587789923667907,
+          "updated_at": "2026-09-26T16:50:27.456966Z"
+        },
+        {
+          "ticker": "TER",
+          "qty": 0.010572999999999999,
+          "avg_cost": 420.16865853881836,
+          "updated_at": "2026-09-26T16:50:22.641341Z"
+        }
+      ],
+      "fill_count": 11,
+      "rank": 3
+    }
+  ],
+  "sleeves": {
+    "quantum": {
+      "theme": "quantum",
+      "starting_cash": 100.0,
+      "ending_cash": 79.990181,
+      "ending_equity": 100.99365377459718,
+      "realized_pnl": 0.9936537745971776,
+      "return_pct": 0.009936537745971776,
+      "max_dd": 0.009369500728800204,
+      "trade_count": 1,
+      "turnover": 0.19993410982159188,
+      "turnover_notional": 20.009818887058362,
+      "final_positions": [
+        {
+          "ticker": "MSFT",
+          "qty": 0.040691,
+          "avg_cost": 491.7504825897216,
+          "updated_at": "2026-09-26T16:50:02.040142Z"
+        }
+      ],
+      "fill_count": 1
+    },
+    "space": {
+      "theme": "space",
+      "starting_cash": 100.0,
+      "ending_cash": 79.98998,
+      "ending_equity": 99.31774625,
+      "realized_pnl": -0.682253750000001,
+      "return_pct": -0.00682253750000001,
+      "max_dd": 0.024798700705261183,
+      "trade_count": 1,
+      "turnover": 0.20193286420362827,
+      "turnover_notional": 20.010019688099934,
+      "final_positions": [
+        {
+          "ticker": "IRDM",
+          "qty": 0.396467,
+          "avg_cost": 50.47083285140991,
+          "updated_at": "2026-09-26T16:49:43.047759Z"
+        }
+      ],
+      "fill_count": 1
+    },
+    "robotics": {
+      "theme": "robotics",
+      "starting_cash": 100.0,
+      "ending_cash": 68.062125,
+      "ending_equity": 90.28847770353698,
+      "realized_pnl": -9.711522296463016,
+      "return_pct": -0.09711522296463017,
+      "max_dd": 0.12511389661558334,
+      "trade_count": 11,
+      "turnover": 0.8965382389221147,
+      "turnover_notional": 85.46694884087152,
+      "final_positions": [
+        {
+          "ticker": "CGNX",
+          "qty": 0.13017299999999998,
+          "avg_cost": 69.42728968048095,
+          "updated_at": "2026-09-26T16:50:27.461044Z"
+        },
+        {
+          "ticker": "PATH",
+          "qty": 0.832932,
+          "avg_cost": 15.587789923667907,
+          "updated_at": "2026-09-26T16:50:27.456966Z"
+        },
+        {
+          "ticker": "TER",
+          "qty": 0.010572999999999999,
+          "avg_cost": 420.16865853881836,
+          "updated_at": "2026-09-26T16:50:22.641341Z"
+        }
+      ],
+      "fill_count": 11
+    }
+  }
+}

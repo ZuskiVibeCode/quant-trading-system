@@ -162,7 +162,8 @@ quant_system/
   market_data/     # MarketData interface + yfinance + mock
   config/          # YAML loaders
   pipeline.py      # run-once orchestration
-  cli.py           # run-once | halt | resume | status | digest | cancel-open-orders | reconcile | export-dashboard
+  cli.py           # run-once | halt | resume | status | digest | cancel-open-orders | reconcile | export-dashboard | backtest-themes
+  backtest/        # theme-competition as-of replay + leaderboard
 docs/              # GitHub Pages viewer (static) + data/latest.json
 config/
   universe.yaml
@@ -188,6 +189,32 @@ pytest -q
 | SentimentAgent | live | headline polarity + credibility; `manipulation_risk` only on coordinated hype |
 | MacroAgent | live | VIX (^VIX), dollar (UUP / DX-Y.NYB), rates (TLT / ^TNX), SPY trend → risk-on/off/neutral; `supporting_data`: regime, macro_risk_level, sector_bias, key_levels |
 | StatisticalMLAgent | live | z-score / residual-to-MA mean-reversion, momentum-stat, vol regime, optional XS mom rank; `statistical_edge_score` + confidence band; missing → neutral/low conf |
+
+
+## Theme competition backtest (v1)
+
+Speed-test the three theme desks (quantum / space / robotics) on historical daily OHLCV before a live 3-agent paper split. Each sleeve starts with **$100** cash and trades only its theme universe.
+
+```bash
+source .venv/bin/activate
+# Optional: warm Yahoo cache once (also happens automatically on first run)
+python -m quant_system backtest-themes --start 2024-06-01 --end 2024-08-30
+# Flags: --cash 100 --slippage-bps 5 --fill-on close|next_open --force-download
+#        --cache-dir data/backtest/bars --output artifacts/backtest
+```
+
+Leaderboard JSON lands under `artifacts/backtest/` (`theme_leaderboard_latest.json` + dated file). Bars cache under `data/backtest/bars/*.csv`.
+
+| Piece | v1 behavior |
+|-------|-------------|
+| Market data | `AsOfMarketData` over cached Yahoo daily bars; `history()` / `last_price()` truncated to as-of (no lookahead) |
+| Fill model | Same-bar **close** × (1 ± slippage_bps/1e4); instant full fills. Optional `--fill-on next_open` |
+| Agents live | Momentum, StatisticalML, Macro (macro proxies also cached) |
+| Agents stubbed | **Sentiment** (no historical news), **Fundamental** (no point-in-time fundamentals) → neutral/low confidence |
+| Risk | Reuses `config/risk.yaml` knobs (position cap, cash buffer, confidence floors, etc.) |
+| Isolation | Separate in-memory/temp Tracker per sleeve — a quantum fill never touches space cash |
+
+**Caveats:** Yahoo adjustments / survivorship; stubs mute two desks so results lean on price-action agents; same-bar close fill is optimistic vs next-open; paper only — never writes live Tracker / Alpaca.
 
 ## TODOs
 
