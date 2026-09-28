@@ -1,6 +1,6 @@
 {
-  "exported_at": "2026-09-25T19:53:38.876023Z",
-  "count": 76,
+  "exported_at": "2026-09-28T13:47:54.091444Z",
+  "count": 77,
   "reviews": [
     {
       "ticker": "RGTI",
@@ -7650,7 +7650,7 @@
         "lead_confidence": 89.0
       },
       "path": {
-        "mfe_pct": 10.0731,
+        "mfe_pct": 10.0733,
         "mae_pct": -17.2381,
         "ret_pct": 4.8995
       },
@@ -7726,7 +7726,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=10.0731; mae_pct=-17.2381; ret_pct=4.8995"
+          "detail": "source=daily_bars; mfe_pct=10.0733; mae_pct=-17.2381; ret_pct=4.8995"
         }
       ],
       "mode": "alpaca",
@@ -8294,7 +8294,7 @@
         "lead_confidence": 89.0
       },
       "path": {
-        "mfe_pct": 10.0731,
+        "mfe_pct": 10.0733,
         "mae_pct": -17.2381,
         "ret_pct": 6.6824
       },
@@ -8370,7 +8370,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=10.0731; mae_pct=-17.2381; ret_pct=6.6824"
+          "detail": "source=daily_bars; mfe_pct=10.0733; mae_pct=-17.2381; ret_pct=6.6824"
         }
       ],
       "mode": "alpaca",
@@ -8777,7 +8777,7 @@
         "lead_confidence": 89.0
       },
       "path": {
-        "mfe_pct": 10.0731,
+        "mfe_pct": 10.0733,
         "mae_pct": -17.2381,
         "ret_pct": 4.8286
       },
@@ -8853,7 +8853,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=10.0731; mae_pct=-17.2381; ret_pct=4.8286"
+          "detail": "source=daily_bars; mfe_pct=10.0733; mae_pct=-17.2381; ret_pct=4.8286"
         }
       ],
       "mode": "alpaca",
@@ -9421,7 +9421,7 @@
         "lead_confidence": 89.0
       },
       "path": {
-        "mfe_pct": 10.0731,
+        "mfe_pct": 10.0733,
         "mae_pct": -17.2381,
         "ret_pct": 7.3209
       },
@@ -9497,7 +9497,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=10.0731; mae_pct=-17.2381; ret_pct=7.3209"
+          "detail": "source=daily_bars; mfe_pct=10.0733; mae_pct=-17.2381; ret_pct=7.3209"
         }
       ],
       "mode": "alpaca",
@@ -9904,7 +9904,7 @@
         "lead_confidence": 89.0
       },
       "path": {
-        "mfe_pct": 10.0731,
+        "mfe_pct": 10.0733,
         "mae_pct": -17.2381,
         "ret_pct": 9.1369
       },
@@ -9980,7 +9980,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=10.0731; mae_pct=-17.2381; ret_pct=9.1369"
+          "detail": "source=daily_bars; mfe_pct=10.0733; mae_pct=-17.2381; ret_pct=9.1369"
         }
       ],
       "mode": "alpaca",
@@ -10548,7 +10548,7 @@
         "lead_confidence": 89.0
       },
       "path": {
-        "mfe_pct": 10.0731,
+        "mfe_pct": 10.0733,
         "mae_pct": -17.2381,
         "ret_pct": 7.6708
       },
@@ -10624,7 +10624,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=10.0731; mae_pct=-17.2381; ret_pct=7.6708"
+          "detail": "source=daily_bars; mfe_pct=10.0733; mae_pct=-17.2381; ret_pct=7.6708"
         }
       ],
       "mode": "alpaca",
@@ -11031,7 +11031,7 @@
         "lead_confidence": 89.0
       },
       "path": {
-        "mfe_pct": 10.0731,
+        "mfe_pct": 10.0733,
         "mae_pct": -17.2381,
         "ret_pct": 7.5763
       },
@@ -11107,7 +11107,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=10.0731; mae_pct=-17.2381; ret_pct=7.5763"
+          "detail": "source=daily_bars; mfe_pct=10.0733; mae_pct=-17.2381; ret_pct=7.5763"
         }
       ],
       "mode": "alpaca",
@@ -11514,7 +11514,7 @@
         "lead_confidence": 89.0
       },
       "path": {
-        "mfe_pct": 10.0731,
+        "mfe_pct": 10.0733,
         "mae_pct": -17.2381,
         "ret_pct": 8.3329
       },
@@ -11590,7 +11590,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=10.0731; mae_pct=-17.2381; ret_pct=8.3329"
+          "detail": "source=daily_bars; mfe_pct=10.0733; mae_pct=-17.2381; ret_pct=8.3329"
         }
       ],
       "mode": "alpaca",
@@ -11997,7 +11997,7 @@
         "lead_confidence": 89.0
       },
       "path": {
-        "mfe_pct": 10.0731,
+        "mfe_pct": 10.0733,
         "mae_pct": -17.2381,
         "ret_pct": 7.7607
       },
@@ -12073,7 +12073,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=10.0731; mae_pct=-17.2381; ret_pct=7.7607"
+          "detail": "source=daily_bars; mfe_pct=10.0733; mae_pct=-17.2381; ret_pct=7.7607"
         }
       ],
       "mode": "alpaca",
@@ -12235,6 +12235,167 @@
           "id": null,
           "label": "path stats",
           "detail": "source=daily_bars; mfe_pct=8.7625; mae_pct=-9.8328; ret_pct=4.8294"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "space"
+    },
+    {
+      "ticker": "LUNR",
+      "qty": 1.6e-05,
+      "entry": 14.95,
+      "exit": 15.406,
+      "pnl": 7.2960000000000204e-06,
+      "pnl_pct": 3.0502,
+      "opened_at": "2026-09-08T13:34:13.196282Z",
+      "closed_at": "2026-09-28T13:47:28.144448Z",
+      "hold_hours": 480.221,
+      "exit_reason": "signal_sell",
+      "exit_rationale": "SELL 1.6e-05 LUNR @~15.44; weighted_score=-0.081; reduce risk",
+      "entry_ticket_id": 156,
+      "exit_ticket_id": 221,
+      "entry_fill_id": 40,
+      "exit_fill_id": 105,
+      "entry_score": {
+        "weighted_score": 0.076511,
+        "blended_conf": 55.66
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "macro",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning_trunc": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (space); VIX contained (15.3); Dollar stable (+0.0% 20d); Rates stable (-0.3%); Benchm\u2026",
+          "signal_id": 640,
+          "created_at": "2026-09-08T13:25:06.912460Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 61.77686842105264,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.41; avg source credibility 0.76; 'Management Reiterates Optimistic FY26 Guidance for Intuitive Machines (LUNR)' (In\u2026",
+          "signal_id": 639,
+          "created_at": "2026-09-08T13:25:06.907414Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "short",
+          "confidence": 77.1,
+          "reasoning_trunc": "price near MA20 (z=-1.17); strong 20d down-momentum -9.7%; 60d trend down -44.2%; cross-sectional mom rank mid (70%); vol regime=normal",
+          "signal_id": 638,
+          "created_at": "2026-09-08T13:25:06.696734Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning_trunc": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "signal_id": 637,
+          "created_at": "2026-09-08T13:25:06.690131Z"
+        },
+        {
+          "agent_id": "momentum",
+          "direction": "short",
+          "confidence": 35.421142434333554,
+          "reasoning_trunc": "MA20 > MA50 (short-term uptrend); MA50 < MA200 (intermediate downtrend); RSI soft (40.9); MACD histogram negative; 20d RS vs SPY: -9.30%",
+          "signal_id": 636,
+          "created_at": "2026-09-08T13:25:05.328519Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "macro",
+          "sentiment"
+        ],
+        "short": [
+          "statistical_ml",
+          "momentum"
+        ],
+        "neutral": [
+          "fundamental"
+        ],
+        "disagreement": true,
+        "lead_agent": "macro",
+        "lead_confidence": 89.0
+      },
+      "path": {
+        "mfe_pct": 8.7625,
+        "mae_pct": -9.8328,
+        "ret_pct": 3.0502
+      },
+      "verdict": "Made money: Realized PnL=0.0000. Entered with a split book: long=[macro, sentiment] vs short=[statistical_ml, momentum] (see macro signal #640 long @ conf=89.0). Entry weighted_score=0.076511. Exit was a signal-driven sell (reduce risk). Held 480.2h.",
+      "verdict_tags": [
+        "winner",
+        "split_book",
+        "signal_exit"
+      ],
+      "completeness": "partial",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 40,
+          "label": "entry fill",
+          "detail": "buy qty=1.6e-05 @ 14.95"
+        },
+        {
+          "kind": "fill",
+          "id": 105,
+          "label": "exit fill",
+          "detail": "sell @ 15.406"
+        },
+        {
+          "kind": "ticket",
+          "id": 156,
+          "label": "entry ticket",
+          "detail": "alpaca_backfill order_id=e85a9f9d-b857-4948-8f37-3b9ba88ae5d5"
+        },
+        {
+          "kind": "ticket",
+          "id": 221,
+          "label": "exit ticket",
+          "detail": "SELL 1.6e-05 LUNR @~15.44; weighted_score=-0.081; reduce risk"
+        },
+        {
+          "kind": "signal",
+          "id": 640,
+          "label": "macro @ entry",
+          "detail": "long @ conf=89.0"
+        },
+        {
+          "kind": "signal",
+          "id": 639,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=61.8"
+        },
+        {
+          "kind": "signal",
+          "id": 638,
+          "label": "statistical_ml @ entry",
+          "detail": "short @ conf=77.1"
+        },
+        {
+          "kind": "signal",
+          "id": 637,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=15.0"
+        },
+        {
+          "kind": "signal",
+          "id": 636,
+          "label": "momentum @ entry",
+          "detail": "short @ conf=35.4"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.076511; blended_conf=55.66"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=8.7625; mae_pct=-9.8328; ret_pct=3.0502"
         }
       ],
       "mode": "alpaca",
