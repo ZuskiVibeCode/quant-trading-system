@@ -1,6 +1,6 @@
 {
-  "exported_at": "2026-09-29T19:17:49.210658Z",
-  "count": 102,
+  "exported_at": "2026-09-29T19:53:29.869801Z",
+  "count": 104,
   "reviews": [
     {
       "ticker": "RGTI",
@@ -16421,6 +16421,328 @@
           "id": null,
           "label": "path stats",
           "detail": "source=daily_bars; mfe_pct=6.9787; mae_pct=-6.8662; ret_pct=-6.0336"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "quantum"
+    },
+    {
+      "ticker": "QUBT",
+      "qty": 0.005483,
+      "entry": 8.64,
+      "exit": 8.492,
+      "pnl": -0.0008114839999999983,
+      "pnl_pct": -1.713,
+      "opened_at": "2026-09-18T19:46:07.142348Z",
+      "closed_at": "2026-09-29T19:53:23.598024Z",
+      "hold_hours": 264.121,
+      "exit_reason": "signal_sell",
+      "exit_rationale": "SELL 0.005483 QUBT @~8.49; weighted_score=-0.251; reduce risk",
+      "entry_ticket_id": 79,
+      "exit_ticket_id": 256,
+      "entry_fill_id": 16,
+      "exit_fill_id": 140,
+      "entry_score": {
+        "weighted_score": 0.113,
+        "blended_conf": 65.5
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "neutral",
+          "confidence": 53.36497345385213,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 < MA200 (intermediate downtrend); RSI constructive (56.5); MACD histogram positive; 20d RS vs SPY: +6.61%; RVOL 0.84x\u2026",
+          "signal_id": 2411,
+          "created_at": "2026-09-18T19:45:36.147461Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "short",
+          "confidence": 82.4,
+          "reasoning_trunc": "Strong revenue growth (9000.0%); Negative profit margin (-152.5%); Negative operating margin (-281.3%); Negative FCF (-53,905,876) \u2014 cash burn risk; Moderate l\u2026",
+          "signal_id": 2412,
+          "created_at": "2026-09-18T19:45:36.718548Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "neutral",
+          "confidence": 52.8,
+          "reasoning_trunc": "overbought vs MA20 (z=1.55); residual_to_MA20=+5.9%; positive 20d momentum +6.4%; cross-sectional mom rank top (90%); vol regime=normal",
+          "signal_id": 2413,
+          "created_at": "2026-09-18T19:45:36.724843Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 49.908067164179116,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.17; avg source credibility 0.67; 'What Needs To Be True To Buy Rigetti Stock Today?' (Trefis, pol=+1.00); 'Here's H\u2026",
+          "signal_id": 2414,
+          "created_at": "2026-09-18T19:45:36.909522Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning_trunc": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (quantum); VIX contained (15.0); Dollar stable (+1.7% 20d); Rates stable (-1.0%); Benc\u2026",
+          "signal_id": 2415,
+          "created_at": "2026-09-18T19:45:36.914497Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "sentiment",
+          "macro"
+        ],
+        "short": [
+          "fundamental"
+        ],
+        "neutral": [
+          "momentum",
+          "statistical_ml"
+        ],
+        "disagreement": true,
+        "lead_agent": "macro",
+        "lead_confidence": 89.0
+      },
+      "path": {
+        "mfe_pct": 12.963,
+        "mae_pct": -4.3981,
+        "ret_pct": -1.713
+      },
+      "verdict": "Lost money: Realized PnL=-0.0008. Entered with a split book: long=[sentiment, macro] vs short=[fundamental] (see macro signal #2415 long @ conf=89.0). Entry weighted_score=0.113. Exit was a signal-driven sell (reduce risk). Held 264.1h.",
+      "verdict_tags": [
+        "loser",
+        "split_book",
+        "signal_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 16,
+          "label": "entry fill",
+          "detail": "buy qty=0.005483 @ 8.64"
+        },
+        {
+          "kind": "fill",
+          "id": 140,
+          "label": "exit fill",
+          "detail": "sell @ 8.492"
+        },
+        {
+          "kind": "ticket",
+          "id": 79,
+          "label": "entry ticket",
+          "detail": "BUY 2.143144 QUBT @~8.66; weighted_score=0.113; blended_conf=65.5; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 256,
+          "label": "exit ticket",
+          "detail": "SELL 0.005483 QUBT @~8.49; weighted_score=-0.251; reduce risk"
+        },
+        {
+          "kind": "signal",
+          "id": 2411,
+          "label": "momentum @ entry",
+          "detail": "neutral @ conf=53.4"
+        },
+        {
+          "kind": "signal",
+          "id": 2412,
+          "label": "fundamental @ entry",
+          "detail": "short @ conf=82.4"
+        },
+        {
+          "kind": "signal",
+          "id": 2413,
+          "label": "statistical_ml @ entry",
+          "detail": "neutral @ conf=52.8"
+        },
+        {
+          "kind": "signal",
+          "id": 2414,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=49.9"
+        },
+        {
+          "kind": "signal",
+          "id": 2415,
+          "label": "macro @ entry",
+          "detail": "long @ conf=89.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.113; blended_conf=65.5"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=12.963; mae_pct=-4.3981; ret_pct=-1.713"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "quantum"
+    },
+    {
+      "ticker": "IBM",
+      "qty": 0.000465,
+      "entry": 235.3925811589616,
+      "exit": 220.24,
+      "pnl": -0.007045950238917143,
+      "pnl_pct": -6.4372,
+      "opened_at": "2026-09-06T20:07:40.304035Z",
+      "closed_at": "2026-09-29T19:53:24.533802Z",
+      "hold_hours": 551.762,
+      "exit_reason": "signal_sell",
+      "exit_rationale": "SELL 0.000465 IBM @~220.18; weighted_score=-0.058; reduce risk",
+      "entry_ticket_id": 129,
+      "exit_ticket_id": 257,
+      "entry_fill_id": 25,
+      "exit_fill_id": 141,
+      "entry_score": {
+        "weighted_score": 0.169,
+        "blended_conf": 59.4
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "neutral",
+          "confidence": 41.699758393802554,
+          "reasoning_trunc": "MA20 > MA50 (short-term uptrend); MA50 < MA200 (intermediate downtrend); MACD histogram negative; 20d RS vs SPY: +0.17%; RVOL 0.57x vs 20d avg; Demand imbalanc\u2026",
+          "signal_id": 3466,
+          "created_at": "2026-09-23T19:37:02.426158Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "long",
+          "confidence": 92.0,
+          "reasoning_trunc": "Quality: Solid revenue growth (7.6%); Strong earnings growth (75.9%); Healthy profit margin (15.7%); Strong operating margin (18.5%) | Valuation/EV: moderate P\u2026",
+          "signal_id": 3467,
+          "created_at": "2026-09-23T19:37:06.094829Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "short",
+          "confidence": 62.790000000000006,
+          "reasoning_trunc": "price near MA20 (z=-0.50); flat 20d momentum +1.0%; 60d trend down -13.5%; cross-sectional mom rank mid (60%); low vol regime",
+          "signal_id": 3468,
+          "created_at": "2026-09-23T19:37:06.100574Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 55.45748684210527,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.39; avg source credibility 0.57; 'IBM Gains 2.2% as z17 Enters an Agentic AI Laboratory' (GuruFocus.com, pol=+1.00)\u2026",
+          "signal_id": 3469,
+          "created_at": "2026-09-23T19:37:06.346253Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (quantum); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (\u2026",
+          "signal_id": 3470,
+          "created_at": "2026-09-23T19:37:06.350056Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "fundamental",
+          "sentiment"
+        ],
+        "short": [
+          "statistical_ml"
+        ],
+        "neutral": [
+          "momentum",
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "fundamental",
+        "lead_confidence": 92.0
+      },
+      "path": {
+        "mfe_pct": 6.9787,
+        "mae_pct": -6.8662,
+        "ret_pct": -6.4372
+      },
+      "verdict": "Lost money: Realized PnL=-0.0070. Entered with a split book: long=[fundamental, sentiment] vs short=[statistical_ml] (see fundamental signal #3467 long @ conf=92.0). Entry weighted_score=0.169. Exit was a signal-driven sell (reduce risk). Held 551.8h.",
+      "verdict_tags": [
+        "loser",
+        "split_book",
+        "signal_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 25,
+          "label": "entry fill",
+          "detail": "buy qty=0.000465 @ 235.3925811589616"
+        },
+        {
+          "kind": "fill",
+          "id": 141,
+          "label": "exit fill",
+          "detail": "sell @ 220.24"
+        },
+        {
+          "kind": "ticket",
+          "id": 129,
+          "label": "entry ticket",
+          "detail": "BUY 0.020434 IBM @~233.39; weighted_score=0.169; blended_conf=59.4; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 257,
+          "label": "exit ticket",
+          "detail": "SELL 0.000465 IBM @~220.18; weighted_score=-0.058; reduce risk"
+        },
+        {
+          "kind": "signal",
+          "id": 3466,
+          "label": "momentum @ entry",
+          "detail": "neutral @ conf=41.7"
+        },
+        {
+          "kind": "signal",
+          "id": 3467,
+          "label": "fundamental @ entry",
+          "detail": "long @ conf=92.0"
+        },
+        {
+          "kind": "signal",
+          "id": 3468,
+          "label": "statistical_ml @ entry",
+          "detail": "short @ conf=62.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3469,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=55.5"
+        },
+        {
+          "kind": "signal",
+          "id": 3470,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.169; blended_conf=59.4"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=6.9787; mae_pct=-6.8662; ret_pct=-6.4372"
         }
       ],
       "mode": "alpaca",
