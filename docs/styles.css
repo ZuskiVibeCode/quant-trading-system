@@ -468,6 +468,19 @@ tr.clickable:hover td { background: var(--elevated); }
   .timeline li { grid-template-columns: 1fr; }
 }
 
+
+tr.day-group td {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--subtle);
+  background: rgb(23 28 34 / 0.9);
+  padding-top: 0.85rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border);
+}
+
 .empty {
   padding: 2rem 1rem;
   text-align: center;

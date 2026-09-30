@@ -60,6 +60,45 @@
     }
   }
 
+
+  /** America/New_York calendar day as YYYY-MM-DD (en-CA). */
+  function etCalendarDay(isoOrDate) {
+    if (isoOrDate == null || isoOrDate === "") return null;
+    try {
+      const d = isoOrDate instanceof Date ? isoOrDate : new Date(isoOrDate);
+      if (Number.isNaN(d.getTime())) return null;
+      return d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+    } catch {
+      return null;
+    }
+  }
+
+  /** Today and prior ET calendar day (DST-safe via Y-M-D arithmetic). */
+  function etTodayYesterday(now = new Date()) {
+    const today = now.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+    const [Y, M, D] = today.split("-").map(Number);
+    const prev = new Date(Date.UTC(Y, M - 1, D));
+    prev.setUTCDate(prev.getUTCDate() - 1);
+    const yesterday = prev.toISOString().slice(0, 10);
+    return { today, yesterday };
+  }
+
+  /** Closed rows for Closed book UI: sector filter + today/yesterday ET only. */
+  function closedRowsForRecentWindow(closed, matchesSectorFn, now = new Date()) {
+    const { today, yesterday } = etTodayYesterday(now);
+    return (closed || [])
+      .filter((c) => matchesSectorFn(c.sector || sectorOf(c.ticker)))
+      .map((c) => {
+        const day = etCalendarDay(c.closed_at);
+        let bucket = null;
+        if (day === today) bucket = "today";
+        else if (day === yesterday) bucket = "yesterday";
+        return { row: c, day, bucket };
+      })
+      .filter((x) => x.bucket)
+      .sort((a, b) => String(b.row.closed_at || "").localeCompare(String(a.row.closed_at || "")));
+  }
+
   function trunc(s, n = 140) {
     if (!s) return "";
     return s.length > n ? s.slice(0, n - 1) + "…" : s;
@@ -527,20 +566,29 @@
   function renderClosed() {
     const host = $("closedTable");
     if (!host) return;
-    const rows = (DATA.closed || []).filter((c) => matchesSector(c.sector || sectorOf(c.ticker)));
-    if (!rows.length) {
-      host.innerHTML = `<div class="empty">No closed trades${filter !== "all" ? " in this sector" : ""}</div>`;
+    // UI-only window: full DATA.closed stays intact for Lifetime / detail helpers.
+    const recent = closedRowsForRecentWindow(DATA.closed || [], matchesSector);
+    if (!recent.length) {
+      const sectorBit = filter !== "all" ? " in this sector" : "";
+      host.innerHTML = `<div class="empty">No closes today or yesterday (ET)${sectorBit}. Full history is in Lifetime.</div>`;
       return;
     }
-    // Newest first for readability
-    const ordered = rows.slice().sort((a, b) => String(b.closed_at || "").localeCompare(String(a.closed_at || "")));
-    host.innerHTML = `
-      <table>
-        <thead><tr><th>Ticker</th><th>Sector</th><th>Qty</th><th>Entry</th><th>Exit</th><th>Realized</th><th>Closed</th><th>Mode</th></tr></thead>
-        <tbody>
-          ${ordered
-            .map(
-              (c, i) => `<tr data-closed-idx="${i}" aria-label="Open closed trade details for ${c.ticker}">
+    const { today, yesterday } = etTodayYesterday();
+    const groups = [
+      { key: "today", label: `Today · ${today} ET`, items: recent.filter((x) => x.bucket === "today") },
+      { key: "yesterday", label: `Yesterday · ${yesterday} ET`, items: recent.filter((x) => x.bucket === "yesterday") },
+    ].filter((g) => g.items.length);
+
+    const ordered = [];
+    const bodyHtml = groups
+      .map((g) => {
+        const head = `<tr class="day-group" aria-hidden="true"><td colspan="8">${g.label}</td></tr>`;
+        const rows = g.items
+          .map((x) => {
+            const i = ordered.length;
+            const c = x.row;
+            ordered.push(c);
+            return `<tr data-closed-idx="${i}" aria-label="Open closed trade details for ${c.ticker}">
                 <td class="mono">${c.ticker}</td>
                 <td class="muted">${c.sector || "—"}</td>
                 <td class="mono">${c.qty != null ? Number(c.qty).toFixed(4) : "—"}</td>
@@ -549,9 +597,18 @@
                 <td class="mono ${pnlClass(c.pnl)}">${fmtUsd(c.pnl)}</td>
                 <td class="mono subtle">${fmtTime(c.closed_at)}</td>
                 <td class="mono muted">${c.mode || "—"}</td>
-              </tr>`
-            )
-            .join("")}
+              </tr>`;
+          })
+          .join("");
+        return head + rows;
+      })
+      .join("");
+
+    host.innerHTML = `
+      <table>
+        <thead><tr><th>Ticker</th><th>Sector</th><th>Qty</th><th>Entry</th><th>Exit</th><th>Realized</th><th>Closed</th><th>Mode</th></tr></thead>
+        <tbody>
+          ${bodyHtml}
         </tbody>
       </table>`;
     host.querySelectorAll("tr[data-closed-idx]").forEach((tr) => {
