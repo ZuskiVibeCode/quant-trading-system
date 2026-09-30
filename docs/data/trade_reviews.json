@@ -1,6 +1,6 @@
 {
-  "exported_at": "2026-09-30T16:48:08.360498Z",
-  "count": 108,
+  "exported_at": "2026-09-30T17:15:02.442293Z",
+  "count": 114,
   "reviews": [
     {
       "ticker": "RGTI",
@@ -14817,6 +14817,166 @@
       "sector": "space"
     },
     {
+      "ticker": "PATH",
+      "qty": 0.263331,
+      "entry": 15.12,
+      "exit": 12.142,
+      "pnl": -0.7841997179999999,
+      "pnl_pct": -19.6958,
+      "opened_at": "2026-09-08T13:31:08.091650Z",
+      "closed_at": "2026-09-29T14:59:30.838109Z",
+      "hold_hours": 505.473,
+      "exit_reason": "cash_buffer_trim",
+      "exit_rationale": "SELL 0.263331 PATH @~12.15; cash buffer trim; weighted_score=-0.039; cash/equity=0.65% < min=3%",
+      "entry_ticket_id": 270,
+      "exit_ticket_id": 240,
+      "entry_fill_id": 153,
+      "exit_fill_id": 124,
+      "entry_score": {
+        "weighted_score": 0.60078,
+        "blended_conf": 63.078
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "macro",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning_trunc": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (15.3); Dollar stable (+0.0% 20d); Rates stable (-0.3%); Ben\u2026",
+          "signal_id": 660,
+          "created_at": "2026-09-08T13:25:12.912564Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 60.69354929577465,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.42; avg source credibility 0.71; 'PATH Stock Wrapped Its Worst Week In 4 Months: UiPath Wins Higher Price Targets,'\u2026",
+          "signal_id": 659,
+          "created_at": "2026-09-08T13:25:12.908388Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "long",
+          "confidence": 87.9,
+          "reasoning_trunc": "oversold vs MA20 (z=-1.30); residual_to_MA20=-8.9%; return z oversold (-4.08); flat 20d momentum +0.9%; 60d trend up +41.3%; cross-sectional mom rank top (100%\u2026",
+          "signal_id": 658,
+          "created_at": "2026-09-08T13:25:12.693027Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning_trunc": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "signal_id": 657,
+          "created_at": "2026-09-08T13:25:12.686758Z"
+        },
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 62.796349904083314,
+          "reasoning_trunc": "MA20 > MA50 (short-term uptrend); MA50 > MA200 (intermediate uptrend); MACD histogram negative; 20d RS vs SPY: +1.33%",
+          "signal_id": 656,
+          "created_at": "2026-09-08T13:25:11.551769Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "macro",
+          "sentiment",
+          "statistical_ml",
+          "momentum"
+        ],
+        "short": [],
+        "neutral": [
+          "fundamental"
+        ],
+        "disagreement": false,
+        "lead_agent": "macro",
+        "lead_confidence": 89.0
+      },
+      "path": {
+        "mfe_pct": 1.1905,
+        "mae_pct": -23.4788,
+        "ret_pct": -19.6958
+      },
+      "verdict": "Lost money: Realized PnL=-0.7842. Entered aligned; lead agent macro was long@89.0 (see macro signal #660 long @ conf=89.0). Entry weighted_score=0.60078. Exit was a cash-buffer trim (forced, not a conviction exit). Held 505.5h.",
+      "verdict_tags": [
+        "loser",
+        "aligned",
+        "forced_exit"
+      ],
+      "completeness": "partial",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 153,
+          "label": "entry fill",
+          "detail": "buy qty=0.263331 @ 15.12"
+        },
+        {
+          "kind": "fill",
+          "id": 124,
+          "label": "exit fill",
+          "detail": "sell @ 12.142"
+        },
+        {
+          "kind": "ticket",
+          "id": 270,
+          "label": "entry ticket",
+          "detail": "alpaca_backfill order_id=7b6556c6-60d0-45cf-85dc-3ca89f16e6b2"
+        },
+        {
+          "kind": "ticket",
+          "id": 240,
+          "label": "exit ticket",
+          "detail": "SELL 0.263331 PATH @~12.15; cash buffer trim; weighted_score=-0.039; cash/equity=0.65% < min=3%"
+        },
+        {
+          "kind": "signal",
+          "id": 660,
+          "label": "macro @ entry",
+          "detail": "long @ conf=89.0"
+        },
+        {
+          "kind": "signal",
+          "id": 659,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=60.7"
+        },
+        {
+          "kind": "signal",
+          "id": 658,
+          "label": "statistical_ml @ entry",
+          "detail": "long @ conf=87.9"
+        },
+        {
+          "kind": "signal",
+          "id": 657,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=15.0"
+        },
+        {
+          "kind": "signal",
+          "id": 656,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=62.8"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.60078; blended_conf=63.078"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=1.1905; mae_pct=-23.4788; ret_pct=-19.6958"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "robotics"
+    },
+    {
       "ticker": "QUBT",
       "qty": 0.062257,
       "entry": 8.64,
@@ -15783,6 +15943,166 @@
       "sector": "quantum"
     },
     {
+      "ticker": "PATH",
+      "qty": 0.210665,
+      "entry": 15.12,
+      "exit": 12.102,
+      "pnl": -0.6357869699999997,
+      "pnl_pct": -19.9603,
+      "opened_at": "2026-09-08T13:31:08.091650Z",
+      "closed_at": "2026-09-29T17:52:26.458216Z",
+      "hold_hours": 508.355,
+      "exit_reason": "cash_buffer_trim",
+      "exit_rationale": "SELL 0.210665 PATH @~12.10; cash buffer trim; weighted_score=-0.034; cash/equity=0.28% < min=3%",
+      "entry_ticket_id": 270,
+      "exit_ticket_id": 249,
+      "entry_fill_id": 153,
+      "exit_fill_id": 133,
+      "entry_score": {
+        "weighted_score": 0.60078,
+        "blended_conf": 63.078
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "macro",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning_trunc": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (15.3); Dollar stable (+0.0% 20d); Rates stable (-0.3%); Ben\u2026",
+          "signal_id": 660,
+          "created_at": "2026-09-08T13:25:12.912564Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 60.69354929577465,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.42; avg source credibility 0.71; 'PATH Stock Wrapped Its Worst Week In 4 Months: UiPath Wins Higher Price Targets,'\u2026",
+          "signal_id": 659,
+          "created_at": "2026-09-08T13:25:12.908388Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "long",
+          "confidence": 87.9,
+          "reasoning_trunc": "oversold vs MA20 (z=-1.30); residual_to_MA20=-8.9%; return z oversold (-4.08); flat 20d momentum +0.9%; 60d trend up +41.3%; cross-sectional mom rank top (100%\u2026",
+          "signal_id": 658,
+          "created_at": "2026-09-08T13:25:12.693027Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning_trunc": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "signal_id": 657,
+          "created_at": "2026-09-08T13:25:12.686758Z"
+        },
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 62.796349904083314,
+          "reasoning_trunc": "MA20 > MA50 (short-term uptrend); MA50 > MA200 (intermediate uptrend); MACD histogram negative; 20d RS vs SPY: +1.33%",
+          "signal_id": 656,
+          "created_at": "2026-09-08T13:25:11.551769Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "macro",
+          "sentiment",
+          "statistical_ml",
+          "momentum"
+        ],
+        "short": [],
+        "neutral": [
+          "fundamental"
+        ],
+        "disagreement": false,
+        "lead_agent": "macro",
+        "lead_confidence": 89.0
+      },
+      "path": {
+        "mfe_pct": 1.1905,
+        "mae_pct": -23.4788,
+        "ret_pct": -19.9603
+      },
+      "verdict": "Lost money: Realized PnL=-0.6358. Entered aligned; lead agent macro was long@89.0 (see macro signal #660 long @ conf=89.0). Entry weighted_score=0.60078. Exit was a cash-buffer trim (forced, not a conviction exit). Held 508.4h.",
+      "verdict_tags": [
+        "loser",
+        "aligned",
+        "forced_exit"
+      ],
+      "completeness": "partial",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 153,
+          "label": "entry fill",
+          "detail": "buy qty=0.210665 @ 15.12"
+        },
+        {
+          "kind": "fill",
+          "id": 133,
+          "label": "exit fill",
+          "detail": "sell @ 12.102"
+        },
+        {
+          "kind": "ticket",
+          "id": 270,
+          "label": "entry ticket",
+          "detail": "alpaca_backfill order_id=7b6556c6-60d0-45cf-85dc-3ca89f16e6b2"
+        },
+        {
+          "kind": "ticket",
+          "id": 249,
+          "label": "exit ticket",
+          "detail": "SELL 0.210665 PATH @~12.10; cash buffer trim; weighted_score=-0.034; cash/equity=0.28% < min=3%"
+        },
+        {
+          "kind": "signal",
+          "id": 660,
+          "label": "macro @ entry",
+          "detail": "long @ conf=89.0"
+        },
+        {
+          "kind": "signal",
+          "id": 659,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=60.7"
+        },
+        {
+          "kind": "signal",
+          "id": 658,
+          "label": "statistical_ml @ entry",
+          "detail": "long @ conf=87.9"
+        },
+        {
+          "kind": "signal",
+          "id": 657,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=15.0"
+        },
+        {
+          "kind": "signal",
+          "id": 656,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=62.8"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.60078; blended_conf=63.078"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=1.1905; mae_pct=-23.4788; ret_pct=-19.9603"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "robotics"
+    },
+    {
       "ticker": "QUBT",
       "qty": 0.022394,
       "entry": 8.64,
@@ -16427,6 +16747,166 @@
       "sector": "quantum"
     },
     {
+      "ticker": "PATH",
+      "qty": 0.168532,
+      "entry": 15.12,
+      "exit": 12.242,
+      "pnl": -0.48503509599999967,
+      "pnl_pct": -19.0344,
+      "opened_at": "2026-09-08T13:31:08.091650Z",
+      "closed_at": "2026-09-29T19:17:12.502112Z",
+      "hold_hours": 509.768,
+      "exit_reason": "cash_buffer_trim",
+      "exit_rationale": "SELL 0.168532 PATH @~12.24; cash buffer trim; weighted_score=-0.025; cash/equity=0.99% < min=3%",
+      "entry_ticket_id": 270,
+      "exit_ticket_id": 255,
+      "entry_fill_id": 153,
+      "exit_fill_id": 139,
+      "entry_score": {
+        "weighted_score": 0.60078,
+        "blended_conf": 63.078
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "macro",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning_trunc": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (15.3); Dollar stable (+0.0% 20d); Rates stable (-0.3%); Ben\u2026",
+          "signal_id": 660,
+          "created_at": "2026-09-08T13:25:12.912564Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 60.69354929577465,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.42; avg source credibility 0.71; 'PATH Stock Wrapped Its Worst Week In 4 Months: UiPath Wins Higher Price Targets,'\u2026",
+          "signal_id": 659,
+          "created_at": "2026-09-08T13:25:12.908388Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "long",
+          "confidence": 87.9,
+          "reasoning_trunc": "oversold vs MA20 (z=-1.30); residual_to_MA20=-8.9%; return z oversold (-4.08); flat 20d momentum +0.9%; 60d trend up +41.3%; cross-sectional mom rank top (100%\u2026",
+          "signal_id": 658,
+          "created_at": "2026-09-08T13:25:12.693027Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning_trunc": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "signal_id": 657,
+          "created_at": "2026-09-08T13:25:12.686758Z"
+        },
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 62.796349904083314,
+          "reasoning_trunc": "MA20 > MA50 (short-term uptrend); MA50 > MA200 (intermediate uptrend); MACD histogram negative; 20d RS vs SPY: +1.33%",
+          "signal_id": 656,
+          "created_at": "2026-09-08T13:25:11.551769Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "macro",
+          "sentiment",
+          "statistical_ml",
+          "momentum"
+        ],
+        "short": [],
+        "neutral": [
+          "fundamental"
+        ],
+        "disagreement": false,
+        "lead_agent": "macro",
+        "lead_confidence": 89.0
+      },
+      "path": {
+        "mfe_pct": 1.1905,
+        "mae_pct": -23.4788,
+        "ret_pct": -19.0344
+      },
+      "verdict": "Lost money: Realized PnL=-0.4850. Entered aligned; lead agent macro was long@89.0 (see macro signal #660 long @ conf=89.0). Entry weighted_score=0.60078. Exit was a cash-buffer trim (forced, not a conviction exit). Held 509.8h.",
+      "verdict_tags": [
+        "loser",
+        "aligned",
+        "forced_exit"
+      ],
+      "completeness": "partial",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 153,
+          "label": "entry fill",
+          "detail": "buy qty=0.168532 @ 15.12"
+        },
+        {
+          "kind": "fill",
+          "id": 139,
+          "label": "exit fill",
+          "detail": "sell @ 12.242"
+        },
+        {
+          "kind": "ticket",
+          "id": 270,
+          "label": "entry ticket",
+          "detail": "alpaca_backfill order_id=7b6556c6-60d0-45cf-85dc-3ca89f16e6b2"
+        },
+        {
+          "kind": "ticket",
+          "id": 255,
+          "label": "exit ticket",
+          "detail": "SELL 0.168532 PATH @~12.24; cash buffer trim; weighted_score=-0.025; cash/equity=0.99% < min=3%"
+        },
+        {
+          "kind": "signal",
+          "id": 660,
+          "label": "macro @ entry",
+          "detail": "long @ conf=89.0"
+        },
+        {
+          "kind": "signal",
+          "id": 659,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=60.7"
+        },
+        {
+          "kind": "signal",
+          "id": 658,
+          "label": "statistical_ml @ entry",
+          "detail": "long @ conf=87.9"
+        },
+        {
+          "kind": "signal",
+          "id": 657,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=15.0"
+        },
+        {
+          "kind": "signal",
+          "id": 656,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=62.8"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.60078; blended_conf=63.078"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=1.1905; mae_pct=-23.4788; ret_pct=-19.0344"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "robotics"
+    },
+    {
       "ticker": "QUBT",
       "qty": 0.005483,
       "entry": 8.64,
@@ -16749,6 +17229,489 @@
       "sector": "quantum"
     },
     {
+      "ticker": "PATH",
+      "qty": 0.168532,
+      "entry": 15.12,
+      "exit": 12.426,
+      "pnl": -0.4540252079999998,
+      "pnl_pct": -17.8175,
+      "opened_at": "2026-09-08T13:31:08.091650Z",
+      "closed_at": "2026-09-30T13:33:05.462724Z",
+      "hold_hours": 528.033,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.168532 PATH @~12.46; opportunity rotate to fund ISRG (buy_score=0.581 donor_score=-0.039)",
+      "entry_ticket_id": 270,
+      "exit_ticket_id": 258,
+      "entry_fill_id": 153,
+      "exit_fill_id": 142,
+      "entry_score": {
+        "weighted_score": 0.60078,
+        "blended_conf": 63.078
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "macro",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning_trunc": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (15.3); Dollar stable (+0.0% 20d); Rates stable (-0.3%); Ben\u2026",
+          "signal_id": 660,
+          "created_at": "2026-09-08T13:25:12.912564Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 60.69354929577465,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.42; avg source credibility 0.71; 'PATH Stock Wrapped Its Worst Week In 4 Months: UiPath Wins Higher Price Targets,'\u2026",
+          "signal_id": 659,
+          "created_at": "2026-09-08T13:25:12.908388Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "long",
+          "confidence": 87.9,
+          "reasoning_trunc": "oversold vs MA20 (z=-1.30); residual_to_MA20=-8.9%; return z oversold (-4.08); flat 20d momentum +0.9%; 60d trend up +41.3%; cross-sectional mom rank top (100%\u2026",
+          "signal_id": 658,
+          "created_at": "2026-09-08T13:25:12.693027Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning_trunc": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "signal_id": 657,
+          "created_at": "2026-09-08T13:25:12.686758Z"
+        },
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 62.796349904083314,
+          "reasoning_trunc": "MA20 > MA50 (short-term uptrend); MA50 > MA200 (intermediate uptrend); MACD histogram negative; 20d RS vs SPY: +1.33%",
+          "signal_id": 656,
+          "created_at": "2026-09-08T13:25:11.551769Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "macro",
+          "sentiment",
+          "statistical_ml",
+          "momentum"
+        ],
+        "short": [],
+        "neutral": [
+          "fundamental"
+        ],
+        "disagreement": false,
+        "lead_agent": "macro",
+        "lead_confidence": 89.0
+      },
+      "path": {
+        "mfe_pct": 1.1905,
+        "mae_pct": -23.4788,
+        "ret_pct": -17.8175
+      },
+      "verdict": "Lost money: Realized PnL=-0.4540. Entered aligned; lead agent macro was long@89.0 (see macro signal #660 long @ conf=89.0). Entry weighted_score=0.60078. Exit was an opportunity-rotate trim to fund another name. Held 528.0h.",
+      "verdict_tags": [
+        "loser",
+        "aligned",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "partial",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 153,
+          "label": "entry fill",
+          "detail": "buy qty=0.168532 @ 15.12"
+        },
+        {
+          "kind": "fill",
+          "id": 142,
+          "label": "exit fill",
+          "detail": "sell @ 12.426"
+        },
+        {
+          "kind": "ticket",
+          "id": 270,
+          "label": "entry ticket",
+          "detail": "alpaca_backfill order_id=7b6556c6-60d0-45cf-85dc-3ca89f16e6b2"
+        },
+        {
+          "kind": "ticket",
+          "id": 258,
+          "label": "exit ticket",
+          "detail": "SELL 0.168532 PATH @~12.46; opportunity rotate to fund ISRG (buy_score=0.581 donor_score=-0.039)"
+        },
+        {
+          "kind": "signal",
+          "id": 660,
+          "label": "macro @ entry",
+          "detail": "long @ conf=89.0"
+        },
+        {
+          "kind": "signal",
+          "id": 659,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=60.7"
+        },
+        {
+          "kind": "signal",
+          "id": 658,
+          "label": "statistical_ml @ entry",
+          "detail": "long @ conf=87.9"
+        },
+        {
+          "kind": "signal",
+          "id": 657,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=15.0"
+        },
+        {
+          "kind": "signal",
+          "id": 656,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=62.8"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.60078; blended_conf=63.078"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=1.1905; mae_pct=-23.4788; ret_pct=-17.8175"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "robotics"
+    },
+    {
+      "ticker": "PATH",
+      "qty": 0.126399,
+      "entry": 15.12,
+      "exit": 12.444,
+      "pnl": -0.3382437239999998,
+      "pnl_pct": -17.6984,
+      "opened_at": "2026-09-08T13:31:08.091650Z",
+      "closed_at": "2026-09-30T13:33:06.384532Z",
+      "hold_hours": 528.033,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.126399 PATH @~12.46; opportunity rotate to fund MSFT (buy_score=0.441 donor_score=-0.039)",
+      "entry_ticket_id": 270,
+      "exit_ticket_id": 259,
+      "entry_fill_id": 153,
+      "exit_fill_id": 143,
+      "entry_score": {
+        "weighted_score": 0.60078,
+        "blended_conf": 63.078
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "macro",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning_trunc": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (15.3); Dollar stable (+0.0% 20d); Rates stable (-0.3%); Ben\u2026",
+          "signal_id": 660,
+          "created_at": "2026-09-08T13:25:12.912564Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 60.69354929577465,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.42; avg source credibility 0.71; 'PATH Stock Wrapped Its Worst Week In 4 Months: UiPath Wins Higher Price Targets,'\u2026",
+          "signal_id": 659,
+          "created_at": "2026-09-08T13:25:12.908388Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "long",
+          "confidence": 87.9,
+          "reasoning_trunc": "oversold vs MA20 (z=-1.30); residual_to_MA20=-8.9%; return z oversold (-4.08); flat 20d momentum +0.9%; 60d trend up +41.3%; cross-sectional mom rank top (100%\u2026",
+          "signal_id": 658,
+          "created_at": "2026-09-08T13:25:12.693027Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning_trunc": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "signal_id": 657,
+          "created_at": "2026-09-08T13:25:12.686758Z"
+        },
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 62.796349904083314,
+          "reasoning_trunc": "MA20 > MA50 (short-term uptrend); MA50 > MA200 (intermediate uptrend); MACD histogram negative; 20d RS vs SPY: +1.33%",
+          "signal_id": 656,
+          "created_at": "2026-09-08T13:25:11.551769Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "macro",
+          "sentiment",
+          "statistical_ml",
+          "momentum"
+        ],
+        "short": [],
+        "neutral": [
+          "fundamental"
+        ],
+        "disagreement": false,
+        "lead_agent": "macro",
+        "lead_confidence": 89.0
+      },
+      "path": {
+        "mfe_pct": 1.1905,
+        "mae_pct": -23.4788,
+        "ret_pct": -17.6984
+      },
+      "verdict": "Lost money: Realized PnL=-0.3382. Entered aligned; lead agent macro was long@89.0 (see macro signal #660 long @ conf=89.0). Entry weighted_score=0.60078. Exit was an opportunity-rotate trim to fund another name. Held 528.0h.",
+      "verdict_tags": [
+        "loser",
+        "aligned",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "partial",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 153,
+          "label": "entry fill",
+          "detail": "buy qty=0.126399 @ 15.12"
+        },
+        {
+          "kind": "fill",
+          "id": 143,
+          "label": "exit fill",
+          "detail": "sell @ 12.444"
+        },
+        {
+          "kind": "ticket",
+          "id": 270,
+          "label": "entry ticket",
+          "detail": "alpaca_backfill order_id=7b6556c6-60d0-45cf-85dc-3ca89f16e6b2"
+        },
+        {
+          "kind": "ticket",
+          "id": 259,
+          "label": "exit ticket",
+          "detail": "SELL 0.126399 PATH @~12.46; opportunity rotate to fund MSFT (buy_score=0.441 donor_score=-0.039)"
+        },
+        {
+          "kind": "signal",
+          "id": 660,
+          "label": "macro @ entry",
+          "detail": "long @ conf=89.0"
+        },
+        {
+          "kind": "signal",
+          "id": 659,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=60.7"
+        },
+        {
+          "kind": "signal",
+          "id": 658,
+          "label": "statistical_ml @ entry",
+          "detail": "long @ conf=87.9"
+        },
+        {
+          "kind": "signal",
+          "id": 657,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=15.0"
+        },
+        {
+          "kind": "signal",
+          "id": 656,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=62.8"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.60078; blended_conf=63.078"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=1.1905; mae_pct=-23.4788; ret_pct=-17.6984"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "robotics"
+    },
+    {
+      "ticker": "PATH",
+      "qty": 0.094799,
+      "entry": 15.12,
+      "exit": 12.642,
+      "pnl": -0.23491192199999997,
+      "pnl_pct": -16.3889,
+      "opened_at": "2026-09-08T13:31:08.091650Z",
+      "closed_at": "2026-09-30T13:48:12.302744Z",
+      "hold_hours": 528.285,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.094799 PATH @~12.65; opportunity rotate to fund TER (buy_score=0.582 donor_score=-0.028)",
+      "entry_ticket_id": 270,
+      "exit_ticket_id": 263,
+      "entry_fill_id": 153,
+      "exit_fill_id": 146,
+      "entry_score": {
+        "weighted_score": 0.60078,
+        "blended_conf": 63.078
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "macro",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning_trunc": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (robotics); VIX contained (15.3); Dollar stable (+0.0% 20d); Rates stable (-0.3%); Ben\u2026",
+          "signal_id": 660,
+          "created_at": "2026-09-08T13:25:12.912564Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 60.69354929577465,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.42; avg source credibility 0.71; 'PATH Stock Wrapped Its Worst Week In 4 Months: UiPath Wins Higher Price Targets,'\u2026",
+          "signal_id": 659,
+          "created_at": "2026-09-08T13:25:12.908388Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "long",
+          "confidence": 87.9,
+          "reasoning_trunc": "oversold vs MA20 (z=-1.30); residual_to_MA20=-8.9%; return z oversold (-4.08); flat 20d momentum +0.9%; 60d trend up +41.3%; cross-sectional mom rank top (100%\u2026",
+          "signal_id": 658,
+          "created_at": "2026-09-08T13:25:12.693027Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 15.0,
+          "reasoning_trunc": "Insufficient fundamental data available; emitting neutral with low confidence.",
+          "signal_id": 657,
+          "created_at": "2026-09-08T13:25:12.686758Z"
+        },
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 62.796349904083314,
+          "reasoning_trunc": "MA20 > MA50 (short-term uptrend); MA50 > MA200 (intermediate uptrend); MACD histogram negative; 20d RS vs SPY: +1.33%",
+          "signal_id": 656,
+          "created_at": "2026-09-08T13:25:11.551769Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "macro",
+          "sentiment",
+          "statistical_ml",
+          "momentum"
+        ],
+        "short": [],
+        "neutral": [
+          "fundamental"
+        ],
+        "disagreement": false,
+        "lead_agent": "macro",
+        "lead_confidence": 89.0
+      },
+      "path": {
+        "mfe_pct": 1.1905,
+        "mae_pct": -23.4788,
+        "ret_pct": -16.3889
+      },
+      "verdict": "Lost money: Realized PnL=-0.2349. Entered aligned; lead agent macro was long@89.0 (see macro signal #660 long @ conf=89.0). Entry weighted_score=0.60078. Exit was an opportunity-rotate trim to fund another name. Held 528.3h.",
+      "verdict_tags": [
+        "loser",
+        "aligned",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "partial",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 153,
+          "label": "entry fill",
+          "detail": "buy qty=0.094799 @ 15.12"
+        },
+        {
+          "kind": "fill",
+          "id": 146,
+          "label": "exit fill",
+          "detail": "sell @ 12.642"
+        },
+        {
+          "kind": "ticket",
+          "id": 270,
+          "label": "entry ticket",
+          "detail": "alpaca_backfill order_id=7b6556c6-60d0-45cf-85dc-3ca89f16e6b2"
+        },
+        {
+          "kind": "ticket",
+          "id": 263,
+          "label": "exit ticket",
+          "detail": "SELL 0.094799 PATH @~12.65; opportunity rotate to fund TER (buy_score=0.582 donor_score=-0.028)"
+        },
+        {
+          "kind": "signal",
+          "id": 660,
+          "label": "macro @ entry",
+          "detail": "long @ conf=89.0"
+        },
+        {
+          "kind": "signal",
+          "id": 659,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=60.7"
+        },
+        {
+          "kind": "signal",
+          "id": 658,
+          "label": "statistical_ml @ entry",
+          "detail": "long @ conf=87.9"
+        },
+        {
+          "kind": "signal",
+          "id": 657,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=15.0"
+        },
+        {
+          "kind": "signal",
+          "id": 656,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=62.8"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.60078; blended_conf=63.078"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=1.1905; mae_pct=-23.4788; ret_pct=-16.3889"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "robotics"
+    },
+    {
       "ticker": "IBM",
       "qty": 0.000613,
       "entry": 235.3925811589616,
@@ -16828,7 +17791,7 @@
       },
       "path": {
         "mfe_pct": 6.9787,
-        "mae_pct": -6.8662,
+        "mae_pct": -6.9638,
         "ret_pct": -6.0922
       },
       "verdict": "Lost money: Realized PnL=-0.0088. Entered with a split book: long=[fundamental, sentiment] vs short=[statistical_ml] (see fundamental signal #3467 long @ conf=92.0). Entry weighted_score=0.169. Exit was a signal-driven sell (reduce risk). Held 570.7h.",
@@ -16903,7 +17866,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=6.9787; mae_pct=-6.8662; ret_pct=-6.0922"
+          "detail": "source=daily_bars; mfe_pct=6.9787; mae_pct=-6.9638; ret_pct=-6.0922"
         }
       ],
       "mode": "alpaca",
@@ -16989,7 +17952,7 @@
       },
       "path": {
         "mfe_pct": 6.9787,
-        "mae_pct": -6.8662,
+        "mae_pct": -6.9638,
         "ret_pct": -6.3089
       },
       "verdict": "Lost money: Realized PnL=-0.0075. Entered with a split book: long=[fundamental, sentiment] vs short=[statistical_ml] (see fundamental signal #3467 long @ conf=92.0). Entry weighted_score=0.169. Exit was a signal-driven sell (reduce risk). Held 571.7h.",
@@ -17064,7 +18027,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=6.9787; mae_pct=-6.8662; ret_pct=-6.3089"
+          "detail": "source=daily_bars; mfe_pct=6.9787; mae_pct=-6.9638; ret_pct=-6.3089"
         }
       ],
       "mode": "alpaca",
@@ -17311,7 +18274,7 @@
       },
       "path": {
         "mfe_pct": 6.9787,
-        "mae_pct": -6.8662,
+        "mae_pct": -6.9638,
         "ret_pct": -6.2987
       },
       "verdict": "Lost money: Realized PnL=-0.0062. Entered with a split book: long=[fundamental, sentiment] vs short=[statistical_ml] (see fundamental signal #3467 long @ conf=92.0). Entry weighted_score=0.169. Exit was a signal-driven sell (reduce risk). Held 572.7h.",
@@ -17386,7 +18349,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=6.9787; mae_pct=-6.8662; ret_pct=-6.2987"
+          "detail": "source=daily_bars; mfe_pct=6.9787; mae_pct=-6.9638; ret_pct=-6.2987"
         }
       ],
       "mode": "alpaca",
