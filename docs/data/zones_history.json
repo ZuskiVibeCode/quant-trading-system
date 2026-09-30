@@ -3253,13 +3253,13 @@
         {
           "ticker": "ADSK",
           "buy": 0.276781,
-          "sell": 0.189231,
+          "sell": 0.189725,
           "zone": "quiet",
           "held": false
         },
         {
           "ticker": "AMD",
-          "buy": 0.654408,
+          "buy": 0.659036,
           "sell": 0.0,
           "zone": "buy_zone",
           "held": true
@@ -3267,28 +3267,28 @@
         {
           "ticker": "ASTS",
           "buy": 0.11808,
-          "sell": 0.172,
+          "sell": 0.253319,
           "zone": "quiet",
           "held": false
         },
         {
           "ticker": "AVAV",
           "buy": 0.109575,
-          "sell": 0.288799,
+          "sell": 0.314968,
           "zone": "quiet",
           "held": false
         },
         {
           "ticker": "BA",
           "buy": 0.247593,
-          "sell": 0.016939,
+          "sell": 0.016724,
           "zone": "quiet",
           "held": false
         },
         {
           "ticker": "BKSY",
           "buy": 0.128808,
-          "sell": 0.231576,
+          "sell": 0.229691,
           "zone": "quiet",
           "held": false
         },
@@ -3309,20 +3309,20 @@
         {
           "ticker": "HON",
           "buy": 0.305061,
-          "sell": 0.06335,
+          "sell": 0.063384,
           "zone": "quiet",
           "held": false
         },
         {
           "ticker": "IBM",
           "buy": 0.122992,
-          "sell": 0.199075,
+          "sell": 0.199347,
           "zone": "quiet",
           "held": true
         },
         {
           "ticker": "IONQ",
-          "buy": 0.409201,
+          "buy": 0.408843,
           "sell": 0.172,
           "zone": "buy_zone",
           "held": false
@@ -3336,7 +3336,7 @@
         },
         {
           "ticker": "ISRG",
-          "buy": 0.575181,
+          "buy": 0.575525,
           "sell": 0.0,
           "zone": "buy_zone",
           "held": true
@@ -3344,41 +3344,41 @@
         {
           "ticker": "LHX",
           "buy": 0.309315,
-          "sell": 0.22996,
+          "sell": 0.177047,
           "zone": "quiet",
           "held": true
         },
         {
           "ticker": "LMT",
           "buy": 0.441822,
-          "sell": 0.044389,
+          "sell": 0.044219,
           "zone": "buy_zone",
           "held": false
         },
         {
           "ticker": "LUNR",
           "buy": 0.128452,
-          "sell": 0.332052,
+          "sell": 0.329779,
           "zone": "quiet",
           "held": false
         },
         {
           "ticker": "MSFT",
-          "buy": 0.47223,
+          "buy": 0.466564,
           "sell": 0.12855,
           "zone": "buy_zone",
           "held": true
         },
         {
           "ticker": "NOC",
-          "buy": 0.434252,
-          "sell": 0.039793,
+          "buy": 0.443458,
+          "sell": 0.039748,
           "zone": "buy_zone",
           "held": false
         },
         {
           "ticker": "NVDA",
-          "buy": 0.621275,
+          "buy": 0.641703,
           "sell": 0.0,
           "zone": "buy_zone",
           "held": true
@@ -3393,7 +3393,7 @@
         {
           "ticker": "QBTS",
           "buy": 0.115831,
-          "sell": 0.240804,
+          "sell": 0.240364,
           "zone": "quiet",
           "held": false
         },
@@ -3414,14 +3414,14 @@
         {
           "ticker": "RDW",
           "buy": 0.11258,
-          "sell": 0.225295,
+          "sell": 0.217403,
           "zone": "quiet",
           "held": false
         },
         {
           "ticker": "RGTI",
           "buy": 0.113181,
-          "sell": 0.069471,
+          "sell": 0.069147,
           "zone": "quiet",
           "held": false
         },
@@ -3448,7 +3448,7 @@
         },
         {
           "ticker": "TER",
-          "buy": 0.618755,
+          "buy": 0.618997,
           "sell": 0.0,
           "zone": "buy_zone",
           "held": true
@@ -3456,7 +3456,7 @@
         {
           "ticker": "TSLA",
           "buy": 0.0,
-          "sell": 0.0,
+          "sell": 0.079727,
           "zone": "quiet",
           "held": false
         }
