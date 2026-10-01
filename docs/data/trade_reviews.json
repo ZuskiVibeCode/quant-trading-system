@@ -1,6 +1,6 @@
 {
-  "exported_at": "2026-10-01T18:55:52.053205Z",
-  "count": 138,
+  "exported_at": "2026-10-01T19:18:21.422972Z",
+  "count": 139,
   "reviews": [
     {
       "ticker": "RGTI",
@@ -22213,6 +22213,167 @@
           "id": null,
           "label": "path stats",
           "detail": "source=daily_bars; mfe_pct=12.963; mae_pct=-4.3981; ret_pct=-2.5231"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "quantum"
+    },
+    {
+      "ticker": "QUBT",
+      "qty": 1.9e-05,
+      "entry": 8.64,
+      "exit": 8.442,
+      "pnl": -3.7620000000000078e-06,
+      "pnl_pct": -2.2917,
+      "opened_at": "2026-09-18T19:46:07.142348Z",
+      "closed_at": "2026-10-01T19:17:36.176213Z",
+      "hold_hours": 311.525,
+      "exit_reason": "signal_sell",
+      "exit_rationale": "SELL 1.9e-05 QUBT @~8.44; weighted_score=-0.063; reduce risk",
+      "entry_ticket_id": 79,
+      "exit_ticket_id": 297,
+      "entry_fill_id": 16,
+      "exit_fill_id": 180,
+      "entry_score": {
+        "weighted_score": 0.113,
+        "blended_conf": 65.5
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "neutral",
+          "confidence": 53.36497345385213,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 < MA200 (intermediate downtrend); RSI constructive (56.5); MACD histogram positive; 20d RS vs SPY: +6.61%; RVOL 0.84x\u2026",
+          "signal_id": 2411,
+          "created_at": "2026-09-18T19:45:36.147461Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "short",
+          "confidence": 82.4,
+          "reasoning_trunc": "Strong revenue growth (9000.0%); Negative profit margin (-152.5%); Negative operating margin (-281.3%); Negative FCF (-53,905,876) \u2014 cash burn risk; Moderate l\u2026",
+          "signal_id": 2412,
+          "created_at": "2026-09-18T19:45:36.718548Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "neutral",
+          "confidence": 52.8,
+          "reasoning_trunc": "overbought vs MA20 (z=1.55); residual_to_MA20=+5.9%; positive 20d momentum +6.4%; cross-sectional mom rank top (90%); vol regime=normal",
+          "signal_id": 2413,
+          "created_at": "2026-09-18T19:45:36.724843Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 49.908067164179116,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.17; avg source credibility 0.67; 'What Needs To Be True To Buy Rigetti Stock Today?' (Trefis, pol=+1.00); 'Here's H\u2026",
+          "signal_id": 2414,
+          "created_at": "2026-09-18T19:45:36.909522Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning_trunc": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (quantum); VIX contained (15.0); Dollar stable (+1.7% 20d); Rates stable (-1.0%); Benc\u2026",
+          "signal_id": 2415,
+          "created_at": "2026-09-18T19:45:36.914497Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "sentiment",
+          "macro"
+        ],
+        "short": [
+          "fundamental"
+        ],
+        "neutral": [
+          "momentum",
+          "statistical_ml"
+        ],
+        "disagreement": true,
+        "lead_agent": "macro",
+        "lead_confidence": 89.0
+      },
+      "path": {
+        "mfe_pct": 12.963,
+        "mae_pct": -4.3981,
+        "ret_pct": -2.2917
+      },
+      "verdict": "Lost money: Realized PnL=-0.0000. Entered with a split book: long=[sentiment, macro] vs short=[fundamental] (see macro signal #2415 long @ conf=89.0). Entry weighted_score=0.113. Exit was a signal-driven sell (reduce risk). Held 311.5h.",
+      "verdict_tags": [
+        "loser",
+        "split_book",
+        "signal_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 16,
+          "label": "entry fill",
+          "detail": "buy qty=1.9e-05 @ 8.64"
+        },
+        {
+          "kind": "fill",
+          "id": 180,
+          "label": "exit fill",
+          "detail": "sell @ 8.442"
+        },
+        {
+          "kind": "ticket",
+          "id": 79,
+          "label": "entry ticket",
+          "detail": "BUY 2.143144 QUBT @~8.66; weighted_score=0.113; blended_conf=65.5; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 297,
+          "label": "exit ticket",
+          "detail": "SELL 1.9e-05 QUBT @~8.44; weighted_score=-0.063; reduce risk"
+        },
+        {
+          "kind": "signal",
+          "id": 2411,
+          "label": "momentum @ entry",
+          "detail": "neutral @ conf=53.4"
+        },
+        {
+          "kind": "signal",
+          "id": 2412,
+          "label": "fundamental @ entry",
+          "detail": "short @ conf=82.4"
+        },
+        {
+          "kind": "signal",
+          "id": 2413,
+          "label": "statistical_ml @ entry",
+          "detail": "neutral @ conf=52.8"
+        },
+        {
+          "kind": "signal",
+          "id": 2414,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=49.9"
+        },
+        {
+          "kind": "signal",
+          "id": 2415,
+          "label": "macro @ entry",
+          "detail": "long @ conf=89.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.113; blended_conf=65.5"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=12.963; mae_pct=-4.3981; ret_pct=-2.2917"
         }
       ],
       "mode": "alpaca",
