@@ -637,6 +637,7 @@
           · <span class="subtle">${fmtTime(latestSig.created_at)}</span></p>
         <p style="margin-top:0.5rem">${latestSig.reasoning || "—"}</p>
         ${minerviniLabel(latestSig.supporting_data)}
+        ${obvChandelierLabel(latestSig.supporting_data)}
         ${latestSig.supporting_data ? `<pre>${JSON.stringify(latestSig.supporting_data, null, 2)}</pre>` : ""}`;
     }
 
@@ -1129,6 +1130,32 @@
     return `<p class="mono" style="margin-top:0.65rem">Minervini ${n}/10${rs} <span class="muted">(soft)</span></p>`;
   }
 
+  function obvChandelierLabel(sd) {
+    if (!sd) return "";
+    const bits = [];
+    if (sd.obv != null && sd.obv !== "") {
+      const slope = Number(sd.obv_slope);
+      const slopeBit = Number.isFinite(slope)
+        ? slope > 0
+          ? " rising"
+          : slope < 0
+            ? " falling"
+            : " flat"
+        : "";
+      bits.push(`OBV${slopeBit}`);
+    }
+    if (sd.price_vs_chandelier != null && sd.price_vs_chandelier !== "") {
+      const vs = Number(sd.price_vs_chandelier);
+      if (Number.isFinite(vs)) {
+        bits.push(vs >= 0 ? "Chandelier above" : "Chandelier through");
+      }
+    } else if (sd.chandelier_long != null && sd.chandelier_long !== "") {
+      bits.push("Chandelier");
+    }
+    if (!bits.length) return "";
+    return `<p class="mono" style="margin-top:0.35rem">${bits.join(" · ")} <span class="muted">(soft)</span></p>`;
+  }
+
   function openDetail(signal, agentId) {
     openDialogHtml(`
       <p class="kicker">${agentId || signal.agent_id || "agent"}</p>
@@ -1137,6 +1164,7 @@
       <p class="muted">${fmtTime(signal.created_at)}</p>
       <p style="margin-top:1rem">${signal.reasoning || ""}</p>
       ${minerviniLabel(signal.supporting_data)}
+      ${obvChandelierLabel(signal.supporting_data)}
       <p class="kicker" style="margin-top:1rem">Supporting data</p>
       <pre>${JSON.stringify(signal.supporting_data || {}, null, 2)}</pre>`);
   }

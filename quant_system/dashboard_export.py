@@ -78,7 +78,7 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def _summarize_supporting(data: Any, max_keys: int = 10) -> dict[str, Any] | str | None:
+def _summarize_supporting(data: Any, max_keys: int = 16) -> dict[str, Any] | str | None:
     if data is None:
         return None
     if isinstance(data, str):
@@ -108,6 +108,12 @@ def _summarize_supporting(data: Any, max_keys: int = 10) -> dict[str, Any] | str
         "rs_proxy",
         "pct_vs_52w_high",
         "pct_vs_52w_low",
+        "obv",
+        "obv_slope",
+        "obv_vs_ma",
+        "atr",
+        "chandelier_long",
+        "price_vs_chandelier",
         "edge_type",
         "vol_regime",
     )

@@ -1,4 +1,4 @@
-"""MomentumAgent — MA 20/50/200, RSI, MACD, breakouts, ATR, RS, volume / demand / squeeze, VbP, Weinstein, aVWAP, Minervini template."""
+"""MomentumAgent — MA 20/50/200, RSI, MACD, breakouts, ATR, RS, volume / demand / squeeze, VbP, Weinstein, aVWAP, Minervini template, OBV, Chandelier trail."""
 
 from __future__ import annotations
 
@@ -1013,6 +1013,217 @@ def _apply_minervini_overlay(
     return score, float(delta)
 
 
+
+# On-balance volume and Chandelier ATR trail — soft only, never a hard veto.
+# An MA cross is ±15. These caps stay strictly smaller than that.
+_OBV_MA_WINDOW = 20
+_OBV_SLOPE_LOOKBACK = 10
+_OBV_VS_MA_SCORE = 2.0  # OBV above / below its own SMA
+_OBV_SLOPE_SCORE = 2.0  # OBV rising / falling over the slope lookback
+_OBV_SCORE_CAP = 4.0  # combined OBV tilt, still << one MA cross
+
+_CHANDELIER_ATR_PERIOD = 14
+_CHANDELIER_LOOKBACK = 22
+_CHANDELIER_ATR_MULT = 3.0
+_CHANDELIER_SCORE = 3.0  # above long trail +, close through it −; exit hint only
+
+
+def on_balance_volume(
+    df: pd.DataFrame,
+    *,
+    ma_window: int = _OBV_MA_WINDOW,
+    slope_lookback: int = _OBV_SLOPE_LOOKBACK,
+) -> dict[str, Any]:
+    """Classic Granville on-balance volume.
+
+    Start at 0. Up close (Close > prior Close) adds that bar's volume; down
+    close subtracts it; unchanged close leaves OBV flat. The first bar has no
+    prior close and contributes 0.
+
+    ``obv_slope`` is the change over ``slope_lookback`` bars divided by
+    (lookback × mean volume on that window), so it is a fraction of average
+    daily volume per day (about −1..+1). ``obv_vs_ma`` is
+    (OBV − SMA(OBV)) / |SMA(OBV)|.
+    """
+    out: dict[str, Any] = {
+        "obv": None,
+        "obv_slope": None,
+        "obv_vs_ma": None,
+        "obv_ma": None,
+        "obv_ma_window": ma_window,
+        "obv_slope_lookback": slope_lookback,
+    }
+    if df is None or getattr(df, "empty", True):
+        return out
+    if "Close" not in df.columns or "Volume" not in df.columns:
+        return out
+    close = pd.to_numeric(df["Close"], errors="coerce")
+    vol = pd.to_numeric(df["Volume"], errors="coerce").fillna(0.0).clip(lower=0.0)
+    if len(close) < 2 or close.dropna().empty:
+        return out
+
+    direction = np.sign(close.diff())
+    signed = (direction * vol).fillna(0.0)
+    obv = signed.cumsum()
+    last_obv = _safe_float(obv.iloc[-1])
+    out["obv"] = last_obv
+    if last_obv is None:
+        return out
+
+    if len(obv) > slope_lookback and slope_lookback >= 1:
+        prev = _safe_float(obv.iloc[-1 - slope_lookback])
+        vol_window = vol.iloc[-slope_lookback:]
+        mean_vol = _safe_float(vol_window.mean()) if len(vol_window) else None
+        if prev is not None and mean_vol is not None and mean_vol > 0:
+            out["obv_slope"] = (last_obv - prev) / (slope_lookback * mean_vol)
+
+    if len(obv) >= ma_window and ma_window >= 1:
+        ma_now = _safe_float(_sma(obv, ma_window).iloc[-1])
+        out["obv_ma"] = ma_now
+        if ma_now is not None and ma_now != 0:
+            out["obv_vs_ma"] = (last_obv - ma_now) / abs(ma_now)
+        elif ma_now == 0 and last_obv != 0:
+            out["obv_vs_ma"] = 1.0 if last_obv > 0 else -1.0
+    return out
+
+
+def chandelier_trail(
+    df: pd.DataFrame,
+    *,
+    atr_period: int = _CHANDELIER_ATR_PERIOD,
+    lookback: int = _CHANDELIER_LOOKBACK,
+    atr_mult: float = _CHANDELIER_ATR_MULT,
+) -> dict[str, Any]:
+    """Chandelier-style ATR trail (LeBeau), using this stack's SMA true-range ATR.
+
+    ATR is the same 14-period simple average of true range as ``_atr`` / ``atr14``
+    (not Wilder RMA). Over the last ``lookback`` sessions (default 22), including
+    today:
+
+      chandelier_long  = highest high − atr_mult × ATR
+      chandelier_short = lowest low  + atr_mult × ATR   (short-context trail)
+
+    ``price_vs_chandelier`` = (close − chandelier_long) / close. Positive means
+    the close is above the long trail; negative means the close is through it.
+    The short trail is context only and does not score.
+    """
+    out: dict[str, Any] = {
+        "atr": None,
+        "chandelier_long": None,
+        "chandelier_short": None,
+        "price_vs_chandelier": None,
+        "chandelier_lookback": lookback,
+        "chandelier_atr_period": atr_period,
+        "chandelier_atr_mult": atr_mult,
+        "chandelier_highest_high": None,
+        "chandelier_lowest_low": None,
+    }
+    if df is None or getattr(df, "empty", True):
+        return out
+    for col in ("High", "Low", "Close"):
+        if col not in df.columns:
+            return out
+    close = pd.to_numeric(df["Close"], errors="coerce")
+    last = _safe_float(close.iloc[-1]) if len(close) else None
+    atr_series = _atr(df, atr_period)
+    atr_v = _safe_float(atr_series.iloc[-1]) if len(atr_series) else None
+    out["atr"] = atr_v
+    if atr_v is None or last is None or len(df) < lookback or lookback < 1:
+        return out
+
+    window = df.iloc[-lookback:]
+    hh = _safe_float(pd.to_numeric(window["High"], errors="coerce").max())
+    ll = _safe_float(pd.to_numeric(window["Low"], errors="coerce").min())
+    if hh is None or ll is None:
+        return out
+    long_stop = hh - atr_mult * atr_v
+    short_stop = ll + atr_mult * atr_v
+    out["chandelier_highest_high"] = hh
+    out["chandelier_lowest_low"] = ll
+    out["chandelier_long"] = long_stop
+    out["chandelier_short"] = short_stop
+    if last > 0:
+        out["price_vs_chandelier"] = (last - long_stop) / last
+    return out
+
+
+def _apply_obv_overlay(
+    *,
+    score: float,
+    reasons: list[str],
+    obv: dict[str, Any],
+) -> tuple[float, float]:
+    """Modest tilt from OBV vs its SMA and OBV slope. Never a veto."""
+    delta = 0.0
+    vs = _safe_float(obv.get("obv_vs_ma"))
+    slope = _safe_float(obv.get("obv_slope"))
+    if vs is not None and vs > 0:
+        delta += _OBV_VS_MA_SCORE
+    elif vs is not None and vs < 0:
+        delta -= _OBV_VS_MA_SCORE
+    if slope is not None and slope > 0:
+        delta += _OBV_SLOPE_SCORE
+    elif slope is not None and slope < 0:
+        delta -= _OBV_SLOPE_SCORE
+    delta = float(np.clip(delta, -_OBV_SCORE_CAP, _OBV_SCORE_CAP))
+    score += delta
+    last_obv = obv.get("obv")
+    if last_obv is None and vs is None and slope is None:
+        return score, 0.0
+    bits = []
+    if vs is not None:
+        side = "above" if vs > 0 else "below" if vs < 0 else "at"
+        bits.append(f"{side} its {obv.get('obv_ma_window', _OBV_MA_WINDOW)}d average")
+    if slope is not None:
+        bits.append(f"slope {slope:+.2f}")
+    detail = ", ".join(bits) if bits else "flat"
+    reasons.append(
+        f"OBV {detail} (soft, not a veto; score {delta:+.1f})"
+    )
+    return score, delta
+
+
+def _apply_chandelier_overlay(
+    *,
+    score: float,
+    reasons: list[str],
+    trail: dict[str, Any],
+) -> tuple[float, float]:
+    """Small bonus above the long Chandelier trail; small penalty on a close through it.
+
+    Exit hint only — does not force a sell or block a direction by itself.
+    """
+    long_stop = _safe_float(trail.get("chandelier_long"))
+    px = _safe_float(trail.get("price_vs_chandelier"))
+    # Recover the close relationship from the exported ratio when possible.
+    # price_vs > 0 iff close > long trail; price_vs < 0 iff close is through it.
+    if long_stop is None or px is None:
+        if trail.get("atr") is not None and long_stop is None:
+            reasons.append("Chandelier trail unavailable (not enough bars)")
+        return score, 0.0
+    if px > 0:
+        delta = _CHANDELIER_SCORE
+        relation = "above"
+        hint = "soft hold bias, not a buy trigger"
+    elif px < 0:
+        delta = -_CHANDELIER_SCORE
+        relation = "through"
+        hint = "soft exit hint, not a forced sell"
+    else:
+        delta = 0.0
+        relation = "on"
+        hint = "soft, not a veto"
+    score += delta
+    mult = trail.get("chandelier_atr_mult", _CHANDELIER_ATR_MULT)
+    lookback = trail.get("chandelier_lookback", _CHANDELIER_LOOKBACK)
+    reasons.append(
+        f"Chandelier long: close {relation} {lookback}d-high − {mult:g}×ATR trail "
+        f"({long_stop:.2f}; {hint}; score {delta:+.1f})"
+    )
+    return score, delta
+
+
+
 class MomentumAgent(ResearchAgent):
     agent_id = "momentum"
 
@@ -1337,7 +1548,36 @@ class MomentumAgent(ResearchAgent):
             reasons.append(f"Minervini template skipped: {min_exc}")
             minervini = minervini_trend_template(df, rs_proxy=None)
 
-        # Map score (-80..+80ish, plus a small Minervini tilt) -> direction + confidence
+        # OBV + Chandelier ATR trail (soft). Same daily frame; no hard veto.
+        obv_data: dict[str, Any] = {
+            "obv": None,
+            "obv_slope": None,
+            "obv_vs_ma": None,
+            "obv_ma": None,
+        }
+        chand_data: dict[str, Any] = {
+            "atr": None,
+            "chandelier_long": None,
+            "chandelier_short": None,
+            "price_vs_chandelier": None,
+            "chandelier_lookback": _CHANDELIER_LOOKBACK,
+            "chandelier_atr_mult": _CHANDELIER_ATR_MULT,
+        }
+        obv_delta = 0.0
+        chand_delta = 0.0
+        try:
+            obv_data = on_balance_volume(df)
+            chand_data = chandelier_trail(df)
+            score, obv_delta = _apply_obv_overlay(score=score, reasons=reasons, obv=obv_data)
+            score, chand_delta = _apply_chandelier_overlay(
+                score=score, reasons=reasons, trail=chand_data
+            )
+        except Exception as flow_exc:  # noqa: BLE001 — never fail signal on overlay math
+            reasons.append(f"OBV/Chandelier overlays skipped: {flow_exc}")
+            obv_delta = 0.0
+            chand_delta = 0.0
+
+        # Map score (-80..+80ish, plus small Minervini / OBV / Chandelier tilts) -> direction + confidence
         if score >= 15:
             direction = Direction.LONG
         elif score <= -15:
@@ -1403,6 +1643,18 @@ class MomentumAgent(ResearchAgent):
             "sma200_month_ago": minervini.get("sma200_month_ago"),
             "week52_high": minervini.get("week52_high"),
             "week52_low": minervini.get("week52_low"),
+            "obv": obv_data.get("obv"),
+            "obv_slope": obv_data.get("obv_slope"),
+            "obv_vs_ma": obv_data.get("obv_vs_ma"),
+            "obv_ma": obv_data.get("obv_ma"),
+            "obv_score_delta": obv_delta,
+            "atr": chand_data.get("atr"),
+            "chandelier_long": chand_data.get("chandelier_long"),
+            "chandelier_short": chand_data.get("chandelier_short"),
+            "price_vs_chandelier": chand_data.get("price_vs_chandelier"),
+            "chandelier_lookback": chand_data.get("chandelier_lookback"),
+            "chandelier_atr_mult": chand_data.get("chandelier_atr_mult"),
+            "chandelier_score_delta": chand_delta,
             "raw_score": score,
             "bars": len(df),
         }

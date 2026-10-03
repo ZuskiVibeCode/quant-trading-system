@@ -1,4 +1,4 @@
-"""Unit tests for MomentumAgent volume / demand / squeeze / VbP / Weinstein / aVWAP."""
+"""Unit tests for MomentumAgent volume / demand / squeeze / VbP / Weinstein / aVWAP / OBV / Chandelier."""
 
 from __future__ import annotations
 
@@ -11,13 +11,24 @@ from quant_system.models.signal import Direction
 from quant_system.backtest.asof_market_data import AsOfMarketData
 from quant_system.research.momentum import (
     MomentumAgent,
+    _CHANDELIER_ATR_MULT,
+    _CHANDELIER_LOOKBACK,
+    _CHANDELIER_SCORE,
     _MINERVINI_PASS_WEIGHT,
     _MINERVINI_RS_WEIGHT,
+    _OBV_SCORE_CAP,
+    _OBV_SLOPE_SCORE,
+    _OBV_VS_MA_SCORE,
+    _apply_chandelier_overlay,
     _apply_minervini_overlay,
+    _apply_obv_overlay,
+    _atr,
     anchored_vwap,
     bollinger_keltner_squeeze,
+    chandelier_trail,
     demand_imbalance,
     minervini_trend_template,
+    on_balance_volume,
     relative_volume,
     rs_proxy_from_excess,
     volume_by_price,
@@ -609,3 +620,178 @@ def test_minervini_asof_matches_truncated_frame_no_lookahead():
     # As-of path still passes proximity; the completed future path does not.
     assert direct["minervini_checks"]["price_within_25pct_52w_high"] is True
     assert full["minervini_checks"]["price_within_25pct_52w_high"] is False
+
+
+# ---------------------------------------------------------------------------
+# OBV and Chandelier ATR trail (soft — not a veto)
+# ---------------------------------------------------------------------------
+
+
+def test_obv_classic_adds_up_volume_and_subtracts_down_volume():
+    """Unchanged closes do not move OBV. First bar has no prior close."""
+    close = [10.0, 11.0, 11.0, 10.0, 12.0]
+    volume = [100.0, 200.0, 50.0, 80.0, 40.0]
+    df = _ohlcv(close, volume=volume)
+    out = on_balance_volume(df, ma_window=20, slope_lookback=10)
+    # 0 + 200 (up) + 0 (flat) − 80 (down) + 40 (up)
+    assert out["obv"] == pytest.approx(160.0)
+    # Too short for the 20d OBV average / 10d slope
+    assert out["obv_vs_ma"] is None
+    assert out["obv_slope"] is None
+
+
+def test_obv_slope_and_vs_average_on_rising_and_falling_tape():
+    n = 40
+    up = on_balance_volume(_ohlcv(np.linspace(50, 80, n), volume=np.full(n, 100_000.0)))
+    down = on_balance_volume(_ohlcv(np.linspace(80, 50, n), volume=np.full(n, 100_000.0)))
+    assert up["obv"] is not None and up["obv"] > 0
+    assert up["obv_slope"] is not None and up["obv_slope"] > 0
+    assert up["obv_vs_ma"] is not None and up["obv_vs_ma"] > 0
+    assert down["obv"] is not None and down["obv"] < 0
+    assert down["obv_slope"] < 0
+    assert down["obv_vs_ma"] < 0
+    # Monotonic up, constant volume: every bar adds the full daily volume.
+    assert up["obv"] == pytest.approx(100_000.0 * (n - 1))
+
+
+def test_obv_score_is_modest_and_signed_with_flow():
+    n = 40
+    up = on_balance_volume(_ohlcv(np.linspace(50, 80, n)))
+    down = on_balance_volume(_ohlcv(np.linspace(80, 50, n)))
+    score_up, d_up = _apply_obv_overlay(score=20.0, reasons=[], obv=up)
+    score_dn, d_dn = _apply_obv_overlay(score=20.0, reasons=[], obv=down)
+    assert d_up == pytest.approx(_OBV_VS_MA_SCORE + _OBV_SLOPE_SCORE)
+    assert d_dn == pytest.approx(-(_OBV_VS_MA_SCORE + _OBV_SLOPE_SCORE))
+    assert abs(d_up) <= _OBV_SCORE_CAP < 15  # smaller than one MA cross (±15)
+    assert abs(d_dn) <= _OBV_SCORE_CAP
+    assert score_up > score_dn
+    assert score_dn > 0  # worst OBV tilt does not wipe a positive base score
+
+
+def test_chandelier_long_is_highest_high_minus_3x_atr14():
+    """Constant true range → known ATR. Long trail = 22d high − 3 × ATR."""
+    n = 30
+    close = 100.0 + np.arange(n, dtype=float)  # +1 each bar
+    high = close + 1.0
+    low = close - 1.0
+    # TR after bar 0 is 2: high-low = 2, high-prev close = 2, low-prev close = 0.
+    df = pd.DataFrame(
+        {
+            "Open": np.r_[close[0], close[:-1]],
+            "High": high,
+            "Low": low,
+            "Close": close,
+            "Volume": np.full(n, 100_000.0),
+        },
+        index=_idx(n),
+    )
+    atr = float(_atr(df, 14).iloc[-1])
+    assert atr == pytest.approx(2.0)
+    out = chandelier_trail(df)
+    hh = float(high[-_CHANDELIER_LOOKBACK:].max())
+    ll = float(low[-_CHANDELIER_LOOKBACK:].min())
+    expected_long = hh - _CHANDELIER_ATR_MULT * atr
+    expected_short = ll + _CHANDELIER_ATR_MULT * atr
+    last = float(close[-1])
+    assert out["atr"] == pytest.approx(atr)
+    assert out["chandelier_long"] == pytest.approx(expected_long)
+    assert out["chandelier_short"] == pytest.approx(expected_short)
+    assert out["price_vs_chandelier"] == pytest.approx((last - expected_long) / last)
+    assert last > expected_long  # still above the long trail
+    assert out["chandelier_lookback"] == 22
+    assert out["chandelier_atr_mult"] == pytest.approx(3.0)
+
+
+def test_chandelier_close_through_trail_is_small_negative_not_a_forced_sell():
+    """A deep drop off the 22-session high closes through the long trail."""
+    n = 40
+    close = np.concatenate([np.full(30, 100.0), np.linspace(100.0, 70.0, 10)])
+    high = close + 1.0
+    low = close - 1.0
+    # Keep the lookback high at the plateau so the trail stays near 100 − 3×ATR.
+    high[:30] = 102.0
+    df = pd.DataFrame(
+        {
+            "Open": np.r_[close[0], close[:-1]],
+            "High": high,
+            "Low": low,
+            "Close": close,
+            "Volume": np.full(n, 80_000.0),
+        },
+        index=_idx(n),
+    )
+    out = chandelier_trail(df)
+    assert out["atr"] is not None and out["atr"] > 0
+    assert out["chandelier_long"] == pytest.approx(
+        float(high[-22:].max()) - 3.0 * out["atr"]
+    )
+    assert float(close[-1]) < out["chandelier_long"]
+    assert out["price_vs_chandelier"] < 0
+    # Short-context trail is the mirror: lowest low + 3×ATR, not used as a veto.
+    assert out["chandelier_short"] == pytest.approx(
+        float(low[-22:].min()) + 3.0 * out["atr"]
+    )
+    reasons: list[str] = []
+    score, delta = _apply_chandelier_overlay(score=40.0, reasons=reasons, trail=out)
+    assert delta == pytest.approx(-_CHANDELIER_SCORE)
+    assert _CHANDELIER_SCORE < 15
+    assert score == pytest.approx(40.0 - _CHANDELIER_SCORE)
+    assert score >= 15  # still a long on the score scale — exit hint, not a forced sell
+    assert "not a forced sell" in " ".join(reasons).lower()
+
+
+def test_chandelier_above_trail_is_small_positive():
+    n = 30
+    close = 100.0 + np.arange(n, dtype=float)
+    df = pd.DataFrame(
+        {
+            "Open": np.r_[close[0], close[:-1]],
+            "High": close + 1.0,
+            "Low": close - 1.0,
+            "Close": close,
+            "Volume": np.full(n, 50_000.0),
+        },
+        index=_idx(n),
+    )
+    out = chandelier_trail(df)
+    score, delta = _apply_chandelier_overlay(score=0.0, reasons=[], trail=out)
+    assert delta == pytest.approx(_CHANDELIER_SCORE)
+    assert score == pytest.approx(_CHANDELIER_SCORE)
+    assert out["price_vs_chandelier"] > 0
+
+
+def test_agent_exports_obv_and_chandelier_without_hard_veto():
+    """Strong trends keep their direction; overlays only nudge the raw score."""
+    n = 260
+    up = np.linspace(40.0, 120.0, n)
+    down = np.linspace(120.0, 40.0, n)
+    vol = np.full(n, 100_000.0)
+    spy = _ohlcv(np.linspace(100.0, 110.0, n))
+    sig_up = MomentumAgent(_FrameMarketData({"U": _ohlcv(up, volume=vol), "SPY": spy})).analyze("U")
+    sig_dn = MomentumAgent(_FrameMarketData({"D": _ohlcv(down, volume=vol), "SPY": spy})).analyze("D")
+    for sig, direction in ((sig_up, Direction.LONG), (sig_dn, Direction.SHORT)):
+        sd = sig.supporting_data
+        assert sd["obv"] is not None
+        assert sd["obv_slope"] is not None
+        assert sd["obv_vs_ma"] is not None
+        assert sd["atr"] is not None
+        assert sd["atr"] == pytest.approx(sd["atr14"])
+        assert sd["chandelier_long"] is not None
+        assert sd["chandelier_short"] is not None
+        assert sd["price_vs_chandelier"] is not None
+        assert abs(sd["obv_score_delta"]) <= _OBV_SCORE_CAP < 15
+        assert abs(sd["chandelier_score_delta"]) <= _CHANDELIER_SCORE < 15
+        assert abs(sd["obv_score_delta"]) + abs(sd["chandelier_score_delta"]) < 15
+        assert sig.direction == direction  # neither overlay hard-vetoes the tape
+        assert "not a veto" in sig.reasoning.lower() or "not a forced sell" in sig.reasoning.lower()
+    assert sig_up.supporting_data["obv"] > 0
+    assert sig_up.supporting_data["obv_slope"] > 0
+    assert sig_up.supporting_data["price_vs_chandelier"] > 0
+    assert sig_up.supporting_data["chandelier_score_delta"] == pytest.approx(_CHANDELIER_SCORE)
+    assert sig_up.supporting_data["obv_score_delta"] == pytest.approx(_OBV_SCORE_CAP)
+    assert sig_dn.supporting_data["obv"] < 0
+    assert sig_dn.supporting_data["obv_score_delta"] == pytest.approx(-_OBV_SCORE_CAP)
+    # A close through the long trail on the down tape is a soft negative, not a block.
+    assert sig_dn.supporting_data["price_vs_chandelier"] < 0
+    assert sig_dn.supporting_data["chandelier_score_delta"] == pytest.approx(-_CHANDELIER_SCORE)
+    assert sig_dn.direction == Direction.SHORT
