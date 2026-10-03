@@ -301,3 +301,23 @@ def test_build_closed_missing_buys_stay_null(tmp_path):
     assert closed[0]["entry"] is None
     assert closed[0]["pnl"] is None
     tracker.close()
+
+
+def test_summarize_keeps_minervini_checks():
+    from quant_system.dashboard_export import _summarize_supporting
+
+    summary = _summarize_supporting(
+        {
+            "last_close": 10.0,
+            "minervini_passes": 9,
+            "minervini_checks": {"price_within_25pct_52w_high": False, "price_gt_sma50": True},
+            "rs_proxy": 88.0,
+            "pct_vs_52w_high": -0.31,
+            "pct_vs_52w_low": 0.42,
+        }
+    )
+    assert summary["minervini_passes"] == 9
+    assert summary["rs_proxy"] == 88.0
+    assert summary["minervini_checks"]["price_within_25pct_52w_high"] is False
+    assert summary["pct_vs_52w_high"] == -0.31
+    assert summary["pct_vs_52w_low"] == 0.42

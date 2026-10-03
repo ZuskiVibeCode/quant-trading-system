@@ -8,12 +8,18 @@ import pytest
 
 from quant_system.market_data.interface import MarketData
 from quant_system.models.signal import Direction
+from quant_system.backtest.asof_market_data import AsOfMarketData
 from quant_system.research.momentum import (
     MomentumAgent,
+    _MINERVINI_PASS_WEIGHT,
+    _MINERVINI_RS_WEIGHT,
+    _apply_minervini_overlay,
     anchored_vwap,
     bollinger_keltner_squeeze,
     demand_imbalance,
+    minervini_trend_template,
     relative_volume,
+    rs_proxy_from_excess,
     volume_by_price,
     weinstein_stage,
 )
@@ -434,3 +440,172 @@ def test_structure_overlays_soft_bias_stage2_vs_stage4():
     assert sig_dn.supporting_data["weinstein_stage"] == 4
     assert sig_up.supporting_data["raw_score"] > sig_dn.supporting_data["raw_score"]
 
+
+
+# ---------------------------------------------------------------------------
+# Minervini trend template (soft — not a veto)
+# ---------------------------------------------------------------------------
+
+
+def _strong_uptrend(n: int = 280) -> pd.DataFrame:
+    """Monotonic daily advance that satisfies the price/SMA/52w checks."""
+    return _ohlcv(np.linspace(40.0, 120.0, n), high_mult=1.01, low_mult=0.99)
+
+
+def _fail_52w_high(n: int = 280) -> pd.DataFrame:
+    """Same closes as a full pass, but one high is >25% above the last price."""
+    df = _strong_uptrend(n)
+    # Last close is 120; within-25% fails when week-high > 120 / 0.75 = 160.
+    df.loc[df.index[200], "High"] = 200.0
+    return df
+
+
+def test_minervini_template_passes_all_ten():
+    df = _strong_uptrend()
+    out = minervini_trend_template(df, rs_proxy=90.0)
+    assert out["minervini_passes"] == 10
+    checks = out["minervini_checks"]
+    assert set(checks) == {
+        "rs_proxy_gt_70",
+        "price_gt_sma50",
+        "price_gt_sma150",
+        "price_gt_sma200",
+        "sma50_gt_sma150",
+        "sma50_gt_sma200",
+        "sma150_gt_sma200",
+        "price_30pct_above_52w_low",
+        "price_within_25pct_52w_high",
+        "sma200_rising",
+    }
+    assert all(checks.values())
+    assert out["rs_proxy"] == pytest.approx(90.0)
+    assert out["pct_vs_52w_low"] is not None and out["pct_vs_52w_low"] >= 0.30
+    assert out["pct_vs_52w_high"] is not None and out["pct_vs_52w_high"] >= -0.25
+    assert out["sma200"] > out["sma200_month_ago"]
+
+
+def test_minervini_template_fails_only_52w_high_proximity():
+    df = _fail_52w_high()
+    out = minervini_trend_template(df, rs_proxy=90.0)
+    assert out["minervini_passes"] == 9
+    checks = out["minervini_checks"]
+    assert checks["price_within_25pct_52w_high"] is False
+    assert all(v for k, v in checks.items() if k != "price_within_25pct_52w_high")
+    assert out["pct_vs_52w_high"] < -0.25
+    assert out["pct_vs_52w_low"] >= 0.30
+
+
+def test_rs_proxy_percentile_scaled_1_99():
+    # Weakest → 1, strongest → 99, tie in the middle shares an average rank.
+    proxies = rs_proxy_from_excess({"A": 0.10, "B": 0.50, "C": -0.20})
+    assert proxies["C"] == pytest.approx(1.0)
+    assert proxies["A"] == pytest.approx(50.0)
+    assert proxies["B"] == pytest.approx(99.0)
+    tied = rs_proxy_from_excess({"A": 0.2, "B": 0.2})
+    assert tied["A"] == pytest.approx(50.0)
+    assert tied["B"] == pytest.approx(50.0)
+    assert rs_proxy_from_excess({"ONLY": 0.4}) == {}
+
+
+def test_minervini_score_weight_is_modest_and_not_a_veto():
+    """9/10 helps; 0/10 cannot wipe a positive base score."""
+    hi, d_hi = _apply_minervini_overlay(
+        score=20.0,
+        reasons=[],
+        template={"minervini_passes": 9, "rs_proxy": 80.0},
+    )
+    lo, d_lo = _apply_minervini_overlay(
+        score=20.0,
+        reasons=[],
+        template={"minervini_passes": 0, "rs_proxy": 20.0},
+    )
+    assert d_hi == pytest.approx((9 - 5) * _MINERVINI_PASS_WEIGHT + (80 - 50) * _MINERVINI_RS_WEIGHT)
+    assert d_hi < 8.0  # smaller than a single MA cross (±15) or MACD (±10)
+    assert hi > lo
+    assert lo > 0.0  # failing the template does not zero or block the score
+
+
+def _rs_universe_frames(target: pd.DataFrame) -> dict[str, pd.DataFrame]:
+    n = len(target)
+    spy = _ohlcv(np.linspace(100.0, 110.0, n))
+    weak = _ohlcv(np.linspace(80.0, 70.0, n))
+    flat = _ohlcv(np.full(n, 50.0))
+    return {"SPY": spy, "WEAK": weak, "FLAT": flat, "TARGET": target}
+
+
+def test_agent_exports_minervini_and_full_pass_beats_52w_miss():
+    n = 280
+    good = _strong_uptrend(n)
+    bad = _fail_52w_high(n)
+    frames_good = _rs_universe_frames(good)
+    frames_good["GOOD"] = frames_good.pop("TARGET")
+    frames_bad = _rs_universe_frames(bad)
+    frames_bad["BAD"] = frames_bad.pop("TARGET")
+    universe = ["GOOD", "BAD", "WEAK", "FLAT"]
+    # Separate agents so each target is scored against the same peer shape.
+    sig_good = MomentumAgent(
+        _FrameMarketData({**frames_good, "BAD": bad}),
+        universe=universe,
+    ).analyze("GOOD")
+    sig_bad = MomentumAgent(
+        _FrameMarketData({**frames_bad, "GOOD": good}),
+        universe=universe,
+    ).analyze("BAD")
+    for sig, passes in ((sig_good, 10), (sig_bad, 9)):
+        sd = sig.supporting_data
+        assert sd["minervini_passes"] == passes
+        assert isinstance(sd["minervini_checks"], dict)
+        assert sd["rs_proxy"] is not None and sd["rs_proxy"] > 70
+        assert sd["pct_vs_52w_high"] is not None
+        assert sd["pct_vs_52w_low"] is not None
+        assert "rs_proxy" in (sd.get("rs_proxy_definition") or "").lower() or "not ibd" in (
+            sd.get("rs_proxy_definition") or ""
+        ).lower()
+        assert sig.direction == Direction.LONG  # template is not a hard veto
+        assert "not a veto" in sig.reasoning.lower()
+    assert sig_bad.supporting_data["minervini_checks"]["price_within_25pct_52w_high"] is False
+    assert sig_good.supporting_data["minervini_score_delta"] == pytest.approx(
+        sig_bad.supporting_data["minervini_score_delta"] + _MINERVINI_PASS_WEIGHT
+    )
+
+
+def test_minervini_asof_matches_truncated_frame_no_lookahead():
+    """Backtest as-of history and the pure function see the same bars — not the future spike."""
+    n = 320
+    close = np.linspace(40.0, 120.0, n)
+    # After the as-of date, a spike prints a much higher 52-week high, then price round-trips.
+    close = close.copy()
+    close[290:300] = np.linspace(close[289], 220.0, 10)
+    close[300:] = np.linspace(200.0, 90.0, n - 300)
+    win = _ohlcv(close, high_mult=1.01, low_mult=0.99)
+    # Make the post-as-of high unmistakable even vs the close spike.
+    win.loc[win.index[295], "High"] = 260.0
+    weak = _ohlcv(np.linspace(80.0, 60.0, n))
+    spy = _ohlcv(np.linspace(100.0, 108.0, n))
+    asof = win.index[279]
+    bars = {"WIN": win, "WEAK": weak, "SPY": spy}
+    md = AsOfMarketData(bars, as_of=asof)
+    agent = MomentumAgent(md, universe=["WIN", "WEAK"])
+    sig = agent.analyze("WIN", benchmark="SPY")
+    asof_df = md.history("WIN", period="1y", interval="1d")
+    direct = minervini_trend_template(asof_df, rs_proxy=sig.supporting_data["rs_proxy"])
+    # Same function on the raw slice (no period clip) must agree — as-of did not drop
+    # the pre-spike window, and neither view contains bars after as_of.
+    sliced = win.loc[win.index <= asof]
+    sliced_tmpl = minervini_trend_template(sliced, rs_proxy=sig.supporting_data["rs_proxy"])
+    full = minervini_trend_template(win, rs_proxy=sig.supporting_data["rs_proxy"])
+
+    assert sig.supporting_data["last_close"] == pytest.approx(float(sliced["Close"].iloc[-1]))
+    assert pd.Timestamp(asof_df.index[-1]) <= pd.Timestamp(asof)
+    assert float(asof_df["High"].max()) == pytest.approx(float(sliced["High"].max()))
+    assert sig.supporting_data["minervini_passes"] == direct["minervini_passes"] == sliced_tmpl["minervini_passes"]
+    assert sig.supporting_data["minervini_checks"] == direct["minervini_checks"] == sliced_tmpl["minervini_checks"]
+    assert sig.supporting_data["pct_vs_52w_high"] == pytest.approx(direct["pct_vs_52w_high"])
+    assert sig.supporting_data["pct_vs_52w_low"] == pytest.approx(direct["pct_vs_52w_low"])
+    # Future spike is a higher 52w high and a worse proximity reading than the as-of slice.
+    assert float(win["High"].max()) > float(sliced["High"].max())
+    assert full["pct_vs_52w_high"] < direct["pct_vs_52w_high"]
+    assert full["week52_high"] > direct["week52_high"]
+    # As-of path still passes proximity; the completed future path does not.
+    assert direct["minervini_checks"]["price_within_25pct_52w_high"] is True
+    assert full["minervini_checks"]["price_within_25pct_52w_high"] is False

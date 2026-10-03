@@ -636,6 +636,7 @@
           · <span class="mono">${Number(latestSig.confidence).toFixed(1)}</span>
           · <span class="subtle">${fmtTime(latestSig.created_at)}</span></p>
         <p style="margin-top:0.5rem">${latestSig.reasoning || "—"}</p>
+        ${minerviniLabel(latestSig.supporting_data)}
         ${latestSig.supporting_data ? `<pre>${JSON.stringify(latestSig.supporting_data, null, 2)}</pre>` : ""}`;
     }
 
@@ -1116,6 +1117,18 @@
     });
   }
 
+
+  function minerviniLabel(sd) {
+    if (!sd || sd.minervini_passes == null || sd.minervini_passes === "") return "";
+    const n = Number(sd.minervini_passes);
+    if (!Number.isFinite(n)) return "";
+    const rs =
+      sd.rs_proxy != null && sd.rs_proxy !== ""
+        ? ` · rs_proxy ${Number(sd.rs_proxy).toFixed(0)}`
+        : "";
+    return `<p class="mono" style="margin-top:0.65rem">Minervini ${n}/10${rs} <span class="muted">(soft)</span></p>`;
+  }
+
   function openDetail(signal, agentId) {
     openDialogHtml(`
       <p class="kicker">${agentId || signal.agent_id || "agent"}</p>
@@ -1123,6 +1136,7 @@
         <span class="mono"> ${Number(signal.confidence).toFixed(1)}</span></h3>
       <p class="muted">${fmtTime(signal.created_at)}</p>
       <p style="margin-top:1rem">${signal.reasoning || ""}</p>
+      ${minerviniLabel(signal.supporting_data)}
       <p class="kicker" style="margin-top:1rem">Supporting data</p>
       <pre>${JSON.stringify(signal.supporting_data || {}, null, 2)}</pre>`);
   }

@@ -31,7 +31,7 @@ def build_market_data(*, mock: bool = False, mock_prices: dict[str, float] | Non
 
 def build_agents(market_data: MarketData, universe: list[str] | None = None) -> list:
     return [
-        MomentumAgent(market_data),
+        MomentumAgent(market_data, universe=universe),
         FundamentalAgent(market_data, fundamentals_fetcher=fetch_fundamentals_with_fallback),
         StatisticalMLAgent(market_data, universe=universe),
         SentimentAgent(market_data),

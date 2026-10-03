@@ -103,6 +103,11 @@ def _summarize_supporting(data: Any, max_keys: int = 10) -> dict[str, Any] | str
         "rsi",
         "macd_signal",
         "relative_strength",
+        "minervini_passes",
+        "minervini_checks",
+        "rs_proxy",
+        "pct_vs_52w_high",
+        "pct_vs_52w_low",
         "edge_type",
         "vol_regime",
     )
@@ -110,6 +115,10 @@ def _summarize_supporting(data: Any, max_keys: int = 10) -> dict[str, Any] | str
     for k in preferred:
         if k in data and len(out) < max_keys:
             v = data[k]
+            # Keep the Minervini bool map; other nested blobs stay out of the summary.
+            if k == "minervini_checks" and isinstance(v, dict):
+                out[k] = {str(ck): bool(cv) for ck, cv in v.items()}
+                continue
             if isinstance(v, (dict, list)):
                 continue
             out[k] = v

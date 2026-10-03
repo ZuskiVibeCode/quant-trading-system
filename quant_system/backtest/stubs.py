@@ -71,7 +71,7 @@ def build_backtest_agents(
         bundles=fundamentals_bundles,
     )
     return [
-        MomentumAgent(market_data),
+        MomentumAgent(market_data, universe=universe),
         FundamentalAgent(market_data, fundamentals_fetcher=fetcher),
         StatisticalMLAgent(market_data, universe=universe),
         ProxySentimentAgent(market_data),

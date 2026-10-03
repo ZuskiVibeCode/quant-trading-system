@@ -1,9 +1,9 @@
-"""MomentumAgent — MA 20/50/200, RSI, MACD, breakouts, ATR, RS, volume / demand / squeeze, VbP, Weinstein, aVWAP."""
+"""MomentumAgent — MA 20/50/200, RSI, MACD, breakouts, ATR, RS, volume / demand / squeeze, VbP, Weinstein, aVWAP, Minervini template."""
 
 from __future__ import annotations
 
 import math
-from typing import Any
+from typing import Any, Iterable
 
 import numpy as np
 import pandas as pd
@@ -761,8 +761,359 @@ def _apply_volume_overlays(
     return score
 
 
+# Mark Minervini trend template — soft features only (never a hard veto).
+# Classic 8 rules are split into the 10 boolean checks below.
+_MINERVINI_RS_MIN = 70.0
+_MINERVINI_ABOVE_LOW = 0.30  # price >= 30% above the 52-week low
+_MINERVINI_WITHIN_HIGH = 0.25  # price within 25% of the 52-week high
+_MINERVINI_WEEK52 = 252
+_MINERVINI_SMA200_LAG = 21  # ~1 month of trading sessions
+_RS_SHORT_BARS = 126  # ~6 months
+_RS_LONG_BARS = 252  # ~12 months
+_RS_HISTORY_PERIOD = "2y"
+# Pass-count vs a 5/10 midpoint: 10/10 → +5, 9/10 → +4, 0/10 → -5.
+# Separate RS tilt: (rs_proxy - 50) * 0.04, clipped to ±2.
+# A 9/10 with rs_proxy 80 is about +5.2 — helpful, smaller than one MA cross (±15).
+_MINERVINI_PASS_WEIGHT = 1.0
+_MINERVINI_PASS_CENTER = 5.0
+_MINERVINI_RS_WEIGHT = 0.04
+_MINERVINI_RS_SCORE_CAP = 2.0
+
+# Transparent stand-in for IBD relative strength (not available from Yahoo bars).
+RS_PROXY_DEFINITION = (
+    "Not IBD RS. rs_proxy is the cross-sectional percentile, scaled 1-99, of "
+    "6-12 month excess return versus the benchmark (SPY) across the research "
+    "universe. Excess return is the equal-weight average of (stock return - "
+    "benchmark return) over 126 and 252 trading days when both windows exist; "
+    "otherwise the single available window (6-month requires 126 sessions). "
+    "Ties use average ranks: rs_proxy = 1 + 98 * (avg_rank - 1) / (n - 1), "
+    "where avg_rank 1 is the weakest excess return and 99 is the strongest. "
+    "n < 2 leaves rs_proxy null and that check does not pass. Soft input only."
+)
+
+_MINERVINI_CHECK_KEYS: tuple[str, ...] = (
+    "rs_proxy_gt_70",
+    "price_gt_sma50",
+    "price_gt_sma150",
+    "price_gt_sma200",
+    "sma50_gt_sma150",
+    "sma50_gt_sma200",
+    "sma150_gt_sma200",
+    "price_30pct_above_52w_low",
+    "price_within_25pct_52w_high",
+    "sma200_rising",
+)
+
+
+def _naive_daily_close(df: pd.DataFrame) -> pd.Series | None:
+    """Close series indexed by tz-naive normalized dates (as-of safe; no future rows)."""
+    if df is None or getattr(df, "empty", True) or "Close" not in df.columns:
+        return None
+    close = pd.to_numeric(df["Close"], errors="coerce")
+    idx = pd.to_datetime(close.index, errors="coerce")
+    close = close.copy()
+    close.index = idx
+    close = close[close.index.notna()]
+    if close.empty:
+        return None
+    if getattr(close.index, "tz", None) is not None:
+        close.index = close.index.tz_localize(None)
+    close.index = close.index.normalize()
+    close = close[~close.index.duplicated(keep="last")].sort_index()
+    return close.astype(float)
+
+
+def blended_excess_return(
+    stock_df: pd.DataFrame,
+    bench_df: pd.DataFrame,
+    *,
+    short_bars: int = _RS_SHORT_BARS,
+    long_bars: int = _RS_LONG_BARS,
+) -> dict[str, Any]:
+    """6-month and/or 12-month excess return vs benchmark using only rows in the frames.
+
+    Endpoint returns (close_t / close_{t-n} - 1). A truncated as-of frame cannot
+    see later sessions, so this is safe on the backtest path.
+    """
+    out: dict[str, Any] = {"rs_excess": None, "rs_windows": []}
+    stock = _naive_daily_close(stock_df)
+    bench = _naive_daily_close(bench_df)
+    if stock is None or bench is None:
+        return out
+    aligned = pd.concat(
+        [stock.rename("s"), bench.rename("b")], axis=1, join="inner"
+    ).dropna()
+    if aligned.empty:
+        return out
+    parts: list[float] = []
+    windows: list[str] = []
+    for bars, label in ((short_bars, "6m"), (long_bars, "12m")):
+        # bars sessions back from the last aligned row → iloc[-(bars+1)]
+        need = bars + 1
+        if len(aligned) < need:
+            continue
+        s0 = float(aligned["s"].iloc[-need])
+        b0 = float(aligned["b"].iloc[-need])
+        s1 = float(aligned["s"].iloc[-1])
+        b1 = float(aligned["b"].iloc[-1])
+        if s0 <= 0 or b0 <= 0:
+            continue
+        parts.append((s1 / s0 - 1.0) - (b1 / b0 - 1.0))
+        windows.append(label)
+    if not parts:
+        return out
+    out["rs_excess"] = float(sum(parts) / len(parts))
+    out["rs_windows"] = windows
+    return out
+
+
+def rs_proxy_from_excess(excess_by_ticker: dict[str, float]) -> dict[str, float]:
+    """Map excess returns to rs_proxy in [1, 99]. Empty when fewer than 2 names."""
+    clean: dict[str, float] = {}
+    for ticker, value in excess_by_ticker.items():
+        f = _safe_float(value)
+        if f is None:
+            continue
+        clean[str(ticker).upper()] = f
+    n = len(clean)
+    if n < 2:
+        return {}
+    values = list(clean.values())
+    out: dict[str, float] = {}
+    denom = float(n - 1)
+    for ticker, value in clean.items():
+        below = sum(1 for other in values if other < value)
+        equal = sum(1 for other in values if other == value)
+        avg_rank = below + (equal + 1) / 2.0  # 1 = weakest
+        out[ticker] = 1.0 + 98.0 * (avg_rank - 1.0) / denom
+    return out
+
+
+def minervini_trend_template(
+    df: pd.DataFrame,
+    *,
+    rs_proxy: float | None = None,
+    week52: int = _MINERVINI_WEEK52,
+    sma200_lag: int = _MINERVINI_SMA200_LAG,
+) -> dict[str, Any]:
+    """Classic Minervini trend-template checks from a daily OHLCV frame.
+
+    Uses only rows present in ``df`` (the last bar is "today"). Callers on the
+    backtest path must pass an as-of-truncated frame; this function does not
+    look past ``df.iloc[-1]``.
+    """
+    checks: dict[str, bool] = {k: False for k in _MINERVINI_CHECK_KEYS}
+    rs_val = _safe_float(rs_proxy)
+    result: dict[str, Any] = {
+        "minervini_passes": 0,
+        "minervini_checks": checks,
+        "rs_proxy": rs_val,
+        "rs_proxy_label": "rs_proxy",
+        "rs_proxy_definition": RS_PROXY_DEFINITION,
+        "pct_vs_52w_high": None,
+        "pct_vs_52w_low": None,
+        "sma50": None,
+        "sma150": None,
+        "sma200": None,
+        "sma200_month_ago": None,
+        "week52_high": None,
+        "week52_low": None,
+        "week52_bars": 0,
+    }
+    if df is None or getattr(df, "empty", True) or "Close" not in getattr(df, "columns", []):
+        result["minervini_passes"] = 0
+        return result
+
+    close = pd.to_numeric(df["Close"], errors="coerce")
+    price = _safe_float(close.iloc[-1]) if len(close) else None
+    if price is None or price <= 0:
+        return result
+
+    sma50 = _safe_float(_sma(close, 50).iloc[-1]) if len(close) >= 50 else None
+    sma150 = _safe_float(_sma(close, 150).iloc[-1]) if len(close) >= 150 else None
+    sma200_series = _sma(close, 200) if len(close) >= 200 else None
+    sma200 = _safe_float(sma200_series.iloc[-1]) if sma200_series is not None else None
+    sma200_prev = None
+    if sma200_series is not None and len(sma200_series) > sma200_lag:
+        sma200_prev = _safe_float(sma200_series.iloc[-1 - sma200_lag])
+
+    high_src = (
+        pd.to_numeric(df["High"], errors="coerce") if "High" in df.columns else close
+    )
+    low_src = pd.to_numeric(df["Low"], errors="coerce") if "Low" in df.columns else close
+    window_n = int(min(week52, len(close)))
+    week_high = _safe_float(high_src.iloc[-window_n:].max()) if window_n else None
+    week_low = _safe_float(low_src.iloc[-window_n:].min()) if window_n else None
+    pct_high = (
+        (price / week_high - 1.0) if week_high is not None and week_high > 0 else None
+    )
+    pct_low = (
+        (price / week_low - 1.0) if week_low is not None and week_low > 0 else None
+    )
+
+    checks["rs_proxy_gt_70"] = bool(rs_val is not None and rs_val > _MINERVINI_RS_MIN)
+    checks["price_gt_sma50"] = bool(sma50 is not None and price > sma50)
+    checks["price_gt_sma150"] = bool(sma150 is not None and price > sma150)
+    checks["price_gt_sma200"] = bool(sma200 is not None and price > sma200)
+    checks["sma50_gt_sma150"] = bool(sma50 is not None and sma150 is not None and sma50 > sma150)
+    checks["sma50_gt_sma200"] = bool(sma50 is not None and sma200 is not None and sma50 > sma200)
+    checks["sma150_gt_sma200"] = bool(
+        sma150 is not None and sma200 is not None and sma150 > sma200
+    )
+    checks["price_30pct_above_52w_low"] = bool(
+        pct_low is not None and pct_low >= _MINERVINI_ABOVE_LOW
+    )
+    checks["price_within_25pct_52w_high"] = bool(
+        pct_high is not None and pct_high >= -_MINERVINI_WITHIN_HIGH
+    )
+    checks["sma200_rising"] = bool(
+        sma200 is not None and sma200_prev is not None and sma200 > sma200_prev
+    )
+
+    result.update(
+        {
+            "minervini_passes": int(sum(1 for v in checks.values() if v)),
+            "minervini_checks": checks,
+            "rs_proxy": rs_val,
+            "pct_vs_52w_high": pct_high,
+            "pct_vs_52w_low": pct_low,
+            "sma50": sma50,
+            "sma150": sma150,
+            "sma200": sma200,
+            "sma200_month_ago": sma200_prev,
+            "week52_high": week_high,
+            "week52_low": week_low,
+            "week52_bars": window_n,
+        }
+    )
+    return result
+
+
+def _apply_minervini_overlay(
+    *,
+    score: float,
+    reasons: list[str],
+    template: dict[str, Any],
+) -> tuple[float, float]:
+    """Modest pass-count + RS tilt. Never blocks a trade by itself."""
+    passes = int(template.get("minervini_passes") or 0)
+    delta = (passes - _MINERVINI_PASS_CENTER) * _MINERVINI_PASS_WEIGHT
+    rs = _safe_float(template.get("rs_proxy"))
+    if rs is not None:
+        rs_tilt = (rs - 50.0) * _MINERVINI_RS_WEIGHT
+        delta += float(np.clip(rs_tilt, -_MINERVINI_RS_SCORE_CAP, _MINERVINI_RS_SCORE_CAP))
+    score += delta
+    if rs is None:
+        rs_bit = "rs_proxy unavailable"
+    else:
+        rs_bit = f"rs_proxy={rs:.0f}"
+    reasons.append(
+        f"Minervini template {passes}/10 (soft, not a veto; {rs_bit}; score {delta:+.1f})"
+    )
+    return score, float(delta)
+
+
 class MomentumAgent(ResearchAgent):
     agent_id = "momentum"
+
+    def __init__(
+        self,
+        market_data: MarketData,
+        universe: Iterable[str] | None = None,
+    ):
+        super().__init__(market_data)
+        if universe is None:
+            self._rs_universe: tuple[str, ...] | None = None
+        else:
+            seen: list[str] = []
+            for raw in universe:
+                ticker = str(raw).upper().strip()
+                if ticker and ticker not in seen:
+                    seen.append(ticker)
+            self._rs_universe = tuple(seen)
+        # Cache key includes the benchmark as-of date so replay days do not reuse ranks.
+        self._rs_cache: dict[tuple, dict[str, Any]] = {}
+
+    def _universe_for_rs(self, ticker: str, benchmark: str) -> list[str]:
+        bench = benchmark.upper().strip()
+        names: list[str] = []
+        if self._rs_universe:
+            names.extend(self._rs_universe)
+        elif hasattr(self.market_data, "tickers"):
+            try:
+                names.extend(self.market_data.tickers())
+            except Exception:  # noqa: BLE001 — listing peers is optional
+                names = []
+        out: list[str] = []
+        for raw in names:
+            t = str(raw).upper().strip()
+            if not t or t == bench or t in out:
+                continue
+            out.append(t)
+        current = ticker.upper().strip()
+        if current and current != bench and current not in out:
+            out.append(current)
+        return out
+
+    def _history_quiet(self, ticker: str, period: str) -> pd.DataFrame | None:
+        try:
+            df = self.market_data.history(ticker, period=period, interval="1d")
+        except Exception:  # noqa: BLE001 — missing peer bars
+            return None
+        if df is None or getattr(df, "empty", True):
+            return None
+        return df
+
+    def _rs_snapshot(self, ticker: str, benchmark: str) -> dict[str, Any]:
+        """Universe rs_proxy for ``ticker``. Cached per benchmark as-of date."""
+        empty: dict[str, Any] = {
+            "rs_proxy": None,
+            "rs_excess": None,
+            "rs_windows": [],
+            "rs_universe_n": 0,
+        }
+        names = self._universe_for_rs(ticker, benchmark)
+        bench_df = self._history_quiet(benchmark, _RS_HISTORY_PERIOD)
+        if bench_df is None:
+            # Fall back to the same 1y window the rest of the agent uses.
+            bench_df = self._history_quiet(benchmark, "1y")
+        if bench_df is None:
+            return empty
+        bench_close = _naive_daily_close(bench_df)
+        asof = None
+        if bench_close is not None and len(bench_close):
+            asof = str(pd.Timestamp(bench_close.index[-1]).date())
+        cache_key = (benchmark.upper(), asof, tuple(names))
+        cached = self._rs_cache.get(cache_key)
+        if cached is None:
+            excess: dict[str, float] = {}
+            windows: dict[str, list[str]] = {}
+            for name in names:
+                frame = self._history_quiet(name, _RS_HISTORY_PERIOD)
+                if frame is None:
+                    frame = self._history_quiet(name, "1y")
+                if frame is None:
+                    continue
+                info = blended_excess_return(frame, bench_df)
+                if info.get("rs_excess") is None:
+                    continue
+                excess[name] = float(info["rs_excess"])
+                windows[name] = list(info.get("rs_windows") or [])
+            proxies = rs_proxy_from_excess(excess)
+            cached = {
+                "excess": excess,
+                "windows": windows,
+                "proxies": proxies,
+                "n": len(proxies),
+            }
+            self._rs_cache[cache_key] = cached
+        key = ticker.upper()
+        return {
+            "rs_proxy": cached["proxies"].get(key),
+            "rs_excess": cached["excess"].get(key),
+            "rs_windows": list(cached["windows"].get(key) or []),
+            "rs_universe_n": int(cached["n"]),
+        }
 
     def analyze(self, ticker: str, *, benchmark: str = "SPY") -> Signal:
         try:
@@ -964,7 +1315,29 @@ class MomentumAgent(ResearchAgent):
         except Exception as struct_exc:  # noqa: BLE001 — never fail signal on overlay math
             reasons.append(f"Structure overlays skipped: {struct_exc}")
 
-        # Map score (-80..+80ish) -> direction + confidence
+        # Minervini trend template (soft). Same daily frame as the other overlays;
+        # RS rank uses as-of history only (cached bars / Yahoo), never a hard block.
+        minervini: dict[str, Any] = minervini_trend_template(df, rs_proxy=None)
+        minervini_delta = 0.0
+        rs_excess = None
+        rs_windows: list[str] = []
+        rs_universe_n = 0
+        try:
+            rs_snap = self._rs_snapshot(ticker, benchmark)
+            rs_excess = rs_snap.get("rs_excess")
+            rs_windows = list(rs_snap.get("rs_windows") or [])
+            rs_universe_n = int(rs_snap.get("rs_universe_n") or 0)
+            minervini = minervini_trend_template(df, rs_proxy=rs_snap.get("rs_proxy"))
+            score, minervini_delta = _apply_minervini_overlay(
+                score=score,
+                reasons=reasons,
+                template=minervini,
+            )
+        except Exception as min_exc:  # noqa: BLE001 — never fail signal on template math
+            reasons.append(f"Minervini template skipped: {min_exc}")
+            minervini = minervini_trend_template(df, rs_proxy=None)
+
+        # Map score (-80..+80ish, plus a small Minervini tilt) -> direction + confidence
         if score >= 15:
             direction = Direction.LONG
         elif score <= -15:
@@ -1014,6 +1387,22 @@ class MomentumAgent(ResearchAgent):
             "anchor_reason": avwap_data.get("anchor_reason"),
             "price_vs_avwap": avwap_data.get("price_vs_avwap"),
             "anchor_price": avwap_data.get("anchor_price"),
+            "minervini_passes": minervini.get("minervini_passes"),
+            "minervini_checks": minervini.get("minervini_checks"),
+            "minervini_score_delta": minervini_delta,
+            "rs_proxy": minervini.get("rs_proxy"),
+            "rs_excess": rs_excess,
+            "rs_windows": rs_windows,
+            "rs_universe_n": rs_universe_n,
+            "rs_proxy_definition": RS_PROXY_DEFINITION,
+            "pct_vs_52w_high": minervini.get("pct_vs_52w_high"),
+            "pct_vs_52w_low": minervini.get("pct_vs_52w_low"),
+            "minervini_sma50": minervini.get("sma50"),
+            "minervini_sma150": minervini.get("sma150"),
+            "minervini_sma200": minervini.get("sma200"),
+            "sma200_month_ago": minervini.get("sma200_month_ago"),
+            "week52_high": minervini.get("week52_high"),
+            "week52_low": minervini.get("week52_low"),
             "raw_score": score,
             "bars": len(df),
         }
