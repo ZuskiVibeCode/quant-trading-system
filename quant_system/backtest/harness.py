@@ -196,6 +196,7 @@ def _run_sleeve_day(
         universe=sleeve.tickers,
         fundamentals_cache_dir=fundamentals_cache_dir,
         fundamentals_bundles=fundamentals_bundles,
+        flow_overlays=cfg.risk.momentum_flow_overlays,
     )
     pm = PortfolioManager(sleeve.tracker, md, cfg)
     ex = SimExecutionAgent(sleeve.tracker, md, slippage_bps=slippage_bps, fill_on=fill_on)

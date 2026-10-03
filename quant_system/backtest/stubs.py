@@ -56,6 +56,7 @@ def build_backtest_agents(
     *,
     fundamentals_cache_dir: Path | str | None = None,
     fundamentals_bundles: dict[str, dict[str, Any]] | None = None,
+    flow_overlays: bool | None = None,
 ) -> list[ResearchAgent]:
     """Live: momentum, statistical_ml, macro, as-of fundamental, proxy sentiment."""
     from quant_system.backtest.fundamentals_asof import make_asof_fundamentals_fetcher
@@ -71,7 +72,7 @@ def build_backtest_agents(
         bundles=fundamentals_bundles,
     )
     return [
-        MomentumAgent(market_data, universe=universe),
+        MomentumAgent(market_data, universe=universe, flow_overlays=flow_overlays),
         FundamentalAgent(market_data, fundamentals_fetcher=fetcher),
         StatisticalMLAgent(market_data, universe=universe),
         ProxySentimentAgent(market_data),

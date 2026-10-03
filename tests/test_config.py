@@ -22,6 +22,8 @@ def test_universe_and_risk():
     assert cfg.risk.opportunity_rotate_trim_frac == 0.25
     assert cfg.risk.max_opportunity_trims_per_cycle == 2
     assert cfg.risk.opportunity_rotate_min_buy_score == 0.05
+    assert cfg.risk.momentum_max_abs_share == 0.40
+    assert cfg.risk.momentum_flow_overlays is False
     assert cfg.universe.benchmark == "SPY"
     tickers = cfg.universe.tickers
     assert len(tickers) == 30

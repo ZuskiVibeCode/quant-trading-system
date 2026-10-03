@@ -192,7 +192,7 @@ pytest -q
 
 | Agent | Status | Notes |
 |-------|--------|-------|
-| MomentumAgent | live | MA/RSI/MACD/ATR/RS vs benchmark; relative volume, demand imbalance, BB/KC squeeze; VbP (PoC/VA), Weinstein weekly stage (30w SMA), anchored VWAP (high-volume pivot) — soft score only |
+| MomentumAgent | live | MA/RSI/MACD/ATR/RS vs benchmark; relative volume, demand imbalance, BB/KC squeeze; VbP (PoC/VA), Weinstein weekly stage (30w SMA), anchored VWAP (high-volume pivot) — soft score only. Minervini / OBV / Chandelier still export in supporting_data but `momentum_flow_overlays` defaults **false** (score delta 0) |
 | FundamentalAgent | live | yfinance first, FMP (`FMP_API_KEY`) fallback when Yahoo thin/fails → quality + valuation + EV/capital structure, sales multiples, dilution soft flags; missing → neutral/low conf; soft score only |
 | SentimentAgent | live | headline polarity + credibility; `manipulation_risk` only on coordinated hype |
 | MacroAgent | live | VIX (^VIX), dollar (UUP / DX-Y.NYB), rates (TLT / ^TNX), SPY trend → risk-on/off/neutral; `supporting_data`: regime, macro_risk_level, sector_bias, key_levels |
@@ -213,7 +213,8 @@ python -m quant_system backtest-themes --start 2026-06-23 --end 2026-09-25
 # Backtest-only density knobs (do NOT change live run-once / risk.yaml):
 #        --min-confidence-to-trade 35   # live default 55
 #        --min-confidence-to-sell 25    # live default 40
-# ORBIT_DISABLE_MOMENTUM_FLOW_OVERLAYS=1  # zero Minervini/OBV/Chandelier soft tilts
+# Minervini/OBV/Chandelier score tilts are off by default (momentum_flow_overlays: false).
+# ORBIT_DISABLE_MOMENTUM_FLOW_OVERLAYS=1  # force those three score deltas to 0
 #        --min-abs-score 0.02           # live default 0.05
 ```
 

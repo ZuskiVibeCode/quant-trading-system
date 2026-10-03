@@ -29,9 +29,14 @@ def build_market_data(*, mock: bool = False, mock_prices: dict[str, float] | Non
     return YFinanceMarketData()
 
 
-def build_agents(market_data: MarketData, universe: list[str] | None = None) -> list:
+def build_agents(
+    market_data: MarketData,
+    universe: list[str] | None = None,
+    *,
+    flow_overlays: bool | None = None,
+) -> list:
     return [
-        MomentumAgent(market_data, universe=universe),
+        MomentumAgent(market_data, universe=universe, flow_overlays=flow_overlays),
         FundamentalAgent(market_data, fundamentals_fetcher=fetch_fundamentals_with_fallback),
         StatisticalMLAgent(market_data, universe=universe),
         SentimentAgent(market_data),
@@ -73,7 +78,7 @@ def run_once(
         universe = select_research_universe(tr, cfg)
         rotation_enabled = True
 
-    agents = build_agents(md, universe=universe)
+    agents = build_agents(md, universe=universe, flow_overlays=cfg.risk.momentum_flow_overlays)
     pm = PortfolioManager(tr, md, cfg)
     ex = ExecutionAgent(tr, md)
     auditor = Auditor(tr, cfg)

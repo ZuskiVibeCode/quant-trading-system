@@ -557,10 +557,12 @@ def test_agent_exports_minervini_and_full_pass_beats_52w_miss():
     sig_good = MomentumAgent(
         _FrameMarketData({**frames_good, "BAD": bad}),
         universe=universe,
+        flow_overlays=True,
     ).analyze("GOOD")
     sig_bad = MomentumAgent(
         _FrameMarketData({**frames_bad, "GOOD": good}),
         universe=universe,
+        flow_overlays=True,
     ).analyze("BAD")
     for sig, passes in ((sig_good, 10), (sig_bad, 9)):
         sd = sig.supporting_data
@@ -767,8 +769,14 @@ def test_agent_exports_obv_and_chandelier_without_hard_veto():
     down = np.linspace(120.0, 40.0, n)
     vol = np.full(n, 100_000.0)
     spy = _ohlcv(np.linspace(100.0, 110.0, n))
-    sig_up = MomentumAgent(_FrameMarketData({"U": _ohlcv(up, volume=vol), "SPY": spy})).analyze("U")
-    sig_dn = MomentumAgent(_FrameMarketData({"D": _ohlcv(down, volume=vol), "SPY": spy})).analyze("D")
+    sig_up = MomentumAgent(
+        _FrameMarketData({"U": _ohlcv(up, volume=vol), "SPY": spy}),
+        flow_overlays=True,
+    ).analyze("U")
+    sig_dn = MomentumAgent(
+        _FrameMarketData({"D": _ohlcv(down, volume=vol), "SPY": spy}),
+        flow_overlays=True,
+    ).analyze("D")
     for sig, direction in ((sig_up, Direction.LONG), (sig_dn, Direction.SHORT)):
         sd = sig.supporting_data
         assert sd["obv"] is not None
@@ -795,3 +803,58 @@ def test_agent_exports_obv_and_chandelier_without_hard_veto():
     assert sig_dn.supporting_data["price_vs_chandelier"] < 0
     assert sig_dn.supporting_data["chandelier_score_delta"] == pytest.approx(-_CHANDELIER_SCORE)
     assert sig_dn.direction == Direction.SHORT
+
+
+def test_flow_overlays_contribute_zero_to_score_by_default():
+    """Minervini, OBV, and Chandelier stay exported but do not move the score."""
+    n = 260
+    up = np.linspace(40.0, 120.0, n)
+    down = np.linspace(120.0, 40.0, n)
+    vol = np.full(n, 100_000.0)
+    spy = _ohlcv(np.linspace(100.0, 110.0, n))
+    frames = {
+        "U": _ohlcv(up, volume=vol),
+        "D": _ohlcv(down, volume=vol),
+        "SPY": spy,
+    }
+    md = _FrameMarketData(frames)
+    for ticker in ("U", "D"):
+        off = MomentumAgent(md).analyze(ticker)
+        on = MomentumAgent(md, flow_overlays=True).analyze(ticker)
+        sd_off = off.supporting_data
+        sd_on = on.supporting_data
+        assert sd_off["flow_overlays"] is False
+        assert sd_on["flow_overlays"] is True
+        assert sd_off["minervini_score_delta"] == 0.0
+        assert sd_off["obv_score_delta"] == 0.0
+        assert sd_off["chandelier_score_delta"] == 0.0
+        # Features still export when the score tilt is off.
+        assert sd_off["minervini_passes"] == sd_on["minervini_passes"]
+        assert sd_off["minervini_checks"] == sd_on["minervini_checks"]
+        assert sd_off["obv"] == pytest.approx(sd_on["obv"])
+        assert sd_off["obv_slope"] == pytest.approx(sd_on["obv_slope"])
+        assert sd_off["chandelier_long"] == pytest.approx(sd_on["chandelier_long"])
+        assert sd_off["price_vs_chandelier"] == pytest.approx(sd_on["price_vs_chandelier"])
+        tilt = (
+            sd_on["minervini_score_delta"]
+            + sd_on["obv_score_delta"]
+            + sd_on["chandelier_score_delta"]
+        )
+        assert tilt != 0.0
+        assert sd_off["raw_score"] == pytest.approx(sd_on["raw_score"] - tilt)
+        assert "overlay disabled" in off.reasoning.lower()
+
+
+def test_env_disable_zeros_flow_overlays_even_when_enabled(monkeypatch):
+    monkeypatch.setenv("ORBIT_DISABLE_MOMENTUM_FLOW_OVERLAYS", "1")
+    n = 80
+    close = np.linspace(40.0, 80.0, n)
+    spy = _ohlcv(np.linspace(100.0, 110.0, n))
+    md = _FrameMarketData({"U": _ohlcv(close), "SPY": spy})
+    sig = MomentumAgent(md, flow_overlays=True).analyze("U")
+    sd = sig.supporting_data
+    assert sig.agent_id  # constructed
+    assert sd["flow_overlays"] is False
+    assert sd["minervini_score_delta"] == 0.0
+    assert sd["obv_score_delta"] == 0.0
+    assert sd["chandelier_score_delta"] == 0.0

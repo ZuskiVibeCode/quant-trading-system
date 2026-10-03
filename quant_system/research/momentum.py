@@ -1247,13 +1247,17 @@ class MomentumAgent(ResearchAgent):
             self._rs_universe = tuple(seen)
         # Cache key includes the benchmark as-of date so replay days do not reuse ranks.
         self._rs_cache: dict[tuple, dict[str, Any]] = {}
-        # Minervini / OBV / Chandelier soft overlays (default ON).
-        # Set flow_overlays=False or ORBIT_DISABLE_MOMENTUM_FLOW_OVERLAYS=1 to zero them.
-        if flow_overlays is None:
-            raw = os.environ.get("ORBIT_DISABLE_MOMENTUM_FLOW_OVERLAYS", "").strip().lower()
-            self.flow_overlays = raw not in ("1", "true", "yes", "on")
-        else:
-            self.flow_overlays = bool(flow_overlays)
+        # Minervini / OBV / Chandelier soft overlays default OFF (score delta 0).
+        # Re-enable with flow_overlays=True or risk.yaml momentum_flow_overlays: true.
+        # ORBIT_DISABLE_MOMENTUM_FLOW_OVERLAYS=1 forces them off even if the flag is true.
+        # Features still land in supporting_data either way.
+        disable = os.environ.get("ORBIT_DISABLE_MOMENTUM_FLOW_OVERLAYS", "").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        )
+        self.flow_overlays = False if disable else bool(flow_overlays)
 
     def _universe_for_rs(self, ticker: str, benchmark: str) -> list[str]:
         bench = benchmark.upper().strip()
@@ -1646,6 +1650,7 @@ class MomentumAgent(ResearchAgent):
             "anchor_reason": avwap_data.get("anchor_reason"),
             "price_vs_avwap": avwap_data.get("price_vs_avwap"),
             "anchor_price": avwap_data.get("anchor_price"),
+            "flow_overlays": self.flow_overlays,
             "minervini_passes": minervini.get("minervini_passes"),
             "minervini_checks": minervini.get("minervini_checks"),
             "minervini_score_delta": minervini_delta,
