@@ -41,6 +41,14 @@ Auditor (flags only; cannot override PM)
 Equal initially → 30d review only → 90d light Sharpe → 1y fuller Sharpe.  
 Floor **5%**, cap **40%**, **OOS only**.
 
+**Momentum absolute-share cap** (`momentum_max_abs_share`, default **0.40**): after
+weight floor/cap, each desk contributes `direction × (confidence/100) × weight`.
+If Momentum’s `|contrib|` would exceed 40% of `sum(|contrib|)` **and** at least one
+other live desk (Fundamental / Macro / Stat / Sentiment) has non-zero absolute
+contribution, Momentum’s contribution is scaled down so its share equals 40%.
+When every other desk is flat (zero abs contrib), Momentum is left uncapped.
+This does **not** change live confidence floors (55 / 40 / `|score|` 0.05).
+
 ### Universe (`config/universe.yaml`)
 
 Active set (~10/theme) is researched each cycle. Bench names promote when an active name goes **cold**.
@@ -205,6 +213,7 @@ python -m quant_system backtest-themes --start 2026-06-23 --end 2026-09-25
 # Backtest-only density knobs (do NOT change live run-once / risk.yaml):
 #        --min-confidence-to-trade 35   # live default 55
 #        --min-confidence-to-sell 25    # live default 40
+# ORBIT_DISABLE_MOMENTUM_FLOW_OVERLAYS=1  # zero Minervini/OBV/Chandelier soft tilts
 #        --min-abs-score 0.02           # live default 0.05
 ```
 

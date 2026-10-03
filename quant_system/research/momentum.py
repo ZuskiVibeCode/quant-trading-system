@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import math
 from typing import Any, Iterable
 
@@ -1231,6 +1232,8 @@ class MomentumAgent(ResearchAgent):
         self,
         market_data: MarketData,
         universe: Iterable[str] | None = None,
+        *,
+        flow_overlays: bool | None = None,
     ):
         super().__init__(market_data)
         if universe is None:
@@ -1244,6 +1247,13 @@ class MomentumAgent(ResearchAgent):
             self._rs_universe = tuple(seen)
         # Cache key includes the benchmark as-of date so replay days do not reuse ranks.
         self._rs_cache: dict[tuple, dict[str, Any]] = {}
+        # Minervini / OBV / Chandelier soft overlays (default ON).
+        # Set flow_overlays=False or ORBIT_DISABLE_MOMENTUM_FLOW_OVERLAYS=1 to zero them.
+        if flow_overlays is None:
+            raw = os.environ.get("ORBIT_DISABLE_MOMENTUM_FLOW_OVERLAYS", "").strip().lower()
+            self.flow_overlays = raw not in ("1", "true", "yes", "on")
+        else:
+            self.flow_overlays = bool(flow_overlays)
 
     def _universe_for_rs(self, ticker: str, benchmark: str) -> list[str]:
         bench = benchmark.upper().strip()
@@ -1539,11 +1549,15 @@ class MomentumAgent(ResearchAgent):
             rs_windows = list(rs_snap.get("rs_windows") or [])
             rs_universe_n = int(rs_snap.get("rs_universe_n") or 0)
             minervini = minervini_trend_template(df, rs_proxy=rs_snap.get("rs_proxy"))
-            score, minervini_delta = _apply_minervini_overlay(
-                score=score,
-                reasons=reasons,
-                template=minervini,
-            )
+            if self.flow_overlays:
+                score, minervini_delta = _apply_minervini_overlay(
+                    score=score,
+                    reasons=reasons,
+                    template=minervini,
+                )
+            else:
+                minervini_delta = 0.0
+                reasons.append("Minervini overlay disabled (flow_overlays=False)")
         except Exception as min_exc:  # noqa: BLE001 — never fail signal on template math
             reasons.append(f"Minervini template skipped: {min_exc}")
             minervini = minervini_trend_template(df, rs_proxy=None)
@@ -1568,10 +1582,15 @@ class MomentumAgent(ResearchAgent):
         try:
             obv_data = on_balance_volume(df)
             chand_data = chandelier_trail(df)
-            score, obv_delta = _apply_obv_overlay(score=score, reasons=reasons, obv=obv_data)
-            score, chand_delta = _apply_chandelier_overlay(
-                score=score, reasons=reasons, trail=chand_data
-            )
+            if self.flow_overlays:
+                score, obv_delta = _apply_obv_overlay(score=score, reasons=reasons, obv=obv_data)
+                score, chand_delta = _apply_chandelier_overlay(
+                    score=score, reasons=reasons, trail=chand_data
+                )
+            else:
+                obv_delta = 0.0
+                chand_delta = 0.0
+                reasons.append("OBV/Chandelier overlays disabled (flow_overlays=False)")
         except Exception as flow_exc:  # noqa: BLE001 — never fail signal on overlay math
             reasons.append(f"OBV/Chandelier overlays skipped: {flow_exc}")
             obv_delta = 0.0

@@ -218,14 +218,22 @@ def parse_score_from_rationale(rationale: str | None) -> dict[str, float] | None
 def recompute_entry_score(
     signals: list[dict[str, Any]],
     weights: dict[str, float] | None,
+    *,
+    momentum_max_abs_share: float = 0.40,
 ) -> dict[str, float] | None:
-    """Recompute weighted_score / blended_conf from signals + agent weights."""
+    """Recompute weighted_score / blended_conf from signals + agent weights.
+
+    Applies the same Momentum absolute-share cap as PortfolioManager
+    (``momentum_max_abs_share``, default 0.40).
+    """
     if not signals:
         return None
+    from quant_system.execution.blend_score import apply_momentum_abs_share_cap
+
     wmap = weights or {}
-    score = 0.0
     conf_acc = 0.0
     weight_sum = 0.0
+    detail: list[dict[str, Any]] = []
     for s in signals:
         aid = str(s.get("agent_id") or "")
         w = float(wmap.get(aid, 0.0) or 0.0)
@@ -234,11 +242,23 @@ def recompute_entry_score(
         direction = str(s.get("direction") or "neutral").lower()
         direction_val = {"long": 1.0, "short": -1.0, "neutral": 0.0}.get(direction, 0.0)
         conf = _safe_float(s.get("confidence")) or 0.0
-        score += direction_val * (conf / 100.0) * w
+        contrib = direction_val * (conf / 100.0) * w
         conf_acc += conf * w
         weight_sum += w
+        detail.append(
+            {
+                "agent_id": aid,
+                "direction": direction,
+                "confidence": conf,
+                "weight": w,
+                "contrib": contrib,
+            }
+        )
     if weight_sum <= 0:
         return None
+    score, _detail, _meta = apply_momentum_abs_share_cap(
+        detail, max_share=float(momentum_max_abs_share)
+    )
     return {
         "weighted_score": round(score, 6),
         "blended_conf": round(conf_acc / weight_sum, 3),

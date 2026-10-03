@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from quant_system.config.loader import AppConfig, RiskConfig
+from quant_system.execution.blend_score import apply_momentum_abs_share_cap
 from quant_system.market_data.interface import MarketData
 from quant_system.models.signal import Direction, Signal
 from quant_system.models.ticket import HoldDecision, TicketSide, TradeTicket
@@ -250,7 +251,6 @@ class PortfolioManager:
     ) -> _ScoredTicker:
         """Compute weighted score / confidence / price without sizing."""
         signal_ids = [sid for sid, _ in items]
-        score = 0.0
         conf_acc = 0.0
         detail = []
         for sid, sig in items:
@@ -262,7 +262,6 @@ class PortfolioManager:
                 Direction.NEUTRAL: 0.0,
             }[sig.direction]
             contrib = direction_val * (sig.confidence / 100.0) * w
-            score += contrib
             conf_acc += sig.confidence * w
             detail.append(
                 {
@@ -275,6 +274,12 @@ class PortfolioManager:
                 }
             )
 
+        # Cap Momentum's |contrib| share of the absolute blend (default 40%).
+        # Live confidence floors (55/40/0.05) are unchanged — this only rescales
+        # the Momentum term when other desks have non-zero absolute contribution.
+        max_share = float(getattr(self.risk, "momentum_max_abs_share", 0.40) or 0.40)
+        score, detail, cap_meta = apply_momentum_abs_share_cap(detail, max_share=max_share)
+
         weight_sum = sum(float(weights.get(sig.agent_id, 0.0)) for _, sig in items) or 1.0
         blended_conf = conf_acc / weight_sum
 
@@ -284,6 +289,7 @@ class PortfolioManager:
             "equity": equity,
             "cash": cash,
             "contributions": detail,
+            "momentum_cap": cap_meta,
         }
 
         min_abs = float(getattr(self.risk, "min_abs_score", 0.05) or 0.05)
