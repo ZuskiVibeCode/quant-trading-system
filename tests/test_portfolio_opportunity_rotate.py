@@ -26,6 +26,7 @@ def env(tmp_path):
             "BEST": 5.0,
             "MID": 8.0,
             "ALT": 4.0,
+            "DUST": 10.0,
             "SPY": 100.0,
         }
     )
@@ -188,3 +189,49 @@ def test_max_opportunity_trims_per_cycle(env):
         and "opportunity rotate" in d.rationale
     ]
     assert len(rotate_sells) == 1, decisions
+
+def test_rotate_skips_dust_donor_tries_next(env):
+    """First (weakest) donor under min_order_notional → try next viable donor."""
+    tracker, md, cfg = env
+    cfg.risk.min_order_notional = 5.0  # DUST entire position is under this
+
+    # DUST ~$0.40 (under min), WEAK ~$98; cash tight so BEST needs rotate
+    tracker.reconcile_portfolio(
+        cash=0.50,
+        equity=100.0,
+        positions=[
+            {"ticker": "DUST", "qty": 0.04, "avg_cost": 10.0},
+            {"ticker": "WEAK", "qty": 9.8, "avg_cost": 10.0},
+        ],
+        source="test",
+    )
+    tracker.set_state("peak_equity", "100.0")
+    tracker.set_state("day_start_equity", "100.0")
+
+    # DUST weakest (0.20) sorts before WEAK (0.40); BEST 0.95 clears gap vs both
+    dust_sig = _long("DUST", 20.0)
+    weak_sig = _long("WEAK", 40.0)
+    best_sig = _long("BEST", 95.0)
+    signals = [
+        (tracker.insert_signal(dust_sig), dust_sig),
+        (tracker.insert_signal(weak_sig), weak_sig),
+        (tracker.insert_signal(best_sig), best_sig),
+    ]
+
+    pm = PortfolioManager(tracker, md, cfg)
+    decisions = pm.weigh_and_decide(signals)
+
+    rotate_sells = [
+        d
+        for d in decisions
+        if isinstance(d, TradeTicket)
+        and d.side == TicketSide.SELL
+        and "opportunity rotate" in d.rationale
+    ]
+    assert rotate_sells, f"expected rotate SELL after skipping dust, got {decisions}"
+    assert rotate_sells[0].ticker == "WEAK", (
+        f"expected WEAK donor after dust abort, got {rotate_sells[0].ticker}"
+    )
+    assert all(t.ticker != "DUST" for t in rotate_sells)
+    buys = [d for d in decisions if isinstance(d, TradeTicket) and d.side == TicketSide.BUY]
+    assert any(t.ticker == "BEST" for t in buys), f"expected BEST buy, got {buys}"

@@ -570,35 +570,36 @@ class PortfolioManager:
         if not candidates:
             return None
 
-        # Lowest score first; tie-break smaller remaining position value, then ticker
+        # Lowest score first; tie-break smaller remaining position value, then ticker.
+        # Loop donors: dust/weakest may win the sort but fail min_order_notional — try next.
         candidates.sort(key=lambda x: (x[0], x[1], x[2]))
-        donor_score, _val, donor, rem_qty, donor_price = candidates[0]
-
-        qty_by_frac = rem_qty * trim_frac
-        qty_by_need = notional_needed / donor_price if donor_price > 0 else 0.0
-        qty = round(min(qty_by_frac, qty_by_need, rem_qty), 6)
-        if qty <= 0:
-            return None
-        notional = qty * donor_price
-        if notional < self.risk.min_order_notional and qty + 1e-9 < rem_qty:
-            # Bump toward min notional if position still has room
-            min_qty = round(float(self.risk.min_order_notional) / donor_price, 6)
-            qty = min(min_qty, round(rem_qty, 6))
+        for donor_score, _val, donor, rem_qty, donor_price in candidates:
+            qty_by_frac = rem_qty * trim_frac
+            qty_by_need = notional_needed / donor_price if donor_price > 0 else 0.0
+            qty = round(min(qty_by_frac, qty_by_need, rem_qty), 6)
+            if qty <= 0:
+                continue
             notional = qty * donor_price
-        if qty <= 0 or notional < self.risk.min_order_notional:
-            return None
+            if notional < self.risk.min_order_notional and qty + 1e-9 < rem_qty:
+                # Bump toward min notional if position still has room
+                min_qty = round(float(self.risk.min_order_notional) / donor_price, 6)
+                qty = min(min_qty, round(rem_qty, 6))
+                notional = qty * donor_price
+            if qty <= 0 or notional < self.risk.min_order_notional:
+                continue
 
-        ticket = TradeTicket(
-            ticker=donor,
-            side=TicketSide.SELL,
-            qty=qty,
-            rationale=(
-                f"SELL {qty} {donor} @~{donor_price:.2f}; opportunity rotate to fund "
-                f"{buy_ticker} (buy_score={buy_score:.3f} donor_score={donor_score:.3f})"
-            ),
-            signal_ids=list(buy_plan.signal_ids),
-        )
-        return ticket, donor_price
+            ticket = TradeTicket(
+                ticker=donor,
+                side=TicketSide.SELL,
+                qty=qty,
+                rationale=(
+                    f"SELL {qty} {donor} @~{donor_price:.2f}; opportunity rotate to fund "
+                    f"{buy_ticker} (buy_score={buy_score:.3f} donor_score={donor_score:.3f})"
+                ),
+                signal_ids=list(buy_plan.signal_ids),
+            )
+            return ticket, donor_price
+        return None
 
     def _maybe_cash_buffer_trims(
         self,
