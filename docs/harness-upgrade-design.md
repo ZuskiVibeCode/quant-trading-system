@@ -1,8 +1,9 @@
 # Harness upgrade: design
 
-Draft by Claude Code, Oct 5, 2026. Follows `docs/claude-handoff.md`. PRs 1-5
+Draft by Claude Code, Oct 5, 2026. Follows `docs/claude-handoff.md`. PRs 1-6
 (agent replay fixes; data layer; windows, costs, metrics, trial log; indicators,
-spec, engine, `lab run`; `lab robust`) are built; the rest is design. Decisions and remaining open
+spec, engine, `lab run`; `lab robust`; nomination, validation and holdout) are
+built. What's left is setting up the validation machine. Decisions and remaining open
 questions for Sabastian are at the end.
 
 ## The main design choice: two engines, one scoreboard
@@ -219,6 +220,18 @@ has an end-to-end lookahead test: rewriting every bar after day X leaves
 returns through X unchanged. Added beyond the starter list: `macd_hist`,
 `atr_pct`, `donchian_high`/`donchian_low` (prior n bars, for breakouts).
 
+Volume studies (`lab/indicators/volume.py`), so bots start with roughly what a
+charting tool like TrendSpider offers: `obv_trend` (OBV over n bars as a share
+of volume, -1 to +1), `cmf` (Chaikin money flow), `chaikin_osc` (in units of
+average daily volume), `mfi` (money flow index), `vwap_dist` (close vs rolling
+VWAP), `avwap_high_dist` / `avwap_low_dist` (close vs the VWAP anchored at the
+highest high or lowest low of the last n bars), and `volume_osc`, alongside
+`rel_volume` and the raw `volume` field. Running totals (OBV, the A/D line)
+are windowed or normalized, so values compare across stocks and don't depend
+on where the history starts. Not included: volume profile (point of control,
+value area). It needs intraday volume to mean much, and a daily approximation
+is slow. VWAPs are over whole days for the same reason.
+
 ## 8. Metrics
 
 CAGR, annualized Sharpe (daily returns, risk-free = 0 for now), max drawdown,
@@ -274,6 +287,78 @@ copied into every report):
 - Orders are queued at the close and filled at the next session's open, so
   daily returns line up with when trades actually happen.
 
+## 11. Nomination, validation and holdout (PR 6)
+
+As built (`lab/nominate.py`, `lab/final.py`). Three commands carry a spec from
+discovery to its two single runs:
+
+| Command | Where | What it does |
+|---|---|---|
+| `lab nominate <spec>` | Grok's machine, clean checkout | Reruns `lab robust` itself (an earlier report is not trusted). Only `passed` and `complete` nominates. Writes `lab_nominations/<id>-<hash>.json`: the spec, its hash, and the discovery trial count and Sharpe variance, **frozen** right after the robust run (so the spec itself is counted) |
+| `lab validate <packet>` | Validation machine, `QUANT_LAB_UNLOCK=validation` | The single 2022-2024 run, after the checks below |
+| `lab holdout <packet>` | Validation machine, `QUANT_LAB_UNLOCK=holdout` | The single 2025-to-ceiling run, for specs whose validation record passed |
+
+- **Packets travel by PR.** The nominating bot opens a PR adding its packet to
+  `lab_nominations/`, and Chief of Staff reviews it. The frozen count is then
+  reviewed and kept in git history, and the validation machine gets packets
+  with `git pull`. A packet holds discovery numbers only, which bots can see anyway.
+- **The validation machine trusts only the frozen trial stats.** Everything
+  else on Grok's machine is a file any bot could write, including trial records
+  and robust reports. So `lab validate` reruns the full robustness gauntlet on
+  discovery with its own data and its own reviewed code, and stops if the spec
+  doesn't pass with a complete report. A spec that fails there never gets a
+  validation score. This answers PR 5's review note that `evaluate()` can score
+  without logging: no score a bot produced reaches the gate.
+- **The gate reads the trial log, not the report.** For both `nominate` and
+  `validate`, the spec's own pass/fail is recomputed from the discovery record
+  that run wrote to the trial log, and that record must have `git_dirty: false`.
+  The robust report must have `complete: true`, `git_dirty: false`, and no failed
+  check. A report whose base run isn't in the log is rejected.
+- **Machine guard.** `validate` and `holdout` refuse before anything else unless
+  the data ceiling is past 2021-12-31 **and** `QUANT_LAB_UNLOCK` names the
+  window. Grok's machine keeps the 2021-12-31 ceiling and never sets the
+  unlock, so they can't run there by accident. Confirmed by Sabastian and Chief
+  of Staff, Oct 6, 2026.
+- **Order of checks in `lab validate`:** machine guard, then clean checkout
+  (`quant_system/` and `config/` match the commit), then the window rules (unlock, one run per hash),
+  then trial-count order, then the discovery recheck, then the run. Everything
+  that can refuse comes before any scoring.
+- **The trial count can't go backwards.** If a packet nominated later carries
+  fewer discovery trials than one already validated (or an earlier one carries
+  more), `lab validate` refuses. That means the shared trial log lost records,
+  or someone removed some to make the deflated Sharpe easier to pass. This is
+  a tamper signal, not proof: a bot that deletes records before the *first*
+  nomination isn't caught. The PR history of `lab_nominations/` is the other
+  check.
+- **Record before print.** The verdict, the frozen stats, the nomination
+  details, the recheck summary and the breakouts all go into the one trial
+  record, which is written before anything is returned. A crash before the write
+  leaves no record and no score has been seen, so a rerun is fine. A crash after
+  the write blocks a second run.
+- **Breakouts, reported but not in the pass bar:** the 2022 bear market
+  (`config/lab.yaml` `locked.selloffs`, Jan 3 to Oct 31, 2022, flagged with
+  robust's `selloff_dd_ratio`), and the spec rerun on each theme's names and on
+  all of them together. This is the theme check from gauntlet step 5. The pass
+  bar stays as decided: beats SPY and equal-weight on Sharpe and CAGR, plus
+  deflated Sharpe > 0.95.
+- **Holdout** uses the frozen stats stored in the passed validation record, not
+  the packet, so a re-issued packet can't change the count. It skips the
+  discovery recheck because validation already did one.
+- **Clean checkout, checked fresh.** `nominate`, `validate` and `holdout` re-read
+  git status at the start rather than using the per-process cache (PR 5 review
+  note). They refuse when `quant_system/` or `config/` has local edits, or when
+  git can't tell.
+- `n_records` is informational. Each robust run, including the reruns at
+  nomination and validation, logs the base spec again, so records grow while
+  `n_trials` (distinct hashes) doesn't. Nothing gates on `n_records`.
+- Validation and holdout records live only in the validation machine's trial
+  log (`QUANT_LAB_DATA_DIR` there). Never copy them to Grok's machine. Whether
+  bots learn pass/fail for a spec is Sabastian's call; the CLI prints the full
+  scorecard only to whoever runs it.
+- **Still to do on the validation machine (held):** an Alpaca `.env`, a
+  `lab data sync --universe all` with `QUANT_LAB_DATA_CEILING=today`, and a
+  `QUANT_LAB_DATA_DIR` outside the checkout.
+
 ## Order of PRs
 
 1. Agent replay fixes: next-open default, same-bar fix, benchmarks, overrides
@@ -282,7 +367,7 @@ copied into every report):
 3. Windows, cost model, metrics (with deflated Sharpe), trial log.
 4. Indicators + generic lookahead test, spec schema, engine, `lab run`.
 5. `lab robust`.
-6. Validation/holdout runner outside Grok (depends on open question 2).
+6. `lab nominate` / `lab validate` / `lab holdout` (section 11).
 
 Each PR: own branch, `pytest` passing, tests with synthetic bars (no network).
 

@@ -114,3 +114,44 @@ def test_indicator_math():
     assert REGISTRY["atr"](ranged, length=14).dropna().eq(2.0).all()
     assert REGISTRY["atr_pct"](ranged, length=14).iloc[-1] == pytest.approx(0.2)
     assert REGISTRY["ema"](up, length=3).iloc[2] == pytest.approx(2.25)  # 1, 1.5, 2.25 (alpha 0.5)
+
+
+def test_volume_indicator_math():
+    up, down = _line(np.arange(1, 41)), _line(np.arange(40, 0, -1))
+    assert REGISTRY["obv_trend"](up, length=10).dropna().eq(1.0).all()
+    assert REGISTRY["obv_trend"](down, length=10).dropna().eq(-1.0).all()
+    assert REGISTRY["obv_trend"](up, length=10).iloc[:10].isna().all()  # first bar has no change
+    # Typical price rising every bar: all money flow is positive.
+    assert REGISTRY["mfi"](up, length=14).dropna().eq(100.0).all()
+    assert REGISTRY["mfi"](down, length=14).dropna().eq(0.0).all()
+
+    # Closing at the high every day: money flow multiplier +1; at the low: -1; no range: 0.
+    at_high = _line([10.0] * 40, High=10.0, Low=9.0)
+    at_low = _line([10.0] * 40, High=11.0, Low=10.0)
+    assert REGISTRY["cmf"](at_high, length=20).dropna().eq(1.0).all()
+    assert REGISTRY["cmf"](at_low, length=20).dropna().eq(-1.0).all()
+    assert REGISTRY["cmf"](up, length=20).dropna().eq(0.0).all()
+    assert REGISTRY["chaikin_osc"](up).dropna().eq(0.0).all()  # flat A/D line
+    # A/D rising 100 per bar: EMA lag is span-dependent, so fast minus slow is positive and steady.
+    osc = REGISTRY["chaikin_osc"](at_high, fast=3, slow=10).dropna()
+    assert (osc > 0).all() and osc.iloc[-1] == pytest.approx(3.5, rel=1e-3)  # (lag 4.5 - 1) bars of volume
+
+    # VWAP weights typical prices by volume: 10 x 100 and 20 x 300 -> 17.5.
+    two = _line([10.0, 20.0], Volume=[100.0, 300.0])
+    assert REGISTRY["vwap_dist"](two, length=2).iloc[-1] == pytest.approx(20.0 / 17.5 - 1.0)
+    assert REGISTRY["vwap_dist"](_line([10.0] * 30), length=5).dropna().eq(0.0).all()
+    assert REGISTRY["volume_osc"](up, fast=5, slow=20).dropna().eq(0.0).all()
+    surge = _line([10.0] * 30, Volume=[100.0] * 25 + [400.0] * 5)
+    assert REGISTRY["volume_osc"](surge, fast=5, slow=20).iloc[-1] == pytest.approx(400.0 / 175.0 - 1.0)
+
+    # Anchored VWAP: the high of the last 5 bars is bar 2 (price 14), so the anchor
+    # is bar 2 and the VWAP covers bars 2-4: (14x100 + 12x100 + 11x200) / 400 = 12.0.
+    closes = [10.0, 11.0, 14.0, 12.0, 11.0]
+    bars = _line(closes, Volume=[100.0, 100.0, 100.0, 100.0, 200.0])
+    assert REGISTRY["avwap_high_dist"](bars, length=5).iloc[-1] == pytest.approx(11.0 / 12.0 - 1.0)
+    # Lowest low of the last 5 bars is bar 0 (10): VWAP over all five bars.
+    vwap_all = (10 * 100 + 11 * 100 + 14 * 100 + 12 * 100 + 11 * 200) / 600
+    assert REGISTRY["avwap_low_dist"](bars, length=5).iloc[-1] == pytest.approx(11.0 / vwap_all - 1.0)
+    assert REGISTRY["avwap_low_dist"](bars, length=5).iloc[:4].isna().all()
+    # A new high today anchors at today: the VWAP is today's typical price.
+    assert REGISTRY["avwap_high_dist"](up, length=5).dropna().eq(0.0).all()

@@ -40,5 +40,11 @@ robust:
     - {name: q4_2018, start: "2018-10-01", end: "2018-12-31"}
     - {name: covid_2020, start: "2020-02-01", end: "2020-04-30"}
   selloff_dd_ratio: 1.25
+# Validation / holdout runs (`lab validate`, `lab holdout`, on the validation machine).
+# These breakouts are reported next to the verdict, not part of the pass bar.
+locked:
+  # Selloffs inside a locked window, flagged with robust.selloff_dd_ratio.
+  selloffs:
+    - {name: bear_2022, start: "2022-01-03", end: "2022-10-31"}
 # Broad universe, relative to config/. Built by scripts/build_lab_universe.py.
 universe_file: lab_universe.yaml

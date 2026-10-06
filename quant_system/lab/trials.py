@@ -69,6 +69,16 @@ def git_state() -> tuple[str | None, bool | None]:
     return (commit.strip() or None) if commit else None, (bool(status.strip()) if status is not None else None)
 
 
+def fresh_git_state() -> tuple[str | None, bool | None]:
+    """``git_state()`` re-read now, for runs that gate on a clean checkout.
+
+    The cache is refreshed, so the records this process writes afterwards carry
+    the same answer the gate saw.
+    """
+    git_state.cache_clear()
+    return git_state()
+
+
 def git_commit() -> str | None:
     return git_state()[0]
 
