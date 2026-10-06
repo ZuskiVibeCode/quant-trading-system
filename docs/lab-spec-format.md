@@ -92,7 +92,17 @@ selloffs, and reruns without the top contributing stock. The variants are
 logged under your spec and don't add to the trial count. A spec only counts as
 a survivor with `passed: true` and `complete: true`, run from a checkout with no
 local edits (`git_dirty: false`). Thresholds are in `config/lab.yaml`
-(`robust:`), and section 9 of the design doc has the rules. Discovery is only the first screen. Survivors still face
+(`robust:`), and section 9 of the design doc has the rules.
+
+A survivor is nominated with `lab nominate my.yaml --bot <your-bot-name>`
+from a clean checkout. It reruns the robustness checks itself, and if they pass
+completely it writes `lab_nominations/<id>-<hash>.json`. Open a PR with that
+file for Chief of Staff. The packet freezes the current discovery trial count,
+which the deflated Sharpe uses. Validation and holdout run on another machine,
+and their scores never come back here. Editing the spec after nomination
+changes its hash, so the packet no longer matches.
+
+Discovery is only the first screen. Survivors still face
 robustness checks (settings nudged ±10-20%, sectors, cap sizes, the 2018 and
 2020 selloffs, removing the top stock), then a single validation run and a
 single holdout run that bots never see. Over 95% of ideas are expected to die,

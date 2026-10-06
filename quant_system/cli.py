@@ -374,6 +374,41 @@ def cmd_lab_robust(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_lab_nominate(args: argparse.Namespace) -> int:
+    """Rerun the robustness checks; if they pass completely, write a nomination packet for validation."""
+    import os
+
+    from quant_system.lab.nominate import NominationError, nominate
+    from quant_system.lab.spec import SpecError, load_spec
+
+    try:
+        spec = load_spec(args.spec)
+        bot = args.bot or os.environ.get("QUANT_LAB_BOT") or None
+        result = nominate(spec, author_bot=bot, out_dir=args.out)
+    except (SpecError, NominationError) as exc:
+        print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
+        return 1
+    print(json.dumps(result, indent=2, default=str))
+    return 0 if result["nominated"] else 1
+
+
+def cmd_lab_final(args: argparse.Namespace) -> int:
+    """`lab validate` / `lab holdout`: the single locked run for a nominated spec (validation machine only)."""
+    from quant_system.lab.final import run_holdout, run_validation
+    from quant_system.lab.nominate import NominationError, load_nomination
+    from quant_system.lab.windows import WindowLocked
+
+    runner = run_validation if args.lab_command == "validate" else run_holdout
+    try:
+        packet, spec = load_nomination(args.packet)
+        result = runner(packet, spec)
+    except (NominationError, WindowLocked) as exc:
+        print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
+        return 1
+    print(json.dumps(result, indent=2, default=str))
+    return 0 if result["ran"] else 1
+
+
 def _jsonable(obj: Any) -> Any:
     if isinstance(obj, dict):
         return {k: _jsonable(v) for k, v in obj.items()}
@@ -574,6 +609,24 @@ def build_parser() -> argparse.ArgumentParser:
     robust.add_argument("spec", help="Path to a spec YAML file")
     robust.add_argument("--bot", default=None, help="Author bot name (default: $QUANT_LAB_BOT, then the spec's author_bot)")
     robust.set_defaults(func=cmd_lab_robust)
+    nom = lab_sub.add_parser(
+        "nominate",
+        help="Rerun the robustness checks from a clean checkout; if they pass completely, write a "
+        "nomination packet (frozen trial count) for validation",
+    )
+    nom.add_argument("spec", help="Path to a spec YAML file")
+    nom.add_argument("--bot", default=None, help="Author bot name (default: $QUANT_LAB_BOT, then the spec's author_bot)")
+    nom.add_argument("--out", default=None, help="Packet directory (default: lab_nominations/ in this checkout)")
+    nom.set_defaults(func=cmd_lab_nominate)
+    for name, text in (
+        ("validate", "Validation machine only: recheck discovery, then the one 2022-2024 run "
+                     "(needs QUANT_LAB_UNLOCK=validation)"),
+        ("holdout", "Validation machine only: the one 2025+ run for a validation survivor "
+                    "(needs QUANT_LAB_UNLOCK=holdout)"),
+    ):
+        final = lab_sub.add_parser(name, help=text)
+        final.add_argument("packet", help="Nomination packet JSON (from `lab nominate`)")
+        final.set_defaults(func=cmd_lab_final)
 
     return p
 

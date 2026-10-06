@@ -60,10 +60,17 @@ class LabRobustSettings(BaseModel):
     selloff_dd_ratio: float = 1.25
 
 
+class LabLockedSettings(BaseModel):
+    """Validation / holdout breakouts (`lab validate`, `lab holdout`). Reported, not in the pass bar."""
+
+    selloffs: list[Selloff] = [Selloff(name="bear_2022", start=date(2022, 1, 3), end=date(2022, 10, 31))]
+
+
 class LabSettings(BaseModel):
     data: LabDataSettings = LabDataSettings()
     costs: LabCostSettings = LabCostSettings()
     robust: LabRobustSettings = LabRobustSettings()
+    locked: LabLockedSettings = LabLockedSettings()
     benchmark: str = "SPY"
     universe_file: str = "lab_universe.yaml"
     config_dir: str = ""
