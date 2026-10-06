@@ -7,7 +7,7 @@ block at a time.
 
 **Status: on hold.** No bot is created, and no bot writes specs, until
 Sabastian says go. Depends on PR #9 (`lab nominate` / `lab validate` /
-`lab holdout`) being merged.
+`lab holdout`) and PR #11 (volume indicators) being merged.
 
 ## The team
 
@@ -17,8 +17,8 @@ every run, and never shows a validation or holdout score to any bot.
 
 | Bot | One job | Coding |
 |---|---|---|
-| **momo** | Invents and screens trend, momentum and breakout specs on discovery | PRs for nomination packets only |
-| **snapback** | Invents and screens mean-reversion, pullback and volatility specs on discovery | PRs for nomination packets only |
+| **momo** | Invents and screens trend, momentum and breakout specs on discovery, including volume confirmation | PRs for nomination packets only |
+| **snapback** | Invents and screens mean-reversion, pullback and volatility specs on discovery, including volume exhaustion | PRs for nomination packets only |
 | **smith** | Builds new indicators the inventors ask for, as pure functions with tests | Yes: `quant_system/lab/indicators/` + tests |
 | **skeptic** | Attacks every nomination and new-indicator PR before Chief of Staff merges it | No (comments on PRs) |
 
@@ -59,6 +59,12 @@ smith opens a PR, skeptic attacks it, and Chief of Staff merges it.
   that touches it needs Sabastian's explicit OK. smith adds indicators and
   never changes an existing one, because that would change what earlier trials
   meant.
+- **Volume is part of both families.** Both inventors test volume, not just
+  price. The lab has the common charting volume studies (PR #11): OBV trend,
+  Chaikin money flow and oscillator, money flow index, VWAP, anchored VWAP,
+  the volume oscillator, relative volume, and the raw `volume` field. momo
+  looks for volume confirming trends and breakouts; snapback looks for volume
+  showing exhaustion or capitulation.
 - **No bot looks at prices after 2021-12-31 for research.** The lab enforces
   this through its data ceiling. Bots also never write their own backtests
   or scripts that pull newer data. The shared machine trades live, so newer
@@ -152,6 +158,10 @@ smith opens a PR, skeptic attacks it, and Chief of Staff merges it.
       `lab robust` (only for specs that beat SPY and equal-weight), `lab nominate`
       (only when robust reports passed: true and complete: true). Spec format:
       docs/lab-spec-format.md. Available indicators: `lab indicators`.
+    - Test volume as well as price: does volume confirm the move? Examples: a breakout on
+      rel_volume above 1.5-2, a trend with rising obv_trend or positive cmf, price holding
+      above the VWAP anchored at a recent high or low (avwap_high_dist, avwap_low_dist),
+      volume_osc expanding as momentum builds.
     - Budget: at most 20 new specs per weekday. Every spec you run makes the
       multiple-testing penalty harsher for every candidate, so favor ideas with a reason
       behind them over blind setting sweeps.
@@ -231,6 +241,10 @@ smith opens a PR, skeptic attacks it, and Chief of Staff merges it.
       `lab robust` (only for specs that beat SPY and equal-weight), `lab nominate`
       (only when robust reports passed: true and complete: true). Spec format:
       docs/lab-spec-format.md. Available indicators: `lab indicators`.
+    - Test volume as well as price: does volume show exhaustion? Examples: a selloff
+      ending on a capitulation spike (rel_volume above 2-3), mfi oversold, cmf turning up
+      while price is still down, price stretched below its rolling VWAP (vwap_dist), or
+      reclaiming the VWAP anchored at a recent low (avwap_low_dist).
     - Budget: at most 20 new specs per weekday. Every spec you run makes the
       multiple-testing penalty harsher for every candidate, so favor ideas with a reason
       behind them over blind setting sweeps.
