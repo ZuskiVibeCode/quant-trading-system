@@ -297,8 +297,18 @@ discovery to its two single runs:
   doesn't pass with a complete report. A spec that fails there never gets a
   validation score. This answers PR 5's review note that `evaluate()` can score
   without logging: no score a bot produced reaches the gate.
-- **Order of checks in `lab validate`:** clean checkout (`quant_system/` and
-  `config/` match the commit), then the window rules (unlock, one run per hash),
+- **The gate reads the trial log, not the report.** For both `nominate` and
+  `validate`, the spec's own pass/fail is recomputed from the discovery record
+  that run wrote to the trial log, and that record must have `git_dirty: false`.
+  The robust report must have `complete: true`, `git_dirty: false`, and no failed
+  check. A report whose base run isn't in the log is rejected.
+- **Machine guard.** `validate` and `holdout` refuse before anything else unless
+  the data ceiling is past 2021-12-31 **and** `QUANT_LAB_UNLOCK` names the
+  window. Grok's machine keeps the 2021-12-31 ceiling and never sets the
+  unlock, so they can't run there by accident. Confirmed by Sabastian and Chief
+  of Staff, Oct 6, 2026.
+- **Order of checks in `lab validate`:** machine guard, then clean checkout
+  (`quant_system/` and `config/` match the commit), then the window rules (unlock, one run per hash),
   then trial-count order, then the discovery recheck, then the run. Everything
   that can refuse comes before any scoring.
 - **The trial count can't go backwards.** If a packet nominated later carries

@@ -13,6 +13,8 @@ import yaml
 
 import quant_system.lab.final as final
 import quant_system.lab.nominate as nominate_mod
+import quant_system.lab.robust as robust_mod
+import quant_system.lab.trials as trials_mod
 from quant_system.backtest.cache import save_bars
 from quant_system.cli import main
 from quant_system.config.loader import load_config
@@ -48,8 +50,10 @@ def _env(monkeypatch):
         monkeypatch.delenv(key, raising=False)
     # Locked windows need bars past 2021 on the "validation machine".
     monkeypatch.setenv(CEILING_ENV, "today")
-    # Tests run in whatever state the developer's checkout is in.
-    monkeypatch.setattr(nominate_mod, "fresh_git_state", lambda: ("abc123", False))
+    # Tests run in whatever state the developer's checkout is in: pin a clean one.
+    clean = lambda: ("abc123", False)  # noqa: E731
+    for mod, name in ((nominate_mod, "fresh_git_state"), (trials_mod, "git_state"), (robust_mod, "git_state")):
+        monkeypatch.setattr(mod, name, clean)
 
 
 @pytest.fixture(scope="module")
@@ -81,7 +85,11 @@ def settings(tmp_path):
 
 @pytest.fixture
 def passing(monkeypatch):
-    """The real robustness run (trials logged as usual), with every check forced to pass."""
+    """The real robustness run (trials logged as usual), with every check forced to pass.
+
+    The gate reads the spec's own verdict from the trial log, so the logged base
+    run is marked as beating the benchmarks too.
+    """
 
     def forced(*args, **kwargs):
         rep = run_robust(*args, **kwargs)
@@ -89,6 +97,10 @@ def passing(monkeypatch):
         rep["base"]["passed"] = True
         for check in rep["checks"].values():
             check["status"] = "pass"
+        path = Path(rep["base"]["trial_file"])
+        rec = json.loads(path.read_text(encoding="utf-8"))
+        rec["metrics"]["beats_benchmarks"] = True
+        path.write_text(json.dumps(rec), encoding="utf-8")
         return rep
 
     monkeypatch.setattr(nominate_mod, "run_robust", forced)
@@ -116,13 +128,43 @@ def _log_validation(data_dir, spec: StrategySpec, *, passed: bool, n_trials: int
     )
 
 
-def test_gate_failures_lists_fails_and_skips():
-    rep = {"base": {"passed": False}, "checks": {"nudges": {"status": "pass"}, "sectors": {"status": "fail"},
-                                                 "single_stock": {"status": "skipped", "reason": "none"}}}
-    reasons = gate_failures(rep)
-    assert len(reasons) == 3 and reasons[1] == "sectors: fail" and "complete report" in reasons[2]
-    rep = {"base": {"passed": True}, "checks": {"nudges": {"status": "pass"}}}
-    assert gate_failures(rep) == []
+def _base_record(data_dir, *, beats: bool, dirty: bool | None = False) -> dict:
+    """A logged discovery run for SPEC and a matching robust report that passes everything."""
+    spec = StrategySpec.model_validate(SPEC)
+    vs = {"SPY": {"sharpe_diff": 0.2, "excess_cagr": 0.01}, "equal_weight": {"sharpe_diff": 0.1, "excess_cagr": 0.01}}
+    path = record_trial(spec=spec.canonical(), window="discovery", author_bot="alpha", data_dir=data_dir,
+                        metrics={"sharpe": 1.0, "beats_benchmarks": beats, "vs_benchmarks": vs},
+                        returns=pd.Series([0.01], index=[pd.Timestamp("2017-01-03")]))
+    rec = json.loads(path.read_text(encoding="utf-8"))
+    rec["git_dirty"] = dirty
+    path.write_text(json.dumps(rec), encoding="utf-8")
+    return {"spec_hash": spec.hash, "passed": True, "complete": True, "git_dirty": False,
+            "base": {"passed": True, "trial_file": str(path)},
+            "checks": {"nudges": {"status": "pass"}, "sectors": {"status": "pass"}}}
+
+
+def test_gate_recomputes_the_verdict_from_the_trial_log(tmp_path):
+    rep = _base_record(tmp_path / "a", beats=True)
+    assert gate_failures(rep, data_dir=tmp_path / "a") == []
+
+    # The report says passed, but the logged run didn't beat the benchmarks.
+    rep = _base_record(tmp_path / "b", beats=False)
+    assert gate_failures(rep, data_dir=tmp_path / "b") == [
+        "spec does not beat SPY and equal-weight after costs on discovery"
+    ]
+    # A report whose base run isn't in this trial log at all.
+    assert "not in the trial log" in gate_failures(rep, data_dir=tmp_path / "a")[0]
+
+    rep = _base_record(tmp_path / "c", beats=True, dirty=True)
+    assert gate_failures(rep, data_dir=tmp_path / "c") == ["discovery record git_dirty=True; needs a clean checkout"]
+
+    rep = _base_record(tmp_path / "d", beats=True)
+    rep.update(git_dirty=None, complete=False)
+    rep["checks"].update(sectors={"status": "fail"}, single_stock={"status": "skipped", "reason": "none"})
+    reasons = gate_failures(rep, data_dir=tmp_path / "d")
+    assert reasons[0].startswith("robust report git_dirty=None")
+    assert reasons[1].startswith("robust report complete=false")
+    assert reasons[2] == "sectors: fail" and "complete report" in reasons[3]
 
 
 def test_nominate_refuses_a_dirty_checkout(tmp_path, monkeypatch, settings, bars):
@@ -167,14 +209,26 @@ def test_nominate_freezes_the_trial_count(tmp_path, settings, bars, passing):
         load_nomination(path)
 
 
-def test_validate_checks_the_window_before_any_work(tmp_path, monkeypatch, settings, bars):
+def test_validate_and_holdout_refuse_off_the_validation_machine(tmp_path, monkeypatch, settings, bars):
     def boom(*a, **k):
         raise AssertionError("recheck ran on a locked window")
 
     monkeypatch.setattr(final, "run_robust", boom)
     spec = StrategySpec.model_validate(SPEC)
-    with pytest.raises(WindowLocked, match="locked"):
-        run_validation(_packet(spec), spec, settings=settings, bars=bars, data_dir=tmp_path, today=TODAY)
+    kw = dict(settings=settings, bars=bars, data_dir=tmp_path, today=TODAY)
+    with pytest.raises(WindowLocked, match="validation is locked"):
+        run_validation(_packet(spec), spec, **kw)
+    with pytest.raises(WindowLocked, match="holdout is locked"):
+        run_holdout(_packet(spec), spec, **kw)
+    monkeypatch.setenv(UNLOCK_ENV, "validation,holdout")
+    monkeypatch.delenv(CEILING_ENV)  # Grok's machine: ceiling at the end of discovery
+    for runner in (run_validation, run_holdout):
+        with pytest.raises(WindowLocked, match="never on Grok's"):
+            runner(_packet(spec), spec, **kw)
+    monkeypatch.setenv(CEILING_ENV, "2021-12-31")
+    with pytest.raises(WindowLocked, match="never on Grok's"):
+        run_validation(_packet(spec), spec, **kw)
+    monkeypatch.setenv(CEILING_ENV, "today")
     with pytest.raises(NominationError, match="packet is for"):
         run_validation(_packet(StrategySpec.model_validate(NEVER)), spec, settings=settings, bars=bars,
                        data_dir=tmp_path, today=TODAY)

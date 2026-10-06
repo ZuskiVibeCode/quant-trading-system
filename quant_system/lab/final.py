@@ -6,12 +6,15 @@ ceiling raised. Input is a nomination packet (``lab.nominate``).
 
 Validation, in order:
 
+0. Machine guard: refuses unless the data ceiling is past 2021-12-31 and
+   ``QUANT_LAB_UNLOCK`` names the window, then a clean checkout.
 1. Window rules (unlock, one run per spec hash), before any work.
 2. The frozen trial count must not go backwards: a packet nominated later than
    one already validated may not carry fewer discovery trials (the shared trial
    log on Grok's machine lost records, or someone removed some).
 3. The discovery gate is recomputed here, on this machine's data: the full
-   robustness run must pass with a complete report. Nothing a bot wrote on the
+   robustness run must pass with a complete report, and the spec's own verdict
+   and ``git_dirty`` are read back from the trial log. Nothing a bot wrote on the
    shared machine is trusted except the frozen trial stats. A spec that fails
    here never gets a validation score.
 4. One run on 2022-2024 with the frozen stats. The verdict, the recheck and the
@@ -44,13 +47,30 @@ from quant_system.lab.nominate import (
 )
 from quant_system.lab.robust import run_robust, selloff_rows, subset_row
 from quant_system.lab.runner import Evaluation, evaluate, score_spec_full
-from quant_system.lab.settings import LabSettings, load_lab_settings
+from quant_system.lab.settings import LabSettings, data_ceiling, load_lab_settings
 from quant_system.lab.spec import StrategySpec
 from quant_system.lab.trials import load_trials
 from quant_system.lab.universe import theme_symbols, universe_symbols
-from quant_system.lab.windows import ResolvedWindow, authorize_run
+from quant_system.lab.windows import UNLOCK_ENV, WINDOWS, ResolvedWindow, WindowLocked, authorize_run, unlocked_windows
 
 BREAKOUT_NOTE = "reported only; not part of the pass bar"
+
+
+def require_validation_machine(window: str, settings: LabSettings, *, today: date | None = None) -> None:
+    """Refuse unless this looks like the validation machine: data past discovery and the window unlocked.
+
+    Grok's machine keeps the ceiling at the end of discovery and never sets the
+    unlock, so validation and holdout can't run there by accident.
+    """
+    ceiling = data_ceiling(settings, today=today)
+    discovery_end = WINDOWS["discovery"].end
+    if ceiling <= discovery_end:
+        raise WindowLocked(
+            f"data ceiling is {ceiling} (not past {discovery_end}): {window} runs only on the "
+            "validation machine, never on Grok's"
+        )
+    if window not in unlocked_windows():
+        raise WindowLocked(f"{window} is locked; set {UNLOCK_ENV}={window} on the validation machine")
 
 
 def check_trial_count_order(packet: dict[str, Any], *, data_dir: Path | str | None = None) -> None:
@@ -124,6 +144,7 @@ def _final_run(
 ) -> dict[str, Any]:
     s = settings or load_lab_settings()
     app = cfg or load_config()
+    require_validation_machine(window, s, today=today)
     if packet.get("spec_hash") != spec.hash:
         raise NominationError(f"packet is for {packet.get('spec_hash')}, spec hashes to {spec.hash}")
     commit = require_clean_checkout()
@@ -142,7 +163,7 @@ def _final_run(
     if window == "validation":
         report = run_robust(spec, author_bot=author, settings=s, cfg=app, bars=bars, data_dir=data_dir, today=today)
         recheck = recheck_summary(report)
-        failures = gate_failures(report)
+        failures = gate_failures(report, benchmark=s.benchmark, data_dir=data_dir)
         if failures:
             return {"ran": False, "window": window, "spec_id": spec.id, "spec_hash": spec.hash,
                     "reasons": [f"discovery recheck: {x}" for x in failures], "recheck": recheck}

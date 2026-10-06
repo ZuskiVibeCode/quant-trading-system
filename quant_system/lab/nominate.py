@@ -2,7 +2,8 @@
 
 Runs on Grok's machine, from a clean checkout. It reruns the robustness checks
 (gauntlet step 2) itself instead of trusting an earlier report, and nominates
-only a spec that passes with a complete report. The packet freezes the
+only a spec that passes with a complete report. The gate reads the spec's own
+verdict and ``git_dirty`` from the trial log record that run wrote. The packet freezes the
 discovery trial count and Sharpe spread for the deflated Sharpe. It is written
 to ``lab_nominations/`` in the checkout and reaches the validation machine by
 PR, so the frozen count is reviewed and kept in git history.
@@ -22,10 +23,11 @@ from typing import Any
 import pandas as pd
 
 from quant_system.config.loader import AppConfig
+from quant_system.lab.metrics import pass_bar
 from quant_system.lab.robust import run_robust
-from quant_system.lab.settings import LabSettings
+from quant_system.lab.settings import LabSettings, load_lab_settings
 from quant_system.lab.spec import StrategySpec
-from quant_system.lab.trials import fresh_git_state, trial_stats, write_json_atomic
+from quant_system.lab.trials import fresh_git_state, load_trials, trial_stats, write_json_atomic
 
 NOMINATION_KIND = "lab_nomination"
 NOMINATION_SCHEMA = 1
@@ -51,11 +53,40 @@ def require_clean_checkout() -> str | None:
     return commit
 
 
-def gate_failures(report: dict[str, Any]) -> list[str]:
-    """Why a robust report can't nominate: the spec must pass and every check must have run."""
+def gate_failures(
+    report: dict[str, Any], *, benchmark: str = "SPY", data_dir: Path | str | None = None
+) -> list[str]:
+    """Why a robust run can't nominate (empty = it can).
+
+    The spec's own pass/fail and ``git_dirty`` are recomputed from its discovery
+    record in the trial log, not taken from the report. The report must also be
+    complete (no skipped check), with no failed check, from a clean checkout.
+    """
     out = []
-    if not report["base"]["passed"]:
-        out.append("spec does not beat SPY and equal-weight after costs on discovery")
+    h = report["spec_hash"]
+    trial_file = Path(report["base"]["trial_file"]).name
+    recs = [
+        r for r in load_trials(window="discovery", kind="trial", spec_hash=h, data_dir=data_dir)
+        if Path(r["path"]).name == trial_file
+    ]
+    if not recs:
+        out.append(f"the spec's discovery run ({trial_file}) is not in the trial log")
+    else:
+        rec = recs[0]
+        m = rec.get("metrics") or {}
+        verdict = pass_bar(
+            "discovery",
+            {"beats_benchmarks": m.get("beats_benchmarks"), "vs_benchmarks": m.get("vs_benchmarks")},
+            required=(benchmark.upper(), "equal_weight"),
+        )
+        if not verdict["passed"]:
+            out.append("spec does not beat SPY and equal-weight after costs on discovery")
+        if rec.get("git_dirty") is not False:
+            out.append(f"discovery record git_dirty={rec.get('git_dirty')}; needs a clean checkout")
+    if report.get("git_dirty") is not False:
+        out.append(f"robust report git_dirty={report.get('git_dirty')}; needs a clean checkout")
+    if report.get("complete") is not True:
+        out.append("robust report complete=false; nomination needs every check to have run")
     for name, check in report["checks"].items():
         if check["status"] == "fail":
             out.append(f"{name}: fail")
@@ -90,11 +121,12 @@ def nominate(
 ) -> dict[str, Any]:
     """Rerun the robustness checks and, if they pass completely, write the nomination packet."""
     commit = require_clean_checkout()
+    s = settings or load_lab_settings()
     author = author_bot or spec.author_bot or "unknown"
     report = run_robust(
-        spec, author_bot=author, settings=settings, cfg=cfg, bars=bars, data_dir=data_dir, today=today
+        spec, author_bot=author, settings=s, cfg=cfg, bars=bars, data_dir=data_dir, today=today
     )
-    failures = gate_failures(report)
+    failures = gate_failures(report, benchmark=s.benchmark, data_dir=data_dir)
     result: dict[str, Any] = {
         "nominated": not failures,
         "spec_id": spec.id,
