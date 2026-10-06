@@ -20,5 +20,25 @@ costs:
     - {min_dollar_volume: 50000000, bps: 5}
     - {min_dollar_volume: 10000000, bps: 15}
     - {min_dollar_volume: 2000000, bps: 30}
+# Robustness (`lab robust`, gauntlet step 2). Starting thresholds; every report
+# records the values it used.
+robust:
+  # Each setting moved by these fractions, one at a time, within the spec's own min/max.
+  nudges: [-0.2, -0.1, 0.1, 0.2]
+  # Share of nudged variants that must still beat SPY and equal-weight.
+  nudge_pass_share: 0.75
+  # Median nudged Sharpe must be at least this fraction of the spec's Sharpe (no sharp peak).
+  peak_ratio: 0.5
+  # Sector / cap-bucket subsets with fewer names are skipped.
+  min_subset_names: 10
+  # Share of sectors / cap buckets where the strategy's Sharpe beats that subset's equal-weight.
+  sector_pass_share: 0.6
+  cap_pass_share: 0.6
+  # Selloffs inside discovery: the strategy's worst drawdown in each may be at most
+  # selloff_dd_ratio x the worse of SPY's and equal-weight's.
+  selloffs:
+    - {name: q4_2018, start: "2018-10-01", end: "2018-12-31"}
+    - {name: covid_2020, start: "2020-02-01", end: "2020-04-30"}
+  selloff_dd_ratio: 1.25
 # Broad universe, relative to config/. Built by scripts/build_lab_universe.py.
 universe_file: lab_universe.yaml

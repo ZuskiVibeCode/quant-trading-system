@@ -89,7 +89,14 @@ class StrategySpec(BaseModel):
                         raise ValueError(f"indicator {name!r}: {v!r} is not a $setting from params")
                     used.add(v[1:])
             try:
-                get_indicator(str(raw["fn"])).coerce(self.indicator_args(name))
+                ind = get_indicator(str(raw["fn"]))
+                ind.coerce(self.indicator_args(name))
+                # Robustness nudges stay inside a setting's min/max, so both ends must be valid too.
+                for key, v in args.items():
+                    if isinstance(v, str):
+                        p = self.params[v[1:]]
+                        for end in (p.min, p.max):
+                            ind.coerce({**self.indicator_args(name), key: end})
             except ValueError as exc:
                 raise ValueError(f"indicator {name!r}: {exc}") from None
 

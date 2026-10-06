@@ -54,6 +54,13 @@ def test_rules_reject_anything_outside_the_language(src):
         parse_rule(src)
 
 
+def test_rule_errors_name_the_offending_construct():
+    with pytest.raises(RuleError, match="Lambda is not allowed"):
+        parse_rule("(lambda: 1)()")
+    with pytest.raises(RuleError, match="Attribute is not allowed"):
+        parse_rule("close.__class__")
+
+
 def test_rule_names_exclude_functions():
     rule = parse_rule("crosses_above(fast, slow) and abs(prev(close, 3)) > min(a, 2) and not -b")
     assert rule.names == {"fast", "slow", "close", "a", "b"}
@@ -128,6 +135,7 @@ def test_spec_rejections():
     _bad("outside", indicators={"rsi": {"fn": "rsi", "length": 500}}, params={}, entry="rsi < 30")
     _bad("unknown indicator", indicators={"rsi": {"fn": "magic"}}, params={}, entry="rsi < 30")
     _bad("outside", params={"n": {"value": 40, "min": 7, "max": 28}})
+    _bad(r"outside \[2, 100\]", params={"n": {"value": 14, "min": 7, "max": 500}})  # nudge range too
     _bad("Extra inputs", code="import os")
     _bad("rule", exit="rsi.real > 1")
     _bad("id", id="Has Spaces")

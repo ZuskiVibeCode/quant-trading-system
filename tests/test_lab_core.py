@@ -289,6 +289,7 @@ def test_record_and_stats(tmp_path):
     raw = json.loads(path.read_text(encoding="utf-8"))  # strict JSON: NaN stored as null
     assert raw["metrics"]["dsr"] is None and raw["returns"]["values"] == [0.01, -0.02]
     assert raw["spec_hash"] == spec_hash(SPEC) and raw["kind"] == "trial"
+    assert raw["git_dirty"] in (True, False, None) and "git_commit" in raw
     assert not list(tmp_path.glob("trials/.*"))  # no temp files left behind
 
     other = {**SPEC, "params": {"rsi_len": 20}}

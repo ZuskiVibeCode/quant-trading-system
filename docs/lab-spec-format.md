@@ -10,6 +10,7 @@ holdout results. Design: [`harness-upgrade-design.md`](harness-upgrade-design.md
 python -m quant_system lab indicators        # what you can use, with [default, min, max] settings
 python -m quant_system lab check my.yaml     # validate only: no run, nothing logged
 python -m quant_system lab run my.yaml --bot <your-bot-name>   # score on discovery (2016-2021)
+python -m quant_system lab robust my.yaml --bot <your-bot-name>  # gauntlet step 2 (about 1 minute)
 python -m quant_system lab trials            # how many distinct specs have been tried, recent runs
 ```
 
@@ -83,7 +84,15 @@ costs), excess CAGR, Sharpe difference, beta, information ratio, the deflated
 Sharpe given every trial so far, and the top contributors.
 
 To pass, a spec must beat **both** SPY and equal-weight on Sharpe **and** CAGR,
-after costs. Discovery is only the first screen. Survivors still face
+after costs.
+
+`lab robust` is the next screen. It nudges each setting ±10% and ±20%, reruns
+inside each sector and cap bucket, checks the Q4 2018 and Feb-Apr 2020
+selloffs, and reruns without the top contributing stock. The variants are
+logged under your spec and don't add to the trial count. A spec only counts as
+a survivor with `passed: true` and `complete: true`, run from a checkout with no
+local edits (`git_dirty: false`). Thresholds are in `config/lab.yaml`
+(`robust:`), and section 9 of the design doc has the rules. Discovery is only the first screen. Survivors still face
 robustness checks (settings nudged ±10-20%, sectors, cap sizes, the 2018 and
 2020 selloffs, removing the top stock), then a single validation run and a
 single holdout run that bots never see. Over 95% of ideas are expected to die,

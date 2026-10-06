@@ -38,9 +38,32 @@ class LabCostSettings(BaseModel):
     ]
 
 
+class Selloff(BaseModel):
+    name: str
+    start: date
+    end: date
+
+
+class LabRobustSettings(BaseModel):
+    """Gauntlet step 2 (`lab robust`) thresholds; see docs/harness-upgrade-design.md section 9."""
+
+    nudges: list[float] = [-0.2, -0.1, 0.1, 0.2]
+    nudge_pass_share: float = 0.75
+    peak_ratio: float = 0.5
+    min_subset_names: int = 10
+    sector_pass_share: float = 0.6
+    cap_pass_share: float = 0.6
+    selloffs: list[Selloff] = [
+        Selloff(name="q4_2018", start=date(2018, 10, 1), end=date(2018, 12, 31)),
+        Selloff(name="covid_2020", start=date(2020, 2, 1), end=date(2020, 4, 30)),
+    ]
+    selloff_dd_ratio: float = 1.25
+
+
 class LabSettings(BaseModel):
     data: LabDataSettings = LabDataSettings()
     costs: LabCostSettings = LabCostSettings()
+    robust: LabRobustSettings = LabRobustSettings()
     benchmark: str = "SPY"
     universe_file: str = "lab_universe.yaml"
     config_dir: str = ""
