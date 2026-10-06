@@ -11,5 +11,14 @@ data:
   # Split + dividend adjusted.
   adjustment: all
 benchmark: SPY
+# Fill model: signal at day t's close, fill at day t+1's open. Slippage per side
+# by the 20-day median dollar volume as of day t (Alpaca charges no commission).
+# Highest matching bucket wins; below the lowest bucket a name is not tradable.
+costs:
+  lookback_days: 20
+  buckets:
+    - {min_dollar_volume: 50000000, bps: 5}
+    - {min_dollar_volume: 10000000, bps: 15}
+    - {min_dollar_volume: 2000000, bps: 30}
 # Broad universe, relative to config/. Built by scripts/build_lab_universe.py.
 universe_file: lab_universe.yaml

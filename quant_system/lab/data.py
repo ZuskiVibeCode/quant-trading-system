@@ -208,6 +208,13 @@ def load_lab_bars(
     return out
 
 
+def bars_panel(bars: dict[str, pd.DataFrame], field: str) -> pd.DataFrame:
+    """One OHLCV field as a dates x symbols frame (union of sessions, NaN where no bar)."""
+    if not bars:
+        return pd.DataFrame()
+    return pd.DataFrame({sym: df[field] for sym, df in bars.items()}).sort_index()
+
+
 def cache_status(
     *,
     settings: LabSettings | None = None,

@@ -290,6 +290,30 @@ def cmd_lab_data_status(args: argparse.Namespace) -> int:
     return 1 if status["rows_past_ceiling"] else 0
 
 
+def cmd_lab_trials(args: argparse.Namespace) -> int:
+    """Trial count (distinct specs) and the most recent runs for one window."""
+    from quant_system.lab.trials import load_trials, trial_stats
+
+    window = args.window
+    stats = trial_stats(window)
+    recent = load_trials(window=window)[-args.limit :] if args.limit > 0 else []
+    stats["recent"] = [
+        {
+            "recorded_at": r.get("recorded_at"),
+            "kind": r.get("kind"),
+            "author_bot": r.get("author_bot"),
+            "spec_id": r.get("spec_id"),
+            "spec_hash": r.get("spec_hash"),
+            "sharpe": (r.get("metrics") or {}).get("sharpe"),
+            "cagr": (r.get("metrics") or {}).get("cagr"),
+            "beats_benchmarks": (r.get("metrics") or {}).get("beats_benchmarks"),
+        }
+        for r in reversed(recent)
+    ]
+    print(json.dumps(stats, indent=2))
+    return 0
+
+
 def _jsonable(obj: Any) -> Any:
     if isinstance(obj, dict):
         return {k: _jsonable(v) for k, v in obj.items()}
@@ -448,6 +472,7 @@ def build_parser() -> argparse.ArgumentParser:
     bt.set_defaults(func=cmd_backtest_themes)
 
     from quant_system.lab.universe import UNIVERSE_NAMES
+    from quant_system.lab.windows import WINDOWS
 
     lab = sub.add_parser("lab", help="Strategy lab for bot-invented strategies (paper research only)")
     lab_sub = lab.add_subparsers(dest="lab_command", required=True)
@@ -467,6 +492,10 @@ def build_parser() -> argparse.ArgumentParser:
     sync.set_defaults(func=cmd_lab_data_sync)
     status = data_sub.add_parser("status", help="Cache summary; exits 1 if rows past the ceiling exist")
     status.set_defaults(func=cmd_lab_data_status)
+    trials = lab_sub.add_parser("trials", help="Trial count and recent results from the shared trial log")
+    trials.add_argument("--window", default="discovery", choices=list(WINDOWS), help="Window (default: discovery)")
+    trials.add_argument("--limit", type=int, default=10, help="Recent runs to list (default: 10)")
+    trials.set_defaults(func=cmd_lab_trials)
 
     return p
 

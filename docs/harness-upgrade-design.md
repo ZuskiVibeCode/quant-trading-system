@@ -1,7 +1,8 @@
 # Harness upgrade: design
 
-Draft by Claude Code, Oct 5, 2026. Follows `docs/claude-handoff.md`. PR 1
-(agent replay fixes) is built; the rest is design. Decisions and remaining open
+Draft by Claude Code, Oct 5, 2026. Follows `docs/claude-handoff.md`. PRs 1-3
+(agent replay fixes; data layer; windows, costs, metrics, trial log) are built;
+the rest is design. Decisions and remaining open
 questions for Sabastian are at the end.
 
 ## The main design choice: two engines, one scoreboard
@@ -99,6 +100,13 @@ Every result includes, for the same window and with the same costs:
 Agent replay gets the same columns per theme sleeve, so the theme leaderboard
 can finally be judged.
 
+As built (PR 3, `lab/benchmarks.py`): both benchmarks enter on the same day,
+the first fill any strategy could get. The signal day is the first window
+session on which the cost model can price a trade (20 bars of history: about
+session 20 of discovery, session 1 of validation thanks to late-2021 warm-up
+bars), and the fill is the next session's open with each name's own slippage.
+No exit cost at the window end, for strategies or benchmarks.
+
 ## 4. Windows
 
 | Window | Dates | Who runs it | Rule |
@@ -119,6 +127,13 @@ both hand out 2022+ data there. A bot that writes its own script can see recent
 prices. What the design guarantees is that no bot ever sees a validation or
 holdout *score*.
 
+As built (PR 3, `lab/windows.py`): window dates are code constants, not
+`config/lab.yaml` entries, so moving a window is a reviewed code change rather
+than a config edit. Unlocking one window does not unlock the other. Locked
+windows also refuse robustness runs. The validation/holdout runner (PR 6) must
+write the trial record before it prints the score, so a crash can't allow a
+second run.
+
 ## 5. Trial log
 
 - Every `lab run` writes one JSON file to a shared trials directory
@@ -128,6 +143,11 @@ holdout *score*.
   daily return series (needed for deflated Sharpe).
 - Robustness runs are logged as `kind: robustness` under their parent spec.
   They don't count as new trials, since they test one idea, not new ones.
+- As built (PR 3, `lab/trials.py`): a trial is a distinct spec hash. The hash
+  ignores labels (`id`, `author_bot`, `description`, `notes`), so renaming a
+  spec neither adds a trial nor earns a second validation run. Rerunning the
+  same spec replaces its score (latest record wins) instead of adding a trial.
+  `lab trials [--window]` prints the count and recent runs.
 - Deflated Sharpe (Bailey and Lopez de Prado) uses the number of discovery
   trials and the spread of their Sharpes. The trial count is frozen into each
   candidate when it is nominated for validation.
@@ -232,6 +252,9 @@ Each PR: own branch, `pytest` passing, tests with synthetic bars (no network).
 - **Pass bar:** Sharpe after costs above both SPY's and equal-weight
   buy-and-hold's, and higher CAGR than both. Validation also needs deflated
   Sharpe above 0.95 probability. PR 1 reports this as `beats_benchmarks`.
+  The lab's `metrics.pass_bar` applies the deflated-Sharpe check to holdout as
+  well as validation (the handoff's gauntlet step 4), and fails any result
+  missing either benchmark.
 
 - **Delegated to Claude Code** (Sabastian: "I defer to you on all these"):
   - **Broad universe:** about 300 current S&P 1500 members, roughly 150 from the

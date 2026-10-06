@@ -237,19 +237,23 @@ Leaderboard JSON lands under `artifacts/backtest/` (`theme_leaderboard_latest.js
 
 A fast, spec-driven harness where bots invent and test strategies. Plan and
 decisions: [`docs/harness-upgrade-design.md`](docs/harness-upgrade-design.md).
-Built so far: the shared data layer.
+Built so far: the shared data layer, plus the windows, cost model, benchmarks,
+metrics and trial log the spec engine will score with.
 
 ```bash
 python -m quant_system lab data sync               # Alpaca daily bars, split+dividend adjusted, SIP feed
 python -m quant_system lab data sync --universe themes
 python -m quant_system lab data status             # exits 1 if any cached rows are past the data ceiling
+python -m quant_system lab trials                  # trial count (distinct specs) + recent runs; --window, --limit
 ```
 
 | Setting | Where | Default |
 |---------|-------|---------|
-| Shared cache root (bars, later the trial log) | `QUANT_LAB_DATA_DIR` | `data/lab/` (gitignored). On Grok's machine use one dir outside every checkout, e.g. `/workspace/lab-data` |
+| Shared cache root (`bars/`, `trials/`) | `QUANT_LAB_DATA_DIR` | `data/lab/` (gitignored). On Grok's machine use one dir outside every checkout, e.g. `/workspace/lab-data` |
 | Data ceiling | `config/lab.yaml` `data.ceiling`, override `QUANT_LAB_DATA_CEILING` (date or `today`) | `2021-12-31`: discovery data only. Only the validation/holdout machine raises it |
 | Broad universe | `config/lab_universe.yaml`, built by `scripts/build_lab_universe.py` | ~300 S&P 1500 names, sector-balanced, picked by 2016 dollar volume |
+| Windows | code (`quant_system/lab/windows.py`); unlock with `QUANT_LAB_UNLOCK` | discovery 2016-2021 open; validation 2022-2024 and holdout 2025+ locked, one run per spec |
+| Costs | `config/lab.yaml` `costs` | next-open fills; 5 / 15 / 30 bps per side at >$50M / $10-50M / $2-10M 20-day median dollar volume; under $2M not tradable |
 
 Universes: `broad`, `themes` (all `config/universe.yaml` active + bench), one theme name, or `all` (default). SPY is always synced. Alpaca paper keys work for market data.
 

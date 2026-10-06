@@ -22,8 +22,25 @@ class LabDataSettings(BaseModel):
     adjustment: str = "all"
 
 
+class CostBucket(BaseModel):
+    min_dollar_volume: float
+    bps: float
+
+
+class LabCostSettings(BaseModel):
+    """Slippage per side by median dollar volume; below the lowest bucket = not tradable."""
+
+    lookback_days: int = 20
+    buckets: list[CostBucket] = [
+        CostBucket(min_dollar_volume=50_000_000, bps=5),
+        CostBucket(min_dollar_volume=10_000_000, bps=15),
+        CostBucket(min_dollar_volume=2_000_000, bps=30),
+    ]
+
+
 class LabSettings(BaseModel):
     data: LabDataSettings = LabDataSettings()
+    costs: LabCostSettings = LabCostSettings()
     benchmark: str = "SPY"
     universe_file: str = "lab_universe.yaml"
     config_dir: str = ""
