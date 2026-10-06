@@ -1,6 +1,6 @@
 {
-  "exported_at": "2026-10-05T19:47:37.305490Z",
-  "count": 158,
+  "exported_at": "2026-10-06T13:35:44.072255Z",
+  "count": 160,
   "reviews": [
     {
       "ticker": "RGTI",
@@ -25437,6 +25437,330 @@
       ],
       "mode": "alpaca",
       "sector": "robotics"
+    },
+    {
+      "ticker": "LHX",
+      "qty": 0.004234,
+      "entry": 239.632,
+      "exit": 235.872,
+      "pnl": -0.015919839999999963,
+      "pnl_pct": -1.5691,
+      "opened_at": "2026-09-23T19:38:13.811957Z",
+      "closed_at": "2026-10-06T13:34:44.986594Z",
+      "hold_hours": 305.942,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.004234 LHX @~236.18; opportunity rotate to fund ISRG (buy_score=0.473 donor_score=-0.038)",
+      "entry_ticket_id": 134,
+      "exit_ticket_id": 319,
+      "entry_fill_id": 29,
+      "exit_fill_id": 202,
+      "entry_score": {
+        "weighted_score": 0.427,
+        "blended_conf": 57.0
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "short",
+          "confidence": 13.265463839391387,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 < MA200 (intermediate downtrend); RSI oversold (25.1); MACD histogram negative; Near/below 20d low breakdown; 20d RS v\u2026",
+          "signal_id": 3521,
+          "created_at": "2026-09-23T19:37:42.909368Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "long",
+          "confidence": 86.9,
+          "reasoning_trunc": "Quality: Flat/low revenue growth (2.5%); Positive earnings growth (6.9%); Thin profit margin (7.3%); OK operating margin (9.8%) | Valuation/EV: attractive P/S\u2026",
+          "signal_id": 3522,
+          "created_at": "2026-09-23T19:37:46.111923Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "long",
+          "confidence": 62.0475,
+          "reasoning_trunc": "deeply oversold vs MA20 (z=-2.03); residual_to_MA20=-5.7%; strong 20d down-momentum -8.4%; 60d trend down -17.3%; momentum dampened (extreme MA residual); cros\u2026",
+          "signal_id": 3523,
+          "created_at": "2026-09-23T19:37:46.117810Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 77.96108450704226,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.86; avg source credibility 0.71; 'What Could Surprise RKLB Stock Investors On The Upside?' (Trefis, pol=+1.00); 'US\u2026",
+          "signal_id": 3524,
+          "created_at": "2026-09-23T19:37:46.351925Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (space); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (-3\u2026",
+          "signal_id": 3525,
+          "created_at": "2026-09-23T19:37:46.355610Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "fundamental",
+          "statistical_ml",
+          "sentiment"
+        ],
+        "short": [
+          "momentum"
+        ],
+        "neutral": [
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "fundamental",
+        "lead_confidence": 86.9
+      },
+      "path": {
+        "mfe_pct": 1.6141,
+        "mae_pct": -2.3461,
+        "ret_pct": -1.5691
+      },
+      "verdict": "Lost money: Realized PnL=-0.0159. Entered with a split book: long=[fundamental, statistical_ml, sentiment] vs short=[momentum] (see fundamental signal #3522 long @ conf=86.9). Entry weighted_score=0.427. Exit was an opportunity-rotate trim to fund another name. Held 305.9h.",
+      "verdict_tags": [
+        "loser",
+        "split_book",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 29,
+          "label": "entry fill",
+          "detail": "buy qty=0.004234 @ 239.632"
+        },
+        {
+          "kind": "fill",
+          "id": 202,
+          "label": "exit fill",
+          "detail": "sell @ 235.872"
+        },
+        {
+          "kind": "ticket",
+          "id": 134,
+          "label": "entry ticket",
+          "detail": "BUY 0.019901 LHX @~239.64; weighted_score=0.427; blended_conf=57.0; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 319,
+          "label": "exit ticket",
+          "detail": "SELL 0.004234 LHX @~236.18; opportunity rotate to fund ISRG (buy_score=0.473 donor_score=-0.038)"
+        },
+        {
+          "kind": "signal",
+          "id": 3521,
+          "label": "momentum @ entry",
+          "detail": "short @ conf=13.3"
+        },
+        {
+          "kind": "signal",
+          "id": 3522,
+          "label": "fundamental @ entry",
+          "detail": "long @ conf=86.9"
+        },
+        {
+          "kind": "signal",
+          "id": 3523,
+          "label": "statistical_ml @ entry",
+          "detail": "long @ conf=62.0"
+        },
+        {
+          "kind": "signal",
+          "id": 3524,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=78.0"
+        },
+        {
+          "kind": "signal",
+          "id": 3525,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.427; blended_conf=57.0"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=1.6141; mae_pct=-2.3461; ret_pct=-1.5691"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "space"
+    },
+    {
+      "ticker": "LHX",
+      "qty": 0.004234,
+      "entry": 239.632,
+      "exit": 235.872,
+      "pnl": -0.015919839999999963,
+      "pnl_pct": -1.5691,
+      "opened_at": "2026-09-23T19:38:13.811957Z",
+      "closed_at": "2026-10-06T13:34:45.956457Z",
+      "hold_hours": 305.942,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.004234 LHX @~236.18; opportunity rotate to fund MSFT (buy_score=0.236 donor_score=-0.038)",
+      "entry_ticket_id": 134,
+      "exit_ticket_id": 320,
+      "entry_fill_id": 29,
+      "exit_fill_id": 203,
+      "entry_score": {
+        "weighted_score": 0.427,
+        "blended_conf": 57.0
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "short",
+          "confidence": 13.265463839391387,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 < MA200 (intermediate downtrend); RSI oversold (25.1); MACD histogram negative; Near/below 20d low breakdown; 20d RS v\u2026",
+          "signal_id": 3521,
+          "created_at": "2026-09-23T19:37:42.909368Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "long",
+          "confidence": 86.9,
+          "reasoning_trunc": "Quality: Flat/low revenue growth (2.5%); Positive earnings growth (6.9%); Thin profit margin (7.3%); OK operating margin (9.8%) | Valuation/EV: attractive P/S\u2026",
+          "signal_id": 3522,
+          "created_at": "2026-09-23T19:37:46.111923Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "long",
+          "confidence": 62.0475,
+          "reasoning_trunc": "deeply oversold vs MA20 (z=-2.03); residual_to_MA20=-5.7%; strong 20d down-momentum -8.4%; 60d trend down -17.3%; momentum dampened (extreme MA residual); cros\u2026",
+          "signal_id": 3523,
+          "created_at": "2026-09-23T19:37:46.117810Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 77.96108450704226,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.86; avg source credibility 0.71; 'What Could Surprise RKLB Stock Investors On The Upside?' (Trefis, pol=+1.00); 'US\u2026",
+          "signal_id": 3524,
+          "created_at": "2026-09-23T19:37:46.351925Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (space); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (-3\u2026",
+          "signal_id": 3525,
+          "created_at": "2026-09-23T19:37:46.355610Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "fundamental",
+          "statistical_ml",
+          "sentiment"
+        ],
+        "short": [
+          "momentum"
+        ],
+        "neutral": [
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "fundamental",
+        "lead_confidence": 86.9
+      },
+      "path": {
+        "mfe_pct": 1.6141,
+        "mae_pct": -2.3461,
+        "ret_pct": -1.5691
+      },
+      "verdict": "Lost money: Realized PnL=-0.0159. Entered with a split book: long=[fundamental, statistical_ml, sentiment] vs short=[momentum] (see fundamental signal #3522 long @ conf=86.9). Entry weighted_score=0.427. Exit was an opportunity-rotate trim to fund another name. Held 305.9h.",
+      "verdict_tags": [
+        "loser",
+        "split_book",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 29,
+          "label": "entry fill",
+          "detail": "buy qty=0.004234 @ 239.632"
+        },
+        {
+          "kind": "fill",
+          "id": 203,
+          "label": "exit fill",
+          "detail": "sell @ 235.872"
+        },
+        {
+          "kind": "ticket",
+          "id": 134,
+          "label": "entry ticket",
+          "detail": "BUY 0.019901 LHX @~239.64; weighted_score=0.427; blended_conf=57.0; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 320,
+          "label": "exit ticket",
+          "detail": "SELL 0.004234 LHX @~236.18; opportunity rotate to fund MSFT (buy_score=0.236 donor_score=-0.038)"
+        },
+        {
+          "kind": "signal",
+          "id": 3521,
+          "label": "momentum @ entry",
+          "detail": "short @ conf=13.3"
+        },
+        {
+          "kind": "signal",
+          "id": 3522,
+          "label": "fundamental @ entry",
+          "detail": "long @ conf=86.9"
+        },
+        {
+          "kind": "signal",
+          "id": 3523,
+          "label": "statistical_ml @ entry",
+          "detail": "long @ conf=62.0"
+        },
+        {
+          "kind": "signal",
+          "id": 3524,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=78.0"
+        },
+        {
+          "kind": "signal",
+          "id": 3525,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.427; blended_conf=57.0"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=1.6141; mae_pct=-2.3461; ret_pct=-1.5691"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "space"
     }
   ]
 }
