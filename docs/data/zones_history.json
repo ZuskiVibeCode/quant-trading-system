@@ -4119,7 +4119,7 @@
         },
         {
           "ticker": "ADSK",
-          "buy": 0.304155,
+          "buy": 0.304716,
           "sell": 0.0,
           "zone": "quiet",
           "held": false
@@ -4134,34 +4134,34 @@
         {
           "ticker": "ASTS",
           "buy": 0.0,
-          "sell": 0.389753,
+          "sell": 0.381378,
           "zone": "sell_zone",
           "held": false
         },
         {
           "ticker": "AVAV",
           "buy": 0.0,
-          "sell": 0.167726,
+          "sell": 0.167647,
           "zone": "quiet",
           "held": false
         },
         {
           "ticker": "BA",
           "buy": 0.1288,
-          "sell": 0.192729,
+          "sell": 0.192525,
           "zone": "quiet",
           "held": false
         },
         {
           "ticker": "BKSY",
           "buy": 0.0,
-          "sell": 0.226715,
+          "sell": 0.226641,
           "zone": "quiet",
           "held": false
         },
         {
           "ticker": "CGNX",
-          "buy": 0.288496,
+          "buy": 0.283625,
           "sell": 0.13665,
           "zone": "quiet",
           "held": false
@@ -4176,20 +4176,20 @@
         {
           "ticker": "HON",
           "buy": 0.184,
-          "sell": 0.068473,
+          "sell": 0.068813,
           "zone": "quiet",
           "held": false
         },
         {
           "ticker": "IBM",
           "buy": 0.0,
-          "sell": 0.188648,
+          "sell": 0.188369,
           "zone": "quiet",
           "held": true
         },
         {
           "ticker": "IONQ",
-          "buy": 0.260763,
+          "buy": 0.127812,
           "sell": 0.172,
           "zone": "quiet",
           "held": false
@@ -4203,7 +4203,7 @@
         },
         {
           "ticker": "ISRG",
-          "buy": 0.472016,
+          "buy": 0.472226,
           "sell": 0.0,
           "zone": "buy_zone",
           "held": true
@@ -4211,41 +4211,41 @@
         {
           "ticker": "LHX",
           "buy": 0.184,
-          "sell": 0.222652,
+          "sell": 0.222441,
           "zone": "quiet",
           "held": true
         },
         {
           "ticker": "LMT",
           "buy": 0.184,
-          "sell": 0.056386,
+          "sell": 0.056302,
           "zone": "quiet",
           "held": false
         },
         {
           "ticker": "LUNR",
           "buy": 0.0,
-          "sell": 0.319881,
+          "sell": 0.319648,
           "zone": "quiet",
           "held": false
         },
         {
           "ticker": "MSFT",
-          "buy": 0.355187,
-          "sell": 0.12855,
+          "buy": 0.355357,
+          "sell": 0.123798,
           "zone": "buy_zone",
           "held": true
         },
         {
           "ticker": "NOC",
           "buy": 0.1702,
-          "sell": 0.013499,
+          "sell": 0.031436,
           "zone": "quiet",
           "held": false
         },
         {
           "ticker": "NVDA",
-          "buy": 0.359097,
+          "buy": 0.358703,
           "sell": 0.0,
           "zone": "buy_zone",
           "held": true
@@ -4260,7 +4260,7 @@
         {
           "ticker": "QBTS",
           "buy": 0.0,
-          "sell": 0.34458,
+          "sell": 0.344139,
           "zone": "quiet",
           "held": false
         },
@@ -4274,21 +4274,21 @@
         {
           "ticker": "QUBT",
           "buy": 0.0,
-          "sell": 0.207165,
+          "sell": 0.206766,
           "zone": "quiet",
           "held": true
         },
         {
           "ticker": "RDW",
           "buy": 0.0,
-          "sell": 0.212403,
+          "sell": 0.211472,
           "zone": "quiet",
           "held": false
         },
         {
           "ticker": "RGTI",
           "buy": 0.0,
-          "sell": 0.021163,
+          "sell": 0.020742,
           "zone": "quiet",
           "held": false
         },
@@ -4322,7 +4322,7 @@
         },
         {
           "ticker": "TSLA",
-          "buy": 0.121649,
+          "buy": 0.121747,
           "sell": 0.0,
           "zone": "quiet",
           "held": false
