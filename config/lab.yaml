@@ -1,0 +1,15 @@
+# Strategy lab settings (see docs/harness-upgrade-design.md). Paper research only.
+data:
+  # Alpaca daily bars start here.
+  start: "2016-01-01"
+  # Hard ceiling for bars on this machine. Grok's shared machine keeps discovery
+  # data only (through 2021-12-31). The validation/holdout machine raises it with
+  # QUANT_LAB_DATA_CEILING (an ISO date or "today").
+  ceiling: "2021-12-31"
+  # SIP = full-market volume (IEX is a small slice and would mis-bucket liquidity).
+  feed: sip
+  # Split + dividend adjusted.
+  adjustment: all
+benchmark: SPY
+# Broad universe, relative to config/. Built by scripts/build_lab_universe.py.
+universe_file: lab_universe.yaml

@@ -23,3 +23,7 @@ data/backtest/bars/*.csv
 # Backtest fundamentals statement cache (regenerable via FMP/yfinance)
 data/backtest/fundamentals/*
 !data/backtest/fundamentals/.gitkeep
+
+# Strategy lab cache + trial log (regenerable via `lab data sync`; default root
+# data/lab, or QUANT_LAB_DATA_DIR outside the checkout)
+data/lab/

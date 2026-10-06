@@ -233,6 +233,26 @@ Leaderboard JSON lands under `artifacts/backtest/` (`theme_leaderboard_latest.js
 
 **Caveats:** Yahoo adjustments / survivorship; fundamentals filing-lag is conservative but not true PIT; sentiment proxy is not news; `--fill-on close` is optimistic vs the next_open default; paper only — never writes live Tracker / Alpaca.
 
+## Strategy lab (in progress)
+
+A fast, spec-driven harness where bots invent and test strategies. Plan and
+decisions: [`docs/harness-upgrade-design.md`](docs/harness-upgrade-design.md).
+Built so far: the shared data layer.
+
+```bash
+python -m quant_system lab data sync               # Alpaca daily bars, split+dividend adjusted, SIP feed
+python -m quant_system lab data sync --universe themes
+python -m quant_system lab data status             # exits 1 if any cached rows are past the data ceiling
+```
+
+| Setting | Where | Default |
+|---------|-------|---------|
+| Shared cache root (bars, later the trial log) | `QUANT_LAB_DATA_DIR` | `data/lab/` (gitignored). On Grok's machine use one dir outside every checkout, e.g. `/workspace/lab-data` |
+| Data ceiling | `config/lab.yaml` `data.ceiling`, override `QUANT_LAB_DATA_CEILING` (date or `today`) | `2021-12-31`: discovery data only. Only the validation/holdout machine raises it |
+| Broad universe | `config/lab_universe.yaml`, built by `scripts/build_lab_universe.py` | ~300 S&P 1500 names, sector-balanced, picked by 2016 dollar volume |
+
+Universes: `broad`, `themes` (all `config/universe.yaml` active + bench), one theme name, or `all` (default). SPY is always synced. Alpaca paper keys work for market data.
+
 ## TODOs
 
 - **StatisticalMLAgent (v2):** OOS supervised model on frozen feature store; walk-forward only (v1 is rule-based numpy/pandas features)
