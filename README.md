@@ -207,7 +207,7 @@ Speed-test the three theme desks (quantum / space / robotics) on historical dail
 source .venv/bin/activate
 # Optional: warm Yahoo bar cache + statement cache (also happens on first run)
 python -m quant_system backtest-themes --start 2026-06-23 --end 2026-09-25
-# Flags: --cash 100 --slippage-bps 5 --fill-on close|next_open --force-download
+# Flags: --cash 100 --slippage-bps 5 --fill-on next_open|close --force-download
 #        --cache-dir data/backtest/bars --fundamentals-cache-dir data/backtest/fundamentals
 #        --output artifacts/backtest
 # Backtest-only density knobs (do NOT change live run-once / risk.yaml):
@@ -223,14 +223,15 @@ Leaderboard JSON lands under `artifacts/backtest/` (`theme_leaderboard_latest.js
 | Piece | v2 behavior |
 |-------|-------------|
 | Market data | `AsOfMarketData` over cached Yahoo daily bars; `history()` / `last_price()` truncated to as-of (no lookahead) |
-| Fill model | Same-bar **close** × (1 ± slippage_bps/1e4); instant full fills. Optional `--fill-on next_open` |
+| Fill model | Default **next_open**: signal at day t close, order queued, filled at day t+1 **open** × (1 ± slippage_bps/1e4). Sells fill before buys; buys trimmed to cash; no bar at t+1 or still queued after the last day → cancelled (counted in `cancelled_orders`). `--fill-on close` = same-bar close, optimistic, for comparison only |
+| Benchmarks | Every sleeve reports SPY and equal-weight theme buy-and-hold (same window, entry and slippage), `vs_benchmarks` (excess return / CAGR, Sharpe diff) and `beats_benchmarks` = Sharpe above both and higher CAGR than both |
 | Agents live | Momentum, StatisticalML, Macro (macro proxies also cached) |
 | Fundamental | **As-of statements** — FMP `filingDate` when the API returns history; else cached yfinance annual/quarterly frames gated by period_end + filing lag (45d Q / 60d A). Market cap from as-of close × shares. **No live Yahoo `.info`** (avoids crumb 401 loops). Approximation, not full SEC PIT. |
 | Sentiment | **Proxy** — 5d return + volume shock vs ~20d avg (clearly labeled). Used when historical news cannot be replayed cleanly. |
 | Risk knobs | Backtest CLI overrides confidence / `|score|` floors on a **config copy** only. Live `run-once` still reads `config/risk.yaml` (55 / 40 / 0.05). |
 | Isolation | Separate in-memory/temp Tracker per sleeve — a quantum fill never touches space cash |
 
-**Caveats:** Yahoo adjustments / survivorship; fundamentals filing-lag is conservative but not true PIT; sentiment proxy is not news; same-bar close fill is optimistic vs next-open; paper only — never writes live Tracker / Alpaca.
+**Caveats:** Yahoo adjustments / survivorship; fundamentals filing-lag is conservative but not true PIT; sentiment proxy is not news; `--fill-on close` is optimistic vs the next_open default; paper only — never writes live Tracker / Alpaca.
 
 ## TODOs
 

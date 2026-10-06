@@ -142,21 +142,19 @@ class AsOfMarketData(MarketData):
         df = self._asof_frame(ticker)
         return float(df["Close"].iloc[-1])
 
-    def open_price(self, ticker: str) -> float:
-        """As-of session open (for next-bar-open fill variants)."""
-        df = self._asof_frame(ticker)
-        return float(df["Open"].iloc[-1])
+    def session_open(self, ticker: str) -> float | None:
+        """Open of the bar dated exactly as_of; None if the ticker has no bar that day.
 
-    def next_open(self, ticker: str) -> float | None:
-        """Open of the bar immediately after as_of, if present in cache."""
+        Used to fill orders queued at the prior close. Never falls back to an
+        earlier bar (stale price) or peeks at a later one.
+        """
         key = ticker.upper()
         if key not in self._bars or self._as_of is None:
             return None
         df = self._bars[key]
-        future = df.loc[df.index > self._as_of]
-        if future.empty:
+        if self._as_of not in df.index:
             return None
-        return float(future["Open"].iloc[0])
+        return float(df.loc[self._as_of, "Open"])
 
     def snapshot(self, ticker: str) -> dict[str, Any]:
         df = self._asof_frame(ticker)
