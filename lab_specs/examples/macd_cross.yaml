@@ -1,0 +1,12 @@
+# Buy when MACD crosses above its signal line with price over the 50-day EMA.
+id: macd-cross-ema-filter
+author_bot: example
+universe: themes
+indicators:
+  hist:  {fn: macd_hist, fast: 12, slow: 26, signal: 9}
+  trend: {fn: ema, length: $trend_len}
+params:
+  trend_len: {value: 50, min: 20, max: 100}
+entry: "crosses_above(hist, 0) and close > trend"
+exit: "crosses_below(hist, 0) or close < trend"
+sizing: {max_positions: 5}

@@ -206,6 +206,15 @@ def test_buy_and_hold_enters_at_next_open_after_liquidity_is_known():
     assert (1 + r).prod() - 1 == pytest.approx(expected)
 
 
+def test_benchmark_uses_last_liquidity_reading_when_signal_day_bar_missing():
+    bars = {"SPY": _bars("2021-01-01", 60), "AAA": _bars("2021-01-01", 60, dollar_volume=20e6)}
+    window = ResolvedWindow("discovery", date(2021, 1, 1), date(2021, 3, 31))
+    signal = bars["AAA"].index[25]
+    bars["SPY"] = bars["SPY"].drop(signal)  # SPY skipped the signal session
+    res = buy_and_hold(bars, ["SPY"], window, COSTS, signal_day=signal)
+    assert res["tickers"] == ["SPY"] and res["entry_date"] == str(bars["AAA"].index[26].date())
+
+
 def test_benchmarks_share_entry_day_and_use_warmup_before_window():
     bars = {
         "SPY": _bars("2021-11-01", 60, dollar_volume=1e9),
@@ -294,6 +303,12 @@ def test_record_and_stats(tmp_path):
     assert stats["n_trials"] == 2 and stats["n_records"] == 3
     assert stats["sharpe_variance"] == pytest.approx(0.5)  # var([1.5, 0.5])
     assert len(load_trials(window="discovery", kind="robustness", data_dir=tmp_path)) == 1
+    # A spec with a non-finite Sharpe is still a trial; it just has no Sharpe to spread.
+    record_trial(spec={**SPEC, "params": {"rsi_len": 30}}, window="discovery",
+                 metrics={"sharpe": float("nan")}, returns=_returns([0.0]), author_bot="beta",
+                 data_dir=tmp_path)
+    stats = trial_stats("discovery", data_dir=tmp_path)
+    assert stats["n_trials"] == 3 and stats["sharpe_variance"] == pytest.approx(0.5)
     assert trial_stats("validation", data_dir=tmp_path)["n_trials"] == 0
 
 

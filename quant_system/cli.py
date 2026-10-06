@@ -314,6 +314,49 @@ def cmd_lab_trials(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_lab_indicators(args: argparse.Namespace) -> int:
+    """Registered indicators with their settings as [default, min, max]."""
+    from quant_system.lab.indicators import REGISTRY
+
+    out = {
+        name: {"doc": d.doc, "settings": {k: [p.default, p.lo, p.hi] for k, p in d.params.items()}}
+        for name, d in sorted(REGISTRY.items())
+    }
+    print(json.dumps(out, indent=2))
+    return 0
+
+
+def cmd_lab_check(args: argparse.Namespace) -> int:
+    """Validate a spec without running it (no trial is logged)."""
+    from quant_system.lab.spec import SpecError, load_spec
+
+    try:
+        spec = load_spec(args.spec)
+    except SpecError as exc:
+        print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
+        return 1
+    print(json.dumps({"ok": True, "spec_hash": spec.hash, "spec": spec.canonical()}, indent=2))
+    return 0
+
+
+def cmd_lab_run(args: argparse.Namespace) -> int:
+    """Score a spec on the discovery window and log the trial."""
+    import os
+
+    from quant_system.lab.runner import score_spec
+    from quant_system.lab.spec import SpecError, load_spec
+
+    try:
+        spec = load_spec(args.spec)
+    except SpecError as exc:
+        print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
+        return 1
+    bot = args.bot or os.environ.get("QUANT_LAB_BOT") or None
+    card = score_spec(spec, window="discovery", author_bot=bot)
+    print(json.dumps(card, indent=2, default=str))
+    return 0
+
+
 def _jsonable(obj: Any) -> Any:
     if isinstance(obj, dict):
         return {k: _jsonable(v) for k, v in obj.items()}
@@ -496,6 +539,17 @@ def build_parser() -> argparse.ArgumentParser:
     trials.add_argument("--window", default="discovery", choices=list(WINDOWS), help="Window (default: discovery)")
     trials.add_argument("--limit", type=int, default=10, help="Recent runs to list (default: 10)")
     trials.set_defaults(func=cmd_lab_trials)
+    inds = lab_sub.add_parser("indicators", help="List registered indicators and their settings")
+    inds.set_defaults(func=cmd_lab_indicators)
+    check = lab_sub.add_parser("check", help="Validate a strategy spec (no run, no trial logged)")
+    check.add_argument("spec", help="Path to a spec YAML file")
+    check.set_defaults(func=cmd_lab_check)
+    run = lab_sub.add_parser(
+        "run", help="Score a strategy spec on the discovery window (every run is logged as a trial)"
+    )
+    run.add_argument("spec", help="Path to a spec YAML file")
+    run.add_argument("--bot", default=None, help="Author bot name (default: $QUANT_LAB_BOT, then the spec's author_bot)")
+    run.set_defaults(func=cmd_lab_run)
 
     return p
 

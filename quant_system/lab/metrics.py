@@ -81,7 +81,10 @@ def summary(
     *,
     weights: pd.DataFrame | None = None,
     trade_count: int | None = None,
+    traded: pd.Series | None = None,
 ) -> dict[str, Any]:
+    """Performance summary. ``traded`` (daily |notional traded| / equity) gives the
+    exact turnover; without it turnover is estimated from weight changes."""
     r = _clean(returns)
     out: dict[str, Any] = {
         "start": str(r.index[0].date()) if len(r) else None,
@@ -95,6 +98,8 @@ def summary(
     if weights is not None:
         out["turnover"] = turnover(weights)
         out["exposure"] = exposure(weights)
+    if traded is not None:
+        out["turnover"] = float(_clean(traded).mean() * 0.5 * TRADING_DAYS_PER_YEAR) if len(traded) else 0.0
     if trade_count is not None:
         out["trade_count"] = int(trade_count)
     return out

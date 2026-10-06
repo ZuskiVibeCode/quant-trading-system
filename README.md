@@ -237,14 +237,18 @@ Leaderboard JSON lands under `artifacts/backtest/` (`theme_leaderboard_latest.js
 
 A fast, spec-driven harness where bots invent and test strategies. Plan and
 decisions: [`docs/harness-upgrade-design.md`](docs/harness-upgrade-design.md).
-Built so far: the shared data layer, plus the windows, cost model, benchmarks,
-metrics and trial log the spec engine will score with.
+Built so far: the shared data layer; windows, cost model, benchmarks, metrics
+and trial log; indicators, the spec format and the engine that scores specs.
+Bots: start with [`docs/lab-spec-format.md`](docs/lab-spec-format.md).
 
 ```bash
 python -m quant_system lab data sync               # Alpaca daily bars, split+dividend adjusted, SIP feed
 python -m quant_system lab data sync --universe themes
 python -m quant_system lab data status             # exits 1 if any cached rows are past the data ceiling
 python -m quant_system lab trials                  # trial count (distinct specs) + recent runs; --window, --limit
+python -m quant_system lab indicators              # registered indicators and their settings
+python -m quant_system lab check lab_specs/examples/rsi_pullback.yaml   # validate a spec (nothing logged)
+python -m quant_system lab run lab_specs/examples/rsi_pullback.yaml --bot <name>   # score on discovery; logged as a trial
 ```
 
 | Setting | Where | Default |

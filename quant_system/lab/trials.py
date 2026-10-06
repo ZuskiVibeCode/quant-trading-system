@@ -165,19 +165,21 @@ def trial_stats(window: str = "discovery", *, data_dir: Path | str | None = None
     """Distinct-spec trial count and the variance of their annualized Sharpes.
 
     The latest record per spec hash stands for that spec (a rerun after an
-    engine fix replaces the earlier score rather than adding a trial).
+    engine fix replaces the earlier score rather than adding a trial). A spec
+    whose Sharpe is missing or not finite still counts as a trial; it is only
+    left out of the variance.
     """
     records = load_trials(window=window, kind="trial", data_dir=data_dir)
-    latest: dict[str, float] = {}
+    latest: dict[str, float | None] = {}
     for rec in records:
         sharpe = (rec.get("metrics") or {}).get("sharpe")
-        if isinstance(sharpe, (int, float)) and math.isfinite(sharpe):
-            latest[rec["spec_hash"]] = float(sharpe)
-    values = list(latest.values())
+        ok = isinstance(sharpe, (int, float)) and math.isfinite(sharpe)
+        latest[rec["spec_hash"]] = float(sharpe) if ok else None
+    values = [v for v in latest.values() if v is not None]
     variance = float(pd.Series(values).var(ddof=1)) if len(values) >= 2 else 0.0
     return {
         "window": window,
-        "n_trials": len(values),
+        "n_trials": len(latest),
         "n_records": len(records),
         "sharpe_variance": variance,
     }
