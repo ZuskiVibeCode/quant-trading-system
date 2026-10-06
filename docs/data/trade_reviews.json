@@ -1,6 +1,6 @@
 {
-  "exported_at": "2026-10-06T19:21:27.115077Z",
-  "count": 165,
+  "exported_at": "2026-10-06T19:55:33.919299Z",
+  "count": 167,
   "reviews": [
     {
       "ticker": "RGTI",
@@ -26565,6 +26565,328 @@
           "id": null,
           "label": "path stats",
           "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-1.6224; ret_pct=1.127"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "space"
+    },
+    {
+      "ticker": "QUBT",
+      "qty": 1e-06,
+      "entry": 8.64,
+      "exit": 7.882,
+      "pnl": -7.580000000000008e-07,
+      "pnl_pct": -8.7731,
+      "opened_at": "2026-09-18T19:46:07.142348Z",
+      "closed_at": "2026-10-06T19:55:22.568783Z",
+      "hold_hours": 432.154,
+      "exit_reason": "signal_sell",
+      "exit_rationale": "SELL 1e-06 QUBT @~7.89; weighted_score=-0.331; reduce risk",
+      "entry_ticket_id": 79,
+      "exit_ticket_id": 330,
+      "entry_fill_id": 16,
+      "exit_fill_id": 213,
+      "entry_score": {
+        "weighted_score": 0.113,
+        "blended_conf": 65.5
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "neutral",
+          "confidence": 53.36497345385213,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 < MA200 (intermediate downtrend); RSI constructive (56.5); MACD histogram positive; 20d RS vs SPY: +6.61%; RVOL 0.84x\u2026",
+          "signal_id": 2411,
+          "created_at": "2026-09-18T19:45:36.147461Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "short",
+          "confidence": 82.4,
+          "reasoning_trunc": "Strong revenue growth (9000.0%); Negative profit margin (-152.5%); Negative operating margin (-281.3%); Negative FCF (-53,905,876) \u2014 cash burn risk; Moderate l\u2026",
+          "signal_id": 2412,
+          "created_at": "2026-09-18T19:45:36.718548Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "neutral",
+          "confidence": 52.8,
+          "reasoning_trunc": "overbought vs MA20 (z=1.55); residual_to_MA20=+5.9%; positive 20d momentum +6.4%; cross-sectional mom rank top (90%); vol regime=normal",
+          "signal_id": 2413,
+          "created_at": "2026-09-18T19:45:36.724843Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 49.908067164179116,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.17; avg source credibility 0.67; 'What Needs To Be True To Buy Rigetti Stock Today?' (Trefis, pol=+1.00); 'Here's H\u2026",
+          "signal_id": 2414,
+          "created_at": "2026-09-18T19:45:36.909522Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning_trunc": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (quantum); VIX contained (15.0); Dollar stable (+1.7% 20d); Rates stable (-1.0%); Benc\u2026",
+          "signal_id": 2415,
+          "created_at": "2026-09-18T19:45:36.914497Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "sentiment",
+          "macro"
+        ],
+        "short": [
+          "fundamental"
+        ],
+        "neutral": [
+          "momentum",
+          "statistical_ml"
+        ],
+        "disagreement": true,
+        "lead_agent": "macro",
+        "lead_confidence": 89.0
+      },
+      "path": {
+        "mfe_pct": 12.963,
+        "mae_pct": -9.375,
+        "ret_pct": -8.7731
+      },
+      "verdict": "Scratch: Realized PnL=-0.0000. Entered with a split book: long=[sentiment, macro] vs short=[fundamental] (see macro signal #2415 long @ conf=89.0). Entry weighted_score=0.113. Exit was a signal-driven sell (reduce risk). Held 432.2h.",
+      "verdict_tags": [
+        "scratch",
+        "split_book",
+        "signal_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 16,
+          "label": "entry fill",
+          "detail": "buy qty=1e-06 @ 8.64"
+        },
+        {
+          "kind": "fill",
+          "id": 213,
+          "label": "exit fill",
+          "detail": "sell @ 7.882"
+        },
+        {
+          "kind": "ticket",
+          "id": 79,
+          "label": "entry ticket",
+          "detail": "BUY 2.143144 QUBT @~8.66; weighted_score=0.113; blended_conf=65.5; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 330,
+          "label": "exit ticket",
+          "detail": "SELL 1e-06 QUBT @~7.89; weighted_score=-0.331; reduce risk"
+        },
+        {
+          "kind": "signal",
+          "id": 2411,
+          "label": "momentum @ entry",
+          "detail": "neutral @ conf=53.4"
+        },
+        {
+          "kind": "signal",
+          "id": 2412,
+          "label": "fundamental @ entry",
+          "detail": "short @ conf=82.4"
+        },
+        {
+          "kind": "signal",
+          "id": 2413,
+          "label": "statistical_ml @ entry",
+          "detail": "neutral @ conf=52.8"
+        },
+        {
+          "kind": "signal",
+          "id": 2414,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=49.9"
+        },
+        {
+          "kind": "signal",
+          "id": 2415,
+          "label": "macro @ entry",
+          "detail": "long @ conf=89.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.113; blended_conf=65.5"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=12.963; mae_pct=-9.375; ret_pct=-8.7731"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "quantum"
+    },
+    {
+      "ticker": "IRDM",
+      "qty": 0.00326,
+      "entry": 48.446,
+      "exit": 49.042,
+      "pnl": 0.0019429600000000118,
+      "pnl_pct": 1.2302,
+      "opened_at": "2026-09-23T19:38:14.717351Z",
+      "closed_at": "2026-10-06T19:55:23.529974Z",
+      "hold_hours": 312.286,
+      "exit_reason": "signal_sell",
+      "exit_rationale": "SELL 0.00326 IRDM @~49.03; weighted_score=-0.122; reduce risk",
+      "entry_ticket_id": 135,
+      "exit_ticket_id": 331,
+      "entry_fill_id": 30,
+      "exit_fill_id": 214,
+      "entry_score": {
+        "weighted_score": 0.11,
+        "blended_conf": 59.0
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 66.7563162652685,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 > MA200 (intermediate uptrend); RSI constructive (56.4); MACD histogram positive; 20d RS vs SPY: +1.93%; RVOL 0.22x vs\u2026",
+          "signal_id": 3536,
+          "created_at": "2026-09-23T19:37:53.344312Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 51.8,
+          "reasoning_trunc": "Quality: Flat/low revenue growth (3.8%); Negative earnings growth (-55.0%); Healthy profit margin (10.5%); Strong operating margin (15.1%) | Valuation/EV: rich\u2026",
+          "signal_id": 3537,
+          "created_at": "2026-09-23T19:37:54.143452Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "short",
+          "confidence": 71.7,
+          "reasoning_trunc": "deeply overbought vs MA20 (z=2.41); residual_to_MA20=+2.9%; flat 20d momentum +2.8%; momentum dampened (extreme MA residual); cross-sectional mom rank mid (77%\u2026",
+          "signal_id": 3538,
+          "created_at": "2026-09-23T19:37:54.150529Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 59.93925000000001,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.50; avg source credibility 0.59; 'RKLB Stock Extends Rally Overnight: CEO Says Iridium Deal Will Forge A Self-Laun'\u2026",
+          "signal_id": 3539,
+          "created_at": "2026-09-23T19:37:54.399885Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (space); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (-3\u2026",
+          "signal_id": 3540,
+          "created_at": "2026-09-23T19:37:54.403508Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "sentiment"
+        ],
+        "short": [
+          "statistical_ml"
+        ],
+        "neutral": [
+          "fundamental",
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "statistical_ml",
+        "lead_confidence": 71.7
+      },
+      "path": {
+        "mfe_pct": 2.4646,
+        "mae_pct": -1.6224,
+        "ret_pct": 1.2302
+      },
+      "verdict": "Made money: Realized PnL=0.0019. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was a signal-driven sell (reduce risk). Held 312.3h.",
+      "verdict_tags": [
+        "winner",
+        "split_book",
+        "signal_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 30,
+          "label": "entry fill",
+          "detail": "buy qty=0.00326 @ 48.446"
+        },
+        {
+          "kind": "fill",
+          "id": 214,
+          "label": "exit fill",
+          "detail": "sell @ 49.042"
+        },
+        {
+          "kind": "ticket",
+          "id": 135,
+          "label": "entry ticket",
+          "detail": "BUY 0.098431 IRDM @~48.45; weighted_score=0.110; blended_conf=59.0; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 331,
+          "label": "exit ticket",
+          "detail": "SELL 0.00326 IRDM @~49.03; weighted_score=-0.122; reduce risk"
+        },
+        {
+          "kind": "signal",
+          "id": 3536,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=66.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3537,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=51.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3538,
+          "label": "statistical_ml @ entry",
+          "detail": "short @ conf=71.7"
+        },
+        {
+          "kind": "signal",
+          "id": 3539,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=59.9"
+        },
+        {
+          "kind": "signal",
+          "id": 3540,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.11; blended_conf=59.0"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-1.6224; ret_pct=1.2302"
         }
       ],
       "mode": "alpaca",
