@@ -1,0 +1,16 @@
+# Buy 55-day highs on rising relative strength; exit on a 20-day low or after 60 sessions.
+id: donchian-breakout-rs
+author_bot: example
+description: Trend following with a relative-strength rank.
+universe: broad
+indicators:
+  high_n: {fn: donchian_high, length: $breakout_len}
+  low_20: {fn: donchian_low, length: 20}
+  rs:     {fn: rel_strength, length: 120}
+params:
+  breakout_len: {value: 55, min: 20, max: 100}
+  max_hold:     {value: 60, min: 20, max: 120}
+entry: "close > high_n and rs > 0"
+exit: "close < low_20 or bars_held >= max_hold"
+rank: "rs"
+sizing: {method: equal_weight, max_positions: 8, max_weight: 0.15}

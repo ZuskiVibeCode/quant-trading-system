@@ -1,8 +1,8 @@
 # Harness upgrade: design
 
-Draft by Claude Code, Oct 5, 2026. Follows `docs/claude-handoff.md`. PRs 1-3
-(agent replay fixes; data layer; windows, costs, metrics, trial log) are built;
-the rest is design. Decisions and remaining open
+Draft by Claude Code, Oct 5, 2026. Follows `docs/claude-handoff.md`. PRs 1-4
+(agent replay fixes; data layer; windows, costs, metrics, trial log; indicators,
+spec, engine, `lab run`) are built; the rest is design. Decisions and remaining open
 questions for Sabastian are at the end.
 
 ## The main design choice: two engines, one scoreboard
@@ -178,6 +178,26 @@ sizing: {method: equal_weight, max_positions: 10, max_weight: 0.20}
 - The schema rejects more than 4 tunable settings.
 - `max_weight` is capped at 0.20, the live per-position limit.
 
+As built (PR 4, `lab/spec.py`, `lab/rules.py`, `docs/lab-spec-format.md`):
+- Rule functions: `abs`, `min`, `max`, `prev(x, n)` (n 1-252),
+  `crosses_above`, `crosses_below`. `prev`/`crosses_*` can't look at
+  `bars_held`; `bars_held` works in `exit` only.
+- Every param must be used (no padding the four slots). Indicator settings
+  have hard ranges in the registry; a spec's own `min`/`max` bound robustness
+  nudges.
+- `rank` is optional; the default is most liquid first (20-day median dollar
+  volume), not alphabetical.
+- `lab run` scores discovery only and always logs. There is no flag to skip
+  logging. `lab check` validates without running. The validation/holdout
+  runner comes in PR 6 (`score_spec` already takes frozen trial stats and
+  writes the record before returning).
+- Engine semantics (`lab/engine.py` docstring): fills at the next open, sells
+  first, then buys in rank order sized `min(1/max_positions, max_weight)` of
+  the signal-close equity. The 20% cap applies when buying, like the live
+  PortfolioManager, and drift isn't trimmed. A held name that drops below the
+  $2M bucket exits at 30 bps. No orders on the window's last day.
+- Discovery deflated Sharpe is shown, not stored: it changes as trials accrue.
+
 ## 7. Indicators
 
 - Pure functions in `quant_system/lab/indicators/`, registered with a decorator:
@@ -190,6 +210,14 @@ sizing: {method: equal_weight, max_positions: 10, max_weight: 0.20}
 - Starter set: SMA, EMA, RSI, MACD, ATR, Bollinger %B, rate of change, z-score,
   relative strength vs SPY, relative volume. Later these can be shared with
   MomentumAgent.
+
+As built (PR 4): settings are declared `(default, min, max)` in the decorator.
+The generic test runs `lookahead_violations` on every registered indicator at
+default and raised settings, and its own tests show it catches a peeking
+indicator, a centered window and an input-mutating function. The engine also
+has an end-to-end lookahead test: rewriting every bar after day X leaves
+returns through X unchanged. Added beyond the starter list: `macd_hist`,
+`atr_pct`, `donchian_high`/`donchian_low` (prior n bars, for breakouts).
 
 ## 8. Metrics
 
