@@ -79,10 +79,12 @@ def parse_rule(source: str) -> Rule:
         tree = ast.parse(text, mode="eval")
     except SyntaxError as exc:
         raise RuleError(f"cannot parse {text!r}: {exc.msg}") from None
-    names: set[str] = set()
+    # Node types first, so e.g. a lambda is reported as a lambda, not as a call.
     for node in ast.walk(tree):
         if not isinstance(node, _ALLOWED_NODES):
             raise RuleError(f"{type(node).__name__} is not allowed in rules: {text!r}")
+    names: set[str] = set()
+    for node in ast.walk(tree):
         if isinstance(node, ast.Constant) and (
             not isinstance(node.value, (int, float)) or node.value is None
         ):

@@ -19,6 +19,7 @@ import os
 import re
 import subprocess
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -45,19 +46,31 @@ def spec_hash(spec: Mapping[str, Any]) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
 
 
-def git_commit() -> str | None:
+def _git(*args: str) -> str | None:
     try:
         out = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=_REPO_ROOT,
-            capture_output=True,
-            text=True,
-            timeout=10,
-            check=True,
+            ["git", *args], cwd=_REPO_ROOT, capture_output=True, text=True, timeout=10, check=True
         )
     except (OSError, subprocess.SubprocessError):
         return None
-    return out.stdout.strip() or None
+    return out.stdout
+
+
+@lru_cache(maxsize=1)
+def git_state() -> tuple[str | None, bool | None]:
+    """(commit, dirty) of the checkout scoring this run, once per process.
+
+    ``dirty`` = local edits to ``quant_system/`` or ``config/``: the scoring code
+    or thresholds differ from the reviewed commit, so the score can't be trusted
+    for nomination. None when git isn't available.
+    """
+    commit = _git("rev-parse", "HEAD")
+    status = _git("status", "--porcelain", "--", "quant_system", "config")
+    return (commit.strip() or None) if commit else None, (bool(status.strip()) if status is not None else None)
+
+
+def git_commit() -> str | None:
+    return git_state()[0]
 
 
 def _jsonable(obj: Any) -> Any:
@@ -75,6 +88,21 @@ def _jsonable(obj: Any) -> Any:
 
 def _slug(text: str) -> str:
     return re.sub(r"[^A-Za-z0-9_-]+", "_", text).strip("_") or "unknown"
+
+
+def stamped_name(author_bot: str, spec_hash: str, now: datetime | None = None) -> str:
+    """``<utc timestamp>-<bot>-<spec hash>.json``: sorts by time, never collides in practice."""
+    stamp = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    return f"{stamp.strftime('%Y%m%dT%H%M%S%fZ')}-{_slug(author_bot)}-{spec_hash}.json"
+
+
+def write_json_atomic(path: Path, record: Mapping[str, Any]) -> Path:
+    """Write strict JSON via a temp file + rename, so readers never see a partial file."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.parent / f".{path.name}.tmp"
+    tmp.write_text(json.dumps(_jsonable(record), indent=1, default=str) + "\n", encoding="utf-8")
+    os.replace(tmp, path)
+    return path
 
 
 def record_trial(
@@ -113,7 +141,8 @@ def record_trial(
         "parent_hash": parent_hash,
         "spec_id": spec.get("id"),
         "author_bot": author_bot,
-        "git_commit": git_commit(),
+        "git_commit": git_state()[0],
+        "git_dirty": git_state()[1],
         "spec": dict(spec),
         "metrics": dict(metrics),
         "returns": {
@@ -122,14 +151,7 @@ def record_trial(
         },
         **dict(extra or {}),
     }
-    tdir = trials_dir(data_dir)
-    tdir.mkdir(parents=True, exist_ok=True)
-    name = f"{stamp.strftime('%Y%m%dT%H%M%S%fZ')}-{_slug(author_bot)}-{h}.json"
-    path = tdir / name
-    tmp = tdir / f".{name}.tmp"
-    tmp.write_text(json.dumps(_jsonable(record), indent=1, default=str) + "\n", encoding="utf-8")
-    os.replace(tmp, path)
-    return path
+    return write_json_atomic(trials_dir(data_dir) / stamped_name(author_bot, h, stamp), record)
 
 
 def load_trials(

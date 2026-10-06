@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -11,18 +12,58 @@ import pandas as pd
 from quant_system.config.loader import AppConfig
 from quant_system.lab.benchmarks import benchmark_returns
 from quant_system.lab.data import load_lab_bars
-from quant_system.lab.engine import run_spec
+from quant_system.lab.engine import EngineResult, run_spec
 from quant_system.lab.metrics import compare, deflated_sharpe, pass_bar, summary
 from quant_system.lab.settings import LabSettings, load_lab_settings
 from quant_system.lab.spec import StrategySpec
 from quant_system.lab.trials import record_trial, trial_stats
 from quant_system.lab.universe import universe_symbols
-from quant_system.lab.windows import authorize_run, get_window
+from quant_system.lab.windows import ResolvedWindow, authorize_run, get_window
 
 TOP_CONTRIBUTORS = 5
 
 
-def score_spec(
+@dataclass
+class Evaluation:
+    """One engine run with its benchmarks and metrics (nothing logged)."""
+
+    result: EngineResult
+    benchmarks: dict[str, dict[str, Any]]
+    strategy: dict[str, Any]  # metrics.summary of the strategy
+    comparison: dict[str, Any]  # metrics.compare vs the benchmarks
+
+    def metrics(self) -> dict[str, Any]:
+        return {
+            **self.strategy,
+            "first_trade_date": self.result.first_trade_date,
+            "beats_benchmarks": self.comparison["beats_benchmarks"],
+            "vs_benchmarks": self.comparison["vs_benchmarks"],
+        }
+
+
+def evaluate(
+    spec: StrategySpec,
+    bars: dict[str, pd.DataFrame],
+    universe: list[str],
+    window: ResolvedWindow,
+    settings: LabSettings,
+) -> Evaluation:
+    """Engine + SPY / equal-weight benchmarks + metrics, over ``universe``."""
+    result = run_spec(spec, bars, universe, window, settings.costs, bench=settings.benchmark)
+    bench = benchmark_returns(bars, result.symbols, window, settings.costs, spy=settings.benchmark)
+    strat = summary(
+        result.returns, weights=result.weights, trade_count=result.trade_count, traded=result.traded
+    )
+    cmp_ = compare(result.returns, {k: v["returns"] for k, v in bench.items()})
+    return Evaluation(result, bench, strat, cmp_)
+
+
+def score_spec(spec: StrategySpec, **kwargs: Any) -> dict[str, Any]:
+    """Run, log and score ``spec``; returns the scorecard (see ``score_spec_full``)."""
+    return score_spec_full(spec, **kwargs)[0]
+
+
+def score_spec_full(
     spec: StrategySpec,
     *,
     window: str = "discovery",
@@ -33,8 +74,8 @@ def score_spec(
     bars: dict[str, pd.DataFrame] | None = None,
     data_dir: Path | str | None = None,
     today: date | None = None,
-) -> dict[str, Any]:
-    """Run, log and score ``spec``; returns the scorecard.
+) -> tuple[dict[str, Any], Evaluation]:
+    """Run, log and score ``spec``; returns the scorecard and the evaluation behind it.
 
     Every run is written to the trial log; there is no way to score without
     counting. Validation and holdout need ``frozen_trials`` (the discovery trial
@@ -48,18 +89,10 @@ def score_spec(
     universe = universe_symbols(spec.universe, settings=s, cfg=cfg)
     if bars is None:
         bars = load_lab_bars([s.benchmark, *universe], settings=s, data_dir=data_dir, today=today)
-    result = run_spec(spec, bars, universe, rw, s.costs, bench=s.benchmark)
-    bench = benchmark_returns(bars, result.symbols, rw, s.costs, spy=s.benchmark)
-
-    strat = summary(result.returns, weights=result.weights, trade_count=result.trade_count, traded=result.traded)
-    cmp_ = compare(result.returns, {k: v["returns"] for k, v in bench.items()})
+    ev = evaluate(spec, bars, universe, rw, s)
+    result, bench, strat, cmp_ = ev.result, ev.benchmarks, ev.strategy, ev.comparison
     required = (s.benchmark.upper(), "equal_weight")
-    metrics: dict[str, Any] = {
-        **strat,
-        "first_trade_date": result.first_trade_date,
-        "beats_benchmarks": cmp_["beats_benchmarks"],
-        "vs_benchmarks": cmp_["vs_benchmarks"],
-    }
+    metrics: dict[str, Any] = ev.metrics()
 
     def _verdict(stats: dict[str, Any]) -> tuple[float, dict[str, Any]]:
         dsr = deflated_sharpe(result.returns, int(stats["n_trials"]), float(stats["sharpe_variance"]))
@@ -88,7 +121,7 @@ def score_spec(
     contrib = result.contributions
     total = float(contrib.sum())
     top = contrib.head(TOP_CONTRIBUTORS)
-    return {
+    card = {
         "spec_id": spec.id,
         "spec_hash": spec.hash,
         "author_bot": author,
@@ -113,3 +146,4 @@ def score_spec(
         "notes": result.notes,
         "trial_file": str(path),
     }
+    return card, ev

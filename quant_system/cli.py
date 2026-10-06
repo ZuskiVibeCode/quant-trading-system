@@ -357,6 +357,23 @@ def cmd_lab_run(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_lab_robust(args: argparse.Namespace) -> int:
+    """Gauntlet step 2 on discovery: nudged settings, sectors, cap buckets, selloffs, top name removed."""
+    import os
+
+    from quant_system.lab.robust import run_robust
+    from quant_system.lab.spec import SpecError, load_spec
+
+    try:
+        spec = load_spec(args.spec)
+    except SpecError as exc:
+        print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
+        return 1
+    bot = args.bot or os.environ.get("QUANT_LAB_BOT") or None
+    print(json.dumps(run_robust(spec, author_bot=bot), indent=2, default=str))
+    return 0
+
+
 def _jsonable(obj: Any) -> Any:
     if isinstance(obj, dict):
         return {k: _jsonable(v) for k, v in obj.items()}
@@ -550,6 +567,13 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("spec", help="Path to a spec YAML file")
     run.add_argument("--bot", default=None, help="Author bot name (default: $QUANT_LAB_BOT, then the spec's author_bot)")
     run.set_defaults(func=cmd_lab_run)
+    robust = lab_sub.add_parser(
+        "robust",
+        help="Robustness checks on discovery (spec logged as a trial, variants as robustness runs)",
+    )
+    robust.add_argument("spec", help="Path to a spec YAML file")
+    robust.add_argument("--bot", default=None, help="Author bot name (default: $QUANT_LAB_BOT, then the spec's author_bot)")
+    robust.set_defaults(func=cmd_lab_robust)
 
     return p
 

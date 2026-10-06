@@ -1,8 +1,8 @@
 # Harness upgrade: design
 
-Draft by Claude Code, Oct 5, 2026. Follows `docs/claude-handoff.md`. PRs 1-4
+Draft by Claude Code, Oct 5, 2026. Follows `docs/claude-handoff.md`. PRs 1-5
 (agent replay fixes; data layer; windows, costs, metrics, trial log; indicators,
-spec, engine, `lab run`) are built; the rest is design. Decisions and remaining open
+spec, engine, `lab run`; `lab robust`) are built; the rest is design. Decisions and remaining open
 questions for Sabastian are at the end.
 
 ## The main design choice: two engines, one scoreboard
@@ -233,6 +233,36 @@ deflated Sharpe once there are enough trials.
 - Split by sector and by cap bucket (from `config/lab_universe.yaml`).
 - Selloffs inside discovery: Q4 2018 and Feb-Apr 2020.
 - Single-stock dependence: rerun with the top contributing stock removed.
+
+As built (PR 5, `lab/robust.py`; thresholds in `config/lab.yaml` `robust:` and
+copied into every report):
+
+| Check | How | Passes when |
+|---|---|---|
+| nudges | each setting x0.8 / 0.9 / 1.1 / 1.2, one at a time, clipped to the spec's own min/max (duplicates dropped) | at least 75% of variants still beat SPY and equal-weight, and their median Sharpe is at least 50% of the spec's (no sharp peak) |
+| sectors | rerun inside each sector of the broad universe with 10+ names | Sharpe beats that sector's equal-weight in at least 60% of sectors |
+| cap buckets | rerun inside large / mid / small | Sharpe beats that bucket's equal-weight in at least 60% (2 of 3) |
+| selloffs | slice the spec's own run: Q4 2018, Feb-Apr 2020 | worst drawdown in each is at most 1.25x the worse of SPY's and equal-weight's |
+| single stock | rerun without the top contributing name | still beats SPY and equal-weight |
+
+- Sector and cap subsets are judged against their own equal-weight, not SPY:
+  the question is whether the rule adds value inside the group.
+- `passed` needs the spec itself to pass the discovery bar and no check to
+  fail. A check with nothing to test (no settings, a theme universe with no
+  sector data, no profitable name) is `skipped`. That doesn't fail the spec,
+  but the report says `complete: false`, and nomination (PR 6) should require
+  a complete report.
+- The spec is scored and logged as a normal trial; variants are logged as
+  `kind: robustness` with `parent_hash` and don't count as trials. The report
+  is saved to `$QUANT_LAB_DATA_DIR/robust/`.
+- Every trial and robust report now records `git_dirty`: whether the checkout
+  had local edits to `quant_system/` or `config/`. Bots run in their own
+  checkouts, so a locally loosened threshold would show up there. Nomination
+  should reject dirty runs.
+- Specs must now keep each `$setting`'s min/max inside the indicator's own
+  range, so every nudge is a valid spec.
+- Runtime: about 25 runs per spec (base, up to 16 nudges, 11 sectors, 3 caps,
+  1 without the top name), about 26 s on a synthetic 300-name universe.
 
 ## 10. Agent replay changes (`backtest-themes`)
 
