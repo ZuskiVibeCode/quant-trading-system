@@ -43,8 +43,8 @@ Connectors are integrations with services like GitHub, Vercel, Google, Slack, an
 - If a service has no connector, a bot can use the website through its browser instead.
 
 Current state (as of Oct 5, 2026):
-- **Vercel:** two accounts are connected ("default" and "sabby5"). Chief of Staff reports that team-scoped calls on sabby5 return 403, so deploys go through the Vercel REST API with a `VERCEL_TOKEN` instead.
-- **GitHub connector:** installed but not signed in. Code work goes through the `gh` command-line tool on the shared computer instead.
+- **Vercel:** two accounts are connected ("default" and "sabby5"). On sabby5, user-level calls work, but team-scoped calls (like listing projects) return 403, and signing in again didn't fix it. Treat the connector as barely usable. Deploys go through the Vercel REST API with a `VERCEL_TOKEN` instead.
+- **GitHub connector:** installed but not signed in. Code work goes through the `gh` command-line tool on the shared computer instead. Chief of Staff uses Sabastian's ZuskiVibeCode login, and coding bots use a separate bot GitHub account (section 9). Because the connector isn't signed in, routines triggered by GitHub events may not be available, so plan on scheduled polling (section 10).
 - **Origin:** connected, but not used for this repo.
 - **Finance:** installed but not signed in.
 
@@ -76,6 +76,8 @@ A routine is a saved instruction that a bot runs by itself:
 
 Routines run while the user is away. Each routine belongs to one bot, and the bot stays quiet when there's nothing worth reporting.
 
+**On this account:** the GitHub connector isn't signed in, so don't count on routines triggered by GitHub PR events. Use scheduled routines that poll with `gh` instead.
+
 **Important:** dr eggbot can't create routines for another bot. After it creates a bot, it messages the new bot to set up its own routine. So each routine in the spec needs a concrete name, the prompt, and the schedule or trigger written out.
 
 ---
@@ -104,16 +106,26 @@ Routines run while the user is away. Each routine belongs to one bot, and the bo
 **Cursor cloud agents are not included in Sabastian's plan.** dr eggbot's default coding template sends repo work to cloud agents, so **the spec must override that.** Coding bots work like Chief of Staff:
 
 - They work in a local git checkout on the shared computer.
-- They authenticate with the `gh` CLI, signed in as **ZuskiVibeCode** over https with repo scope.
-- They edit code, run tests (`pytest`), commit, and push.
-- Vercel deploys go through the REST API with `VERCEL_TOKEN` (set as an environment variable and never committed). The Vercel connector is used only for reads.
+- **Two GitHub identities:**
+  - **ZuskiVibeCode** (Sabastian's account) is the shared default `gh` login on the computer, over https. Only Chief of Staff uses it: to approve and merge PRs, and for the `docs/data/**` routine pushes.
+  - **A dedicated bot GitHub account** is used by every coding bot to push branches and open PRs. It's a collaborator on the repo with **write access only, never admin**. Its token is a fine-grained token scoped to this repo, stored in its own environment variable (for example `BOT_GH_TOKEN`), and passed as `GH_TOKEN` only in that bot's own commands (for example `GH_TOKEN="$BOT_GH_TOKEN" gh pr create ...`). Coding bots never use the default ZuskiVibeCode login.
+- Several bots may share the one bot account, so each PR names its author bot in the branch prefix and the PR body (section 10).
+- They edit code, run tests (`pytest`), commit, and push to their own branch. They never push to main.
+- Vercel deploys go through the REST API with `VERCEL_TOKEN` (set as an environment variable and never committed). Before deploying, `/workspace/orbit-full-deploy` is refreshed from `docs/`, and then the files are uploaded to the v13 deployments endpoint. The Vercel connector is barely usable (team-scoped calls return 403).
 
 ### Current project: `ZuskiVibeCode/quant-trading-system`
 - A paper-trading-only quant stack (Alpaca paper), with about 114 commits since Sep 20, 2026.
 - The local checkout is at `/workspace/quant-trading-system`.
 - The dashboard is the Vercel project `orbit-quant-ledger` (team sabby5), deployed at orbit-quant-ledger.vercel.app as a static site built from `docs/`.
-- Chief of Staff runs three routines: a morning digest, an afternoon digest, and an hourly cycle on weekdays. These run the paper-trading cycle, commit only `docs/data/**`, push, and redeploy.
+- Chief of Staff runs three routines: a morning digest, an afternoon digest, and an hourly cycle on weekdays at :45 past the hour, from 9:45 AM to 3:45 PM ET. These run the paper-trading cycle, commit only `docs/data/**`, push straight to main, and redeploy.
+- There's no CI yet. The repo has no `.github/workflows`.
 - Guardrails: paper trading only, `.env` is never committed, and any change to risk policy needs Sabastian's approval.
+
+### Prerequisites (Sabastian only)
+1. **Create the bot GitHub account** and invite it to `ZuskiVibeCode/quant-trading-system` as a collaborator with **write** access (not admin).
+2. **Create a fine-grained token** on the bot account, scoped to this repo only, and save it through a secure prompt as `BOT_GH_TOKEN`. Never paste it into chat or commit it.
+3. **Add the `workflow` scope to ZuskiVibeCode.** The default `gh` login only has `repo` scope, and GitHub rejects pushes that change `.github/workflows/*` without `workflow`. Sabastian runs `gh auth refresh -s workflow` and finishes the browser or device-code step. Chief of Staff then adds the pytest GitHub Actions workflow through a PR he merges himself, so the new process gets tested on its own first change.
+4. **Turn on branch protection** for main as described in section 10, with ZuskiVibeCode on the bypass list.
 
 ---
 
@@ -122,16 +134,28 @@ Routines run while the user is away. Each routine belongs to one bot, and the bo
 Until now, Chief of Staff pushed directly to main. With more coding bots, **code changes go through pull requests, and Chief of Staff reviews and merges them.**
 
 Rules:
-1. **Branch from the latest main.** Each bot works in its own checkout or worktree, on a branch named like `<botname>/<short-task>`.
-2. **Sync before review.** The bot rebases or merges in the latest main right before asking for review, and again if main moves before merge.
-3. **One merge at a time.** Chief of Staff merges only after tests pass on the up-to-date branch. Turn on GitHub branch protection: require a PR, require status checks, and require branches to be up to date before merging.
-4. **No overwriting approved work.** If a PR conflicts with something just merged, it goes back to the author bot to rebuild on the new main. Chief of Staff never resolves a conflict by discarding approved code.
-5. **Clear ownership.** Chief of Staff assigns tasks and file areas so two bots aren't editing the same files at the same time.
-6. **Exception for data routines.** Chief of Staff's routines can keep pushing `docs/data/**` straight to main. All code changes go through PRs.
-7. **Risk policy is protected.** Any PR that changes risk policy needs Sabastian's explicit approval before merge, not just Chief of Staff's.
-8. **Merging is Chief of Staff's call.** Author bots never merge their own PRs.
+1. **Branch from the latest main.** Each bot works in its own checkout or worktree, on a branch named `<botname>/<short-task>`.
+2. **Name the author.** Several bots may share the one bot GitHub account, so the PR body starts with `Author bot: <botname>`.
+3. **Sync before review.** The bot rebases or merges in the latest main right before asking for review, and again if main moves before merge.
+4. **Tests pass first.** `pytest` must pass locally before review. Once the CI workflow exists (see the prerequisite in section 9), it must also pass on the up-to-date branch.
+5. **One merge at a time.** Chief of Staff merges one PR at a time, only when it's up to date with main and tests pass.
+6. **No overwriting approved work.** If a PR conflicts with something just merged, it goes back to the author bot to rebuild on the new main. Chief of Staff never resolves a conflict by discarding approved code.
+7. **Clear ownership.** Chief of Staff assigns tasks and file areas so two bots aren't editing the same files at the same time.
+8. **Exception for data routines.** Chief of Staff's routines keep pushing `docs/data/**` straight to main as ZuskiVibeCode, which is on the bypass list. All code changes go through PRs.
+9. **Risk policy is protected.** Any PR that changes risk policy needs Sabastian's explicit approval before merge, not just Chief of Staff's.
+10. **Authors never merge.** Only Chief of Staff approves and merges, as ZuskiVibeCode. Coding bots open PRs as the bot account, which can't approve its own PRs, so GitHub enforces this.
 
-GitHub PR events (opened, pushed, comment) can trigger routines, so Chief of Staff can get a routine that starts a review whenever a PR is opened or updated. If GitHub event triggers aren't available, a scheduled routine that checks for open PRs works instead.
+### Branch protection on main (ON)
+- Require a pull request before merging.
+- Require **1 approving review**.
+- Require the **pytest status check** to pass, once CI exists, with branches up to date before merging.
+- **Bypass list: ZuskiVibeCode only**, so the `docs/data/**` routines can keep pushing directly. The bot account is **not** on the bypass list.
+- Chief of Staff approves and merges as ZuskiVibeCode. Coding bots, using the bot account, can't push to main or merge without that approval.
+
+Be aware that the bypass applies to anything pushed as ZuskiVibeCode, not just `docs/data/**`, since GitHub can't scope protection by path. That's why coding bots must never use the default `gh` login.
+
+### PR review routine (Chief of Staff)
+This is a scheduled poll, not a GitHub-event trigger. It runs on weekdays at an odd minute (for example :17 past the hour), runs `gh pr list --state open` as ZuskiVibeCode, and reviews any PR with new commits since its last review. It stays quiet when there's nothing new.
 
 ---
 
@@ -185,8 +209,8 @@ Commit the spec to the repo as `docs/bot-team-spec.md`. Lead with a short team o
   coding: true|false
   coding_setup:          # only when coding: true
     checkout: /workspace/quant-trading-system-<botname>
-    auth: gh CLI as ZuskiVibeCode (shared computer)
-    workflow: branch from latest main, sync before review, open PR, Chief of Staff reviews and merges
+    auth: bot GitHub account via GH_TOKEN="$BOT_GH_TOKEN" in this bot's commands only (never the default ZuskiVibeCode login)
+    workflow: branch <botname>/<task> from latest main, sync before review, open PR with 'Author bot: <botname>', Chief of Staff reviews and merges
     tests: pytest must pass before requesting review
     no_cloud_agents: true
   hands_off_to: <which bot gets what, and how (direct message, PR, file)>
@@ -202,9 +226,10 @@ Commit the spec to the repo as `docs/bot-team-spec.md`. Lead with a short team o
 ```
 
 Also include a **Chief of Staff changes** section. Chief of Staff already exists, so it isn't recreated. It just updates its own routines and instructions:
-- Add a PR review routine (triggered by GitHub PR events or checking on a schedule).
-- Keep its data routines as they are.
-- Turn on branch protection for main (with Sabastian's OK).
+- Add the PR review routine: a weekday scheduled poll at an odd minute (for example :17) using `gh pr list --state open`.
+- Keep its data routines as they are, pushing `docs/data/**` directly.
+- Add the pytest GitHub Actions workflow through a self-merged PR, once Sabastian adds the `workflow` scope.
+- Approve and merge PRs as ZuskiVibeCode once branch protection is on (see section 10).
 - Assign work and file areas to coding bots.
 
 ### Hard rules for the spec writer
@@ -215,6 +240,8 @@ Also include a **Chief of Staff changes** section. Chief of Staff already exists
 - Every routine needs a concrete name, prompt, and schedule or trigger.
 - Don't add steps where a bot sends messages to outside people without the user's draft approval.
 - Keep paper-trading-only and the risk-policy guardrails in every bot that touches the quant project.
+- Don't plan on GitHub-event routine triggers. Use scheduled `gh` polling.
+- Coding bots always use the bot account (`BOT_GH_TOKEN`), never ZuskiVibeCode, and never push to main.
 - Mark anything uncertain as an open question for Sabastian instead of guessing.
 
 ---
@@ -226,5 +253,5 @@ Also include a **Chief of Staff changes** section. Chief of Staff already exists
 3. Chief of Staff sends dr eggbot one bot block at a time (or the full list).
 4. dr eggbot creates each bot and checks its live profile.
 5. Each new bot creates its own routines from its block.
-6. Sabastian approves any connectors still needed and turns on branch protection.
+6. Sabastian completes the section 9 prerequisites: creates the bot GitHub account, invites it with write access, saves its fine-grained token as `BOT_GH_TOKEN`, runs `gh auth refresh -s workflow`, and turns on branch protection. He also approves any connectors still needed.
 7. Chief of Staff starts assigning work. Code arrives as PRs that Chief of Staff reviews and merges.
