@@ -5,8 +5,12 @@ the window: the signal day is the first window session on which the cost model
 can price a trade in any name (20 bars of history; about session 20 of
 discovery, session 1 of validation), and the fill is the next session's open
 with each name's own slippage. Equal weight at entry, no rebalancing, marked at
-each close, no exit cost. Names not tradable on the signal day or with no bar on
-the entry day are excluded and listed. Before entry the benchmark holds cash.
+each close, no exit cost. A name's liquidity bucket is its last reading on or
+before the signal day, so a name that skipped that session still counts. Names
+not tradable then or with no bar on the entry day are excluded and listed.
+Before entry the benchmark holds cash. A name that stops trading mid-window is
+carried at its last close (it holds its value like cash; the broad universe is
+survivors only, so this is rare).
 """
 
 from __future__ import annotations
@@ -64,7 +68,7 @@ def buy_and_hold(
     entry = later[0]
     open_ = bars_panel(held, "Open").reindex(sessions)
     close = bars_panel(held, "Close").reindex(sessions)
-    bps = slip.reindex(index=[day]).iloc[0]
+    bps = slip.ffill().loc[:day].iloc[-1]
     names = [t for t in held if pd.notna(bps.get(t)) and pd.notna(open_.at[entry, t])]
     if not names:
         return result
