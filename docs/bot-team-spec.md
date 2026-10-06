@@ -453,18 +453,17 @@ the state of each one:
 3. `gh auth refresh -s workflow` on ZuskiVibeCode, then the pytest workflow PR.
 4. Branch protection on main, with ZuskiVibeCode on the bypass list only.
 
-Then: PR #9 merged, this spec reviewed, and Sabastian's go.
+Then: PRs #9 and #11 merged, this spec reviewed, and Sabastian's go.
 
-## Open questions for Sabastian
+## Decided (Sabastian, Oct 6, 2026)
 
-1. **Go / no-go** to create the four bots, and whether to start them all at
-   once or begin with one inventor plus skeptic for a week.
-2. **Daily budget:** 20 new specs per inventor per weekday is a starting
-   point. Raise or lower?
-3. **What bots learn after validation and holdout.** Proposal: nothing per
-   spec. Only the final survivors of the whole gauntlet are announced, without
-   their numbers. Even a pass/fail bit per spec tells bots something about
-   2022-2024.
+1. **All four bots start together** once the prerequisites above are done and
+   Sabastian gives the go. No staggered start.
+2. **Daily budget:** 20 new specs per inventor per weekday.
+3. **What bots learn after validation and holdout:** nothing per spec. Only the
+   final survivors of the whole gauntlet are announced, without their numbers.
+   Chief of Staff never asks for, relays or stores validation or holdout
+   results.
 4. **Gauntlet step 6** (paper-trading a survivor as a new agent in the ledger)
    changes the live paper-trading system. It's out of this team's scope and
-   needs its own plan and your approval when the first survivor exists.
+   gets its own plan, with Sabastian's approval, when the first survivor exists.
