@@ -233,13 +233,20 @@ Each PR: own branch, `pytest` passing, tests with synthetic bars (no network).
   buy-and-hold's, and higher CAGR than both. Validation also needs deflated
   Sharpe above 0.95 probability. PR 1 reports this as `beats_benchmarks`.
 
-## Open questions for Sabastian
+- **Delegated to Claude Code** (Sabastian: "I defer to you on all these"):
+  - **Broad universe:** about 300 current S&P 1500 members, roughly 150 from the
+    S&P 500 (large), 100 from the S&P 400 (mid) and 50 from the S&P 600
+    (small), spread across GICS sectors in proportion to each index. Each name
+    must have traded since the first trading day of 2016. Within a sector, names
+    are picked by 2016 median dollar volume, which was known when discovery
+    starts, rather than by how liquid they are today. Cap bucket = which index
+    the name is in today. Built by `scripts/build_lab_universe.py` into
+    `config/lab_universe.yaml`, and rebuilt only on purpose. Theme names
+    (`config/universe.yaml`, active + bench) are a separate `themes` universe.
+  - **Slippage:** the bucket numbers in section 2, as a starting point.
+  - **Live risk limits in the lab:** enforce the 20% position cap. No drawdown
+    or daily-loss halts; report max drawdown instead.
+  - **2022 selloff and theme check:** robustness uses Q4 2018 and Feb-Apr 2020.
+    The validation report breaks out 2022 and the theme names on their own.
 
-1. **Broad universe list.** Which few hundred names? Suggestion: S&P 500 plus
-   S&P 400 midcaps that have Alpaca data back to 2016, trimmed to ~300 across
-   sectors.
-2. **Slippage numbers** in section 2: OK as a start?
-3. **Live risk limits in the lab.** Recommendation: enforce the 20% position
-   cap, but don't halt at 15% drawdown (over 10 years almost everything would
-   halt in March 2020). Report drawdown instead.
-4. **2022 selloff and theme check:** OK to handle them in validation as above?
+No open questions right now.
