@@ -1,4 +1,4 @@
-"""CLI: python -m quant_system run-once | halt | resume | status | digest | cancel-open-orders | reconcile | backfill-fills | export-dashboard | backtest-themes"""
+"""CLI: python -m quant_system run-once | halt | resume | status | digest | cancel-open-orders | reconcile | backfill-fills | export-dashboard | backtest-themes | lab"""
 
 from __future__ import annotations
 
@@ -265,6 +265,31 @@ def cmd_backtest_themes(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_lab_data_sync(args: argparse.Namespace) -> int:
+    """Download / refresh the shared lab bar cache (Alpaca daily, adjusted, up to the ceiling)."""
+    from quant_system.lab.data import sync_bars
+    from quant_system.lab.settings import load_lab_settings
+    from quant_system.lab.universe import universe_symbols
+
+    settings = load_lab_settings()
+    if args.tickers:
+        symbols = [t.strip() for t in args.tickers.split(",") if t.strip()]
+    else:
+        symbols = universe_symbols(args.universe, settings=settings)
+    report = sync_bars([settings.benchmark, *symbols], settings=settings, force=bool(args.force))
+    print(json.dumps(report, indent=2))
+    return 0
+
+
+def cmd_lab_data_status(args: argparse.Namespace) -> int:
+    """Summarize the lab bar cache and flag anything past this machine's data ceiling."""
+    from quant_system.lab.data import cache_status
+
+    status = cache_status()
+    print(json.dumps(status, indent=2))
+    return 1 if status["rows_past_ceiling"] else 0
+
+
 def _jsonable(obj: Any) -> Any:
     if isinstance(obj, dict):
         return {k: _jsonable(v) for k, v in obj.items()}
@@ -421,6 +446,27 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     bt.set_defaults(func=cmd_backtest_themes)
+
+    from quant_system.lab.universe import UNIVERSE_NAMES
+
+    lab = sub.add_parser("lab", help="Strategy lab for bot-invented strategies (paper research only)")
+    lab_sub = lab.add_subparsers(dest="lab_command", required=True)
+    lab_data = lab_sub.add_parser("data", help="Shared bar cache")
+    data_sub = lab_data.add_subparsers(dest="lab_data_command", required=True)
+    sync = data_sub.add_parser(
+        "sync",
+        help="Download Alpaca daily bars (split+dividend adjusted) up to this machine's data ceiling",
+    )
+    sync.add_argument(
+        "--universe",
+        default="all",
+        help=f"Universe to sync: {' | '.join(UNIVERSE_NAMES)} | <theme> (default: all)",
+    )
+    sync.add_argument("--tickers", default=None, help="Comma-separated symbols instead of a universe")
+    sync.add_argument("--force", action="store_true", help="Refetch even if the cache is current")
+    sync.set_defaults(func=cmd_lab_data_sync)
+    status = data_sub.add_parser("status", help="Cache summary; exits 1 if rows past the ceiling exist")
+    status.set_defaults(func=cmd_lab_data_status)
 
     return p
 
