@@ -366,9 +366,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     bt.add_argument(
         "--fill-on",
-        choices=("close", "next_open"),
-        default="close",
-        help="Fill model price: same-bar close (default) or next-bar open",
+        choices=("next_open", "close"),
+        default="next_open",
+        help=(
+            "Fill model: next-session open after the signal (default) or same-bar "
+            "close (optimistic, for comparison only)"
+        ),
     )
     bt.add_argument(
         "--cache-dir",

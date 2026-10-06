@@ -10,7 +10,11 @@ import pandas as pd
 import pytest
 
 from quant_system.backtest.asof_market_data import AsOfMarketData
-from quant_system.backtest.harness import SimExecutionAgent, run_theme_backtest
+from quant_system.backtest.harness import (
+    SimExecutionAgent,
+    format_leaderboard_table,
+    run_theme_backtest,
+)
 from quant_system.backtest.metrics import max_drawdown, rank_leaderboard
 from quant_system.config.loader import load_config
 from quant_system.models.ticket import TicketSide, TradeTicket
@@ -141,9 +145,11 @@ def test_sleeve_isolation_quantum_fill_does_not_touch_space_cash(tmp_path):
     tid = q_tr.insert_ticket(ticket)
     ticket.id = tid
     ex = SimExecutionAgent(q_tr, md, slippage_bps=0.0)
-    fill = ex.execute(ticket)
-    assert fill is not None
-    assert fill["ticker"] == "IONQ"
+    assert ex.execute(ticket) is None  # queued for next open
+    md.set_as_of(md.trading_days("2024-01-02", "2024-03-29", reference="SPY")[21])
+    fills, cancelled = ex.fill_pending()
+    assert cancelled == []
+    assert [f["ticker"] for f in fills] == ["IONQ"]
 
     assert float(q_tr.get_state("cash")) < 100.0
     assert float(s_tr.get_state("cash")) == pytest.approx(space_cash_before)
@@ -206,6 +212,18 @@ def test_e2e_fixture_leaderboard(tmp_path):
     ov = result["meta"]["risk_overrides"]
     assert "min_confidence_to_trade" in ov
     assert ov["live_defaults"]["min_confidence_to_trade"] == 55.0
+    # next_open is the default fill model; every sleeve carries benchmarks
+    assert result["meta"]["fill_on"] == "next_open"
+    for row in board:
+        assert set(row["benchmarks"]) == {"spy", "equal_weight"}
+        assert set(row["vs_benchmarks"]) == {"spy", "equal_weight"}
+        assert isinstance(row["beats_benchmarks"], bool)
+        assert "sharpe" in row and "cagr" in row
+        # Nothing may stay queued past the last day
+        assert all(c["reason"] for c in row["cancelled"])
+    table = format_leaderboard_table(result)
+    assert "SPY buy-and-hold" in table
+    assert "Backtest-only floors (live in parentheses)" in table
 
     latest = tmp_path / "out" / "theme_leaderboard_latest.json"
     assert latest.is_file()
@@ -223,6 +241,7 @@ def test_cli_backtest_themes_help():
     assert args.min_confidence_to_trade == 35.0
     assert args.min_confidence_to_sell == 25.0
     assert args.min_abs_score == 0.02
+    assert args.fill_on == "next_open"
 
 
 def test_backtest_risk_overrides_do_not_mutate_live_defaults():

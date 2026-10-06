@@ -13,24 +13,43 @@ from typing import Any
 import pandas as pd
 
 from quant_system.backtest.asof_market_data import AsOfMarketData
+from quant_system.backtest.benchmarks import BENCHMARK_DOC, buy_and_hold_curve
 from quant_system.backtest.cache import MACRO_PROXY_TICKERS, default_cache_dir, ensure_bars
-from quant_system.backtest.metrics import rank_leaderboard, sleeve_summary
+from quant_system.backtest.metrics import (
+    benchmark_comparison,
+    curve_stats,
+    rank_leaderboard,
+    sleeve_summary,
+)
 from quant_system.backtest.stubs import AGENT_STATUS, build_backtest_agents
 from quant_system.config.loader import AppConfig, load_config
 from quant_system.execution.portfolio_manager import PortfolioManager
 from quant_system.models.ticket import TicketStatus, TradeTicket
 from quant_system.tracker.api import Tracker
 
-# Fill model (v1): same-bar close with constant bps slippage; instant full fills.
-# Buy pays close * (1 + slip); sell receives close * (1 - slip).
+# Fill model: constant bps slippage; buy pays px * (1 + slip), sell receives
+# px * (1 - slip). Default next_open = signal at close t, fill at open t+1.
 DEFAULT_SLIPPAGE_BPS = 5.0
 DEFAULT_CASH_PER_SLEEVE = 100.0
+DEFAULT_FILL_ON = "next_open"
 
-FILL_MODEL_DOC = (
-    "same-bar close + constant slippage_bps (default 5); "
-    "buy pays close*(1+slip), sell receives close*(1-slip); "
-    "instant full fills; no partials / no latency"
-)
+FILL_MODEL_DOCS: dict[str, str] = {
+    "next_open": (
+        "signal at day t close, order queued, filled at day t+1 open + constant "
+        "slippage_bps; sells fill before buys and buys are trimmed to available cash; "
+        "orders for names with no bar at t+1 are cancelled; orders still queued after "
+        "the last day are cancelled"
+    ),
+    "close": (
+        "same-bar close + constant slippage_bps (optimistic: fills on the bar the "
+        "signal was computed on); instant full fills"
+    ),
+}
+FILL_MODES = tuple(FILL_MODEL_DOCS)
+
+
+def _side(ticket: TradeTicket) -> str:
+    return ticket.side.value if hasattr(ticket.side, "value") else str(ticket.side)
 
 
 @dataclass
@@ -43,10 +62,17 @@ class SleeveState:
     turnover_notional: float = 0.0
     fills: list[dict[str, Any]] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
+    pending: list[TradeTicket] = field(default_factory=list)
+    cancelled: list[dict[str, Any]] = field(default_factory=list)
 
 
 class SimExecutionAgent:
-    """Dry-run fills only (never Alpaca). Applies constant bps slippage to last_price."""
+    """Dry-run fills only (never Alpaca).
+
+    ``fill_on="next_open"``: ``execute`` queues the ticket in ``pending``; call
+    ``fill_pending`` after the as-of date moves to the next session.
+    ``fill_on="close"``: ``execute`` fills immediately at the as-of close.
+    """
 
     def __init__(
         self,
@@ -54,27 +80,27 @@ class SimExecutionAgent:
         market_data: AsOfMarketData,
         *,
         slippage_bps: float = DEFAULT_SLIPPAGE_BPS,
-        fill_on: str = "close",
+        fill_on: str = DEFAULT_FILL_ON,
+        pending: list[TradeTicket] | None = None,
     ):
+        if fill_on not in FILL_MODES:
+            raise ValueError(f"fill_on must be one of {FILL_MODES}, got {fill_on!r}")
         self.tracker = tracker
         self.market_data = market_data
         self.slippage_bps = float(slippage_bps)
-        self.fill_on = fill_on  # "close" (v1) or "next_open"
+        self.fill_on = fill_on
+        # Shared with SleeveState so the queue survives across daily agent instances.
+        self.pending = pending if pending is not None else []
         self.mode = "backtest_sim"
 
-    def _fill_price(self, ticker: str, side: str) -> float:
+    def _slipped(self, px: float, side: str) -> float:
         slip = self.slippage_bps / 10_000.0
-        if self.fill_on == "next_open":
-            px = self.market_data.next_open(ticker)
-            if px is None:
-                px = self.market_data.open_price(ticker)
-        else:
-            px = self.market_data.last_price(ticker)
         if side == "buy":
             return float(px) * (1.0 + slip)
         return float(px) * (1.0 - slip)
 
     def execute(self, ticket: TradeTicket) -> dict[str, Any] | None:
+        """Fill now (close mode) or queue for the next open (returns None)."""
         blocked, reason = self.tracker.orders_blocked()
         if blocked:
             if ticket.id is not None:
@@ -82,9 +108,12 @@ class SimExecutionAgent:
             return None
         if ticket.id is None:
             raise ValueError("Ticket must be persisted (id) before execution")
-        side = ticket.side.value if hasattr(ticket.side, "value") else str(ticket.side)
-        price = self._fill_price(ticket.ticker, side)
+        side = _side(ticket)
         self.tracker.update_ticket_status(ticket.id, TicketStatus.SUBMITTED)
+        if self.fill_on == "next_open":
+            self.pending.append(ticket)
+            return None
+        price = self._slipped(self.market_data.last_price(ticket.ticker), side)
         fill_id = self.tracker.insert_fill(
             ticket_id=ticket.id,
             ticker=ticket.ticker,
@@ -124,6 +153,73 @@ class SimExecutionAgent:
             "notional": abs(float(ticket.qty) * float(price)),
         }
         return result
+
+    def _cancel(self, ticket: TradeTicket, reason: str) -> dict[str, Any]:
+        if ticket.id is not None:
+            self.tracker.update_ticket_status(ticket.id, TicketStatus.CANCELLED)
+        return {
+            "ticket_id": ticket.id,
+            "ticker": ticket.ticker,
+            "side": _side(ticket),
+            "qty": float(ticket.qty),
+            "reason": reason,
+            "as_of": str(self.market_data.as_of.date()) if self.market_data.as_of is not None else None,
+        }
+
+    def fill_pending(self) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        """Fill queued tickets at the as-of session open. Returns (fills, cancelled).
+
+        Sells go first so their proceeds can fund buys; a buy larger than cash is
+        trimmed to fit. Equity is not re-marked here — the sleeve marks at close.
+        """
+        queue = sorted(self.pending, key=lambda t: 0 if _side(t) == "sell" else 1)
+        self.pending.clear()
+        fills: list[dict[str, Any]] = []
+        cancelled: list[dict[str, Any]] = []
+        for ticket in queue:
+            side = _side(ticket)
+            px = self.market_data.session_open(ticket.ticker)
+            if px is None:
+                cancelled.append(self._cancel(ticket, "no bar at next session"))
+                continue
+            price = self._slipped(px, side)
+            qty = float(ticket.qty)
+            if side == "buy":
+                cash = float(self.tracker.get_state("cash", "0"))
+                qty = min(qty, max(cash, 0.0) / price)
+            else:
+                held = {p["ticker"]: float(p["qty"]) for p in self.tracker.list_positions()}
+                qty = min(qty, held.get(ticket.ticker.upper(), 0.0))
+            if qty <= 1e-9:
+                reason = "no cash at fill" if side == "buy" else "no position at fill"
+                cancelled.append(self._cancel(ticket, reason))
+                continue
+            fill_id = self.tracker.insert_fill(
+                ticket_id=ticket.id,
+                ticker=ticket.ticker,
+                side=side,
+                qty=qty,
+                price=float(price),
+                mode="dry_run",
+            )
+            fills.append(
+                {
+                    "fill_id": fill_id,
+                    "ticker": ticket.ticker,
+                    "side": side,
+                    "qty": qty,
+                    "price": float(price),
+                    "mode": "dry_run",
+                    "notional": abs(qty * float(price)),
+                    "trimmed": qty < float(ticket.qty) - 1e-9,
+                }
+            )
+        return fills, cancelled
+
+    def cancel_pending(self, reason: str) -> list[dict[str, Any]]:
+        cancelled = [self._cancel(t, reason) for t in self.pending]
+        self.pending.clear()
+        return cancelled
 
 
 def _seed_sleeve_tracker(db_path: str, cash: float) -> Tracker:
@@ -191,6 +287,16 @@ def _run_sleeve_day(
     eq_now = float(sleeve.tracker.get_state("equity", "100"))
     sleeve.tracker.set_state("day_start_equity", f"{eq_now:.6f}")
 
+    ex = SimExecutionAgent(
+        sleeve.tracker, md, slippage_bps=slippage_bps, fill_on=fill_on, pending=sleeve.pending
+    )
+    # Orders queued at yesterday's close fill at today's open, before today's signals.
+    if sleeve.pending:
+        opened, cancelled = ex.fill_pending()
+        for result in opened:
+            _record_fill(sleeve, result)
+        sleeve.cancelled.extend(cancelled)
+
     agents = build_backtest_agents(
         md,
         universe=sleeve.tickers,
@@ -199,7 +305,6 @@ def _run_sleeve_day(
         flow_overlays=cfg.risk.momentum_flow_overlays,
     )
     pm = PortfolioManager(sleeve.tracker, md, cfg)
-    ex = SimExecutionAgent(sleeve.tracker, md, slippage_bps=slippage_bps, fill_on=fill_on)
     benchmark = cfg.universe.benchmark
     stored: list[tuple[int, Any]] = []
 
@@ -222,12 +327,16 @@ def _run_sleeve_day(
             sleeve.errors.append(f"execution/{d.ticker}: {exc}")
             continue
         if result:
-            sleeve.fills.append(result)
-            sleeve.trade_count += 1
-            sleeve.turnover_notional += float(result.get("notional") or 0.0)
+            _record_fill(sleeve, result)
 
     equity = _mark_sleeve(sleeve, md)
     sleeve.equity_curve.append(equity)
+
+
+def _record_fill(sleeve: SleeveState, result: dict[str, Any]) -> None:
+    sleeve.fills.append(result)
+    sleeve.trade_count += 1
+    sleeve.turnover_notional += float(result.get("notional") or 0.0)
 
 
 def _apply_backtest_risk_overrides(
@@ -260,7 +369,7 @@ def run_theme_backtest(
     cache_dir: Path | str | None = None,
     fundamentals_cache_dir: Path | str | None = None,
     slippage_bps: float = DEFAULT_SLIPPAGE_BPS,
-    fill_on: str = "close",
+    fill_on: str = DEFAULT_FILL_ON,
     force_download: bool = False,
     bars: dict[str, pd.DataFrame] | None = None,
     themes: list[str] | None = None,
@@ -282,6 +391,8 @@ def run_theme_backtest(
         ensure_fundamentals,
     )
 
+    if fill_on not in FILL_MODES:
+        raise ValueError(f"fill_on must be one of {FILL_MODES}, got {fill_on!r}")
     base_cfg = config or load_config()
     cfg = _apply_backtest_risk_overrides(
         base_cfg,
@@ -385,12 +496,19 @@ def run_theme_backtest(
                     fundamentals_cache_dir=fdir,
                     fundamentals_bundles=fund_bundles,
                 )
+        for sleeve in sleeves:
+            ex = SimExecutionAgent(sleeve.tracker, md, fill_on=fill_on, pending=sleeve.pending)
+            sleeve.cancelled.extend(ex.cancel_pending("still queued after last day"))
     finally:
         for k, v in prev_keys.items():
             if v is not None:
                 os.environ[k] = v
             else:
                 os.environ.pop(k, None)
+
+    bench_kwargs = {"cash": float(cash_per_sleeve), "slippage_bps": slippage_bps, "fill_on": fill_on}
+    spy_bench = buy_and_hold_curve(loaded, [cfg.universe.benchmark], days, **bench_kwargs)
+    spy_stats = curve_stats(spy_bench["equity_curve"])
 
     summaries: list[dict[str, Any]] = []
     for sleeve in sleeves:
@@ -413,6 +531,21 @@ def run_theme_backtest(
                 fills=sleeve.fills,
             )
         )
+        ew_bench = buy_and_hold_curve(loaded, sleeve.tickers, days, **bench_kwargs)
+        bench_stats = {
+            "spy": {**spy_stats, "tickers": spy_bench["tickers"], "entry_date": spy_bench["entry_date"]},
+            "equal_weight": {
+                **curve_stats(ew_bench["equity_curve"]),
+                "tickers": ew_bench["tickers"],
+                "excluded": ew_bench["excluded"],
+                "entry_date": ew_bench["entry_date"],
+            },
+        }
+        summary = summaries[-1]
+        summary["benchmarks"] = bench_stats
+        summary.update(benchmark_comparison(summary, bench_stats))
+        summary["cancelled_orders"] = len(sleeve.cancelled)
+        summary["cancelled"] = sleeve.cancelled
         sleeve.tracker.close()
 
     leaderboard = rank_leaderboard(summaries)
@@ -423,8 +556,9 @@ def run_theme_backtest(
             "trading_days": len(days),
             "cash_per_sleeve": float(cash_per_sleeve),
             "slippage_bps": float(slippage_bps),
-            "fill_model": FILL_MODEL_DOC,
+            "fill_model": FILL_MODEL_DOCS[fill_on],
             "fill_on": fill_on,
+            "benchmark_model": BENCHMARK_DOC,
             "agents": dict(AGENT_STATUS),
             "cache_dir": str(cdir),
             "fundamentals_cache_dir": str(fdir),
@@ -463,17 +597,53 @@ def run_theme_backtest(
 
 def format_leaderboard_table(result: dict[str, Any]) -> str:
     rows = result.get("leaderboard") or []
-    lines = [
-        f"{'Rank':<5} {'Theme':<12} {'PnL':>10} {'Equity':>10} {'MaxDD':>8} {'Trades':>7} {'Turnover':>9}",
-        "-" * 64,
-    ]
+    header = (
+        f"{'Rank':<5} {'Theme':<12} {'PnL':>9} {'Return':>8} {'Sharpe':>7} {'MaxDD':>7} "
+        f"{'Trades':>7} {'Turnover':>9} {'vs SPY':>8} {'vs EW':>8} {'Beats':>6}"
+    )
+    lines = [header, "-" * len(header)]
     for r in rows:
+        vs = r.get("vs_benchmarks") or {}
+
+        def _excess(name: str) -> str:
+            v = vs.get(name)
+            return f"{float(v['excess_return']):>+8.1%}" if v else f"{'n/a':>8}"
+
         lines.append(
             f"{r.get('rank', 0):<5} {r.get('theme', ''):<12} "
-            f"{float(r.get('realized_pnl', 0)):>+10.2f} "
-            f"{float(r.get('ending_equity', 0)):>10.2f} "
+            f"{float(r.get('realized_pnl', 0)):>+9.2f} "
+            f"{float(r.get('return_pct', 0)):>+8.1%} "
+            f"{float(r.get('sharpe', 0)):>7.2f} "
             f"{float(r.get('max_dd', 0)):>7.1%} "
             f"{int(r.get('trade_count', 0)):>7} "
-            f"{float(r.get('turnover', 0)):>9.2f}"
+            f"{float(r.get('turnover', 0)):>9.2f} "
+            f"{_excess('spy')} {_excess('equal_weight')} "
+            f"{('yes' if r.get('beats_benchmarks') else 'no'):>6}"
+        )
+
+    meta = result.get("meta") or {}
+    sleeves = result.get("sleeves") or {}
+    spy = next(
+        (s["benchmarks"]["spy"] for s in sleeves.values() if s.get("benchmarks")), None
+    )
+    lines.append("")
+    if spy is not None:
+        lines.append(
+            f"SPY buy-and-hold: {float(spy['return_pct']):+.1%}, Sharpe {float(spy['sharpe']):.2f}, "
+            f"max DD {float(spy['max_dd']):.1%}. vs EW = vs equal-weight buy-and-hold of the "
+            "theme. Beats = Sharpe above both and higher CAGR than both."
+        )
+    lines.append(
+        f"Fill: {meta.get('fill_on', '?')}, {float(meta.get('slippage_bps', 0)):g} bps slippage; "
+        f"{meta.get('trading_days', '?')} trading days {meta.get('start', '?')} to {meta.get('end', '?')}"
+    )
+    ro = meta.get("risk_overrides") or {}
+    live = ro.get("live_defaults") or {}
+    if ro:
+        lines.append(
+            "Backtest-only floors (live in parentheses): "
+            f"buy confidence {ro.get('min_confidence_to_trade', 0):g} ({live.get('min_confidence_to_trade', 0):g}), "
+            f"sell confidence {ro.get('min_confidence_to_sell', 0):g} ({live.get('min_confidence_to_sell', 0):g}), "
+            f"|score| {ro.get('min_abs_score', 0):g} ({live.get('min_abs_score', 0):g})"
         )
     return "\n".join(lines)
