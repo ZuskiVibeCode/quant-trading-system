@@ -220,6 +220,18 @@ has an end-to-end lookahead test: rewriting every bar after day X leaves
 returns through X unchanged. Added beyond the starter list: `macd_hist`,
 `atr_pct`, `donchian_high`/`donchian_low` (prior n bars, for breakouts).
 
+Volume studies (`lab/indicators/volume.py`), so bots start with roughly what a
+charting tool like TrendSpider offers: `obv_trend` (OBV over n bars as a share
+of volume, -1 to +1), `cmf` (Chaikin money flow), `chaikin_osc` (in units of
+average daily volume), `mfi` (money flow index), `vwap_dist` (close vs rolling
+VWAP), `avwap_high_dist` / `avwap_low_dist` (close vs the VWAP anchored at the
+highest high or lowest low of the last n bars), and `volume_osc`, alongside
+`rel_volume` and the raw `volume` field. Running totals (OBV, the A/D line)
+are windowed or normalized, so values compare across stocks and don't depend
+on where the history starts. Not included: volume profile (point of control,
+value area). It needs intraday volume to mean much, and a daily approximation
+is slow. VWAPs are over whole days for the same reason.
+
 ## 8. Metrics
 
 CAGR, annualized Sharpe (daily returns, risk-free = 0 for now), max drawdown,
