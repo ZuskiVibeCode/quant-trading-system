@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, Mapping
 
 import pandas as pd
 
@@ -74,13 +74,16 @@ def score_spec_full(
     bars: dict[str, pd.DataFrame] | None = None,
     data_dir: Path | str | None = None,
     today: date | None = None,
+    extra: Callable[[Evaluation, ResolvedWindow], Mapping[str, Any]] | None = None,
 ) -> tuple[dict[str, Any], Evaluation]:
     """Run, log and score ``spec``; returns the scorecard and the evaluation behind it.
 
     Every run is written to the trial log; there is no way to score without
     counting. Validation and holdout need ``frozen_trials`` (the discovery trial
     count and Sharpe variance frozen at nomination), and their record is written
-    with the verdict before anything is returned.
+    with the verdict before anything is returned. ``extra(evaluation, window)``
+    adds fields to both the record and the scorecard, computed before the record
+    is written.
     """
     s = settings or load_lab_settings()
     if get_window(window).locked and frozen_trials is None:
@@ -90,6 +93,7 @@ def score_spec_full(
     if bars is None:
         bars = load_lab_bars([s.benchmark, *universe], settings=s, data_dir=data_dir, today=today)
     ev = evaluate(spec, bars, universe, rw, s)
+    added = dict(extra(ev, rw)) if extra else {}
     result, bench, strat, cmp_ = ev.result, ev.benchmarks, ev.strategy, ev.comparison
     required = (s.benchmark.upper(), "equal_weight")
     metrics: dict[str, Any] = ev.metrics()
@@ -110,7 +114,7 @@ def score_spec_full(
         metrics=metrics,
         returns=result.returns,
         author_bot=author,
-        extra={"universe": universe_info},
+        extra={"universe": universe_info, **added},
         data_dir=data_dir,
     )
     stats = frozen_trials or trial_stats("discovery", data_dir=data_dir)
@@ -144,6 +148,7 @@ def score_spec_full(
         "top_contributors": [{"symbol": sym, "pnl": float(v)} for sym, v in top.items()],
         "top_contributor_share": float(top.iloc[0] / total) if total > 0 and len(top) else None,
         "notes": result.notes,
+        **added,
         "trial_file": str(path),
     }
     return card, ev

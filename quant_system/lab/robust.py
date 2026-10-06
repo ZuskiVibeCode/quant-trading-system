@@ -33,7 +33,7 @@ from quant_system.config.loader import AppConfig
 from quant_system.lab.data import load_lab_bars
 from quant_system.lab.metrics import max_drawdown, pass_bar
 from quant_system.lab.runner import Evaluation, evaluate, score_spec_full
-from quant_system.lab.settings import LabRobustSettings, LabSettings, lab_data_dir, load_lab_settings
+from quant_system.lab.settings import LabRobustSettings, LabSettings, Selloff, lab_data_dir, load_lab_settings
 from quant_system.lab.spec import StrategySpec
 from quant_system.lab.trials import git_state, record_trial, stamped_name, write_json_atomic
 from quant_system.lab.universe import load_broad_universe, universe_symbols
@@ -69,7 +69,7 @@ def _groups(spec: StrategySpec, settings: LabSettings, symbols: list[str], key: 
     return dict(sorted(out.items()))
 
 
-def _summary_row(ev: Evaluation) -> dict[str, Any]:
+def subset_row(ev: Evaluation) -> dict[str, Any]:
     vs = ev.comparison["vs_benchmarks"]
     return {
         "sharpe": ev.strategy["sharpe"],
@@ -78,6 +78,26 @@ def _summary_row(ev: Evaluation) -> dict[str, Any]:
         "ew_sharpe": vs["equal_weight"]["sharpe"],
         "beats_equal_weight_sharpe": vs["equal_weight"]["sharpe_diff"] > 0,
     }
+
+
+def selloff_rows(ev: Evaluation, selloffs: list[Selloff], dd_ratio: float) -> list[dict[str, Any]]:
+    """Return and worst drawdown inside each selloff vs the benchmarks' (periods outside the run skipped).
+
+    ``ok``: the strategy's drawdown is at most ``dd_ratio`` x the worse benchmark's.
+    """
+    rows = []
+    for sell in selloffs:
+        lo, hi = pd.Timestamp(sell.start), pd.Timestamp(sell.end)
+        part = ev.result.returns.loc[lo:hi]
+        if part.empty:
+            continue
+        dds = {k: max_drawdown(v["returns"].loc[lo:hi]) for k, v in ev.benchmarks.items()}
+        worst = max(dds.values())
+        dd = max_drawdown(part)
+        rows.append({"name": sell.name, "start": str(sell.start), "end": str(sell.end),
+                     "return": float((1 + part).prod() - 1), "max_drawdown": dd,
+                     "benchmark_drawdowns": dds, "ok": dd <= dd_ratio * worst + 1e-12})
+    return rows
 
 
 def _status(ok: bool) -> str:
@@ -153,7 +173,7 @@ def run_robust(
                 too_small.append(group)
                 continue
             ev = run(spec, names, check, {key: group, "names": len(names)})
-            scored.append({key: group, "names": len(names), **_summary_row(ev)})
+            scored.append({key: group, "names": len(names), **subset_row(ev)})
         if scored:
             share = sum(x["beats_equal_weight_sharpe"] for x in scored) / len(scored)
             checks[check] = {"status": _status(share >= need), "pass_share": share, "groups": scored,
@@ -163,18 +183,7 @@ def run_robust(
             checks[check] = {"status": "skipped", "reason": reason}
 
     # 4. Selloffs, from the spec's own run.
-    rows = []
-    for sell in r.selloffs:
-        lo, hi = pd.Timestamp(sell.start), pd.Timestamp(sell.end)
-        part = base.result.returns.loc[lo:hi]
-        if part.empty:
-            continue
-        dds = {k: max_drawdown(v["returns"].loc[lo:hi]) for k, v in base.benchmarks.items()}
-        worst = max(dds.values())
-        dd = max_drawdown(part)
-        rows.append({"name": sell.name, "start": str(sell.start), "end": str(sell.end),
-                     "return": float((1 + part).prod() - 1), "max_drawdown": dd,
-                     "benchmark_drawdowns": dds, "ok": dd <= r.selloff_dd_ratio * worst + 1e-12})
+    rows = selloff_rows(base, r.selloffs, r.selloff_dd_ratio)
     checks["selloffs"] = (
         {"status": _status(all(x["ok"] for x in rows)), "periods": rows}
         if rows else {"status": "skipped", "reason": "no selloff inside the window"}
