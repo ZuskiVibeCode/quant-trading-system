@@ -1,6 +1,6 @@
 {
-  "exported_at": "2026-10-08T16:47:46.023973Z",
-  "count": 167,
+  "exported_at": "2026-10-08T18:29:16.462047Z",
+  "count": 168,
   "reviews": [
     {
       "ticker": "RGTI",
@@ -26891,6 +26891,167 @@
       ],
       "mode": "alpaca",
       "sector": "space"
+    },
+    {
+      "ticker": "NVDA",
+      "qty": 0.020892,
+      "entry": 225.35038876590045,
+      "exit": 231.4,
+      "pnl": 0.12638847790280797,
+      "pnl_pct": 2.6845,
+      "opened_at": "2026-09-24T13:52:28.493532Z",
+      "closed_at": "2026-10-08T18:28:55.686989Z",
+      "hold_hours": 340.608,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.020892 NVDA @~231.42; opportunity rotate to fund MSFT (buy_score=0.525 donor_score=0.307)",
+      "entry_ticket_id": 236,
+      "exit_ticket_id": 332,
+      "entry_fill_id": 120,
+      "exit_fill_id": 215,
+      "entry_score": {
+        "weighted_score": 0.507,
+        "blended_conf": 63.7
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 89.76512480866012,
+          "reasoning_trunc": "MA20 > MA50 (short-term uptrend); MA50 > MA200 (intermediate uptrend); RSI constructive (59.7); MACD histogram positive; 20d RS vs SPY: +4.28%; RVOL 0.17x vs 2\u2026",
+          "signal_id": 7916,
+          "created_at": "2026-09-29T14:05:02.795761Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "long",
+          "confidence": 92.0,
+          "reasoning_trunc": "Quality: Strong revenue growth (105.9%); Strong earnings growth (127.8%); High profit margin (63.7%); Strong operating margin (66.2%) | Valuation/EV: elevated\u2026",
+          "signal_id": 7917,
+          "created_at": "2026-09-29T14:05:03.320052Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "long",
+          "confidence": 71.7,
+          "reasoning_trunc": "price near MA20 (z=1.21); positive 20d momentum +4.2%; 60d trend up +17.7%; cross-sectional mom rank mid (69%); low vol regime",
+          "signal_id": 7918,
+          "created_at": "2026-09-29T14:05:03.326866Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "neutral",
+          "confidence": 20.0,
+          "reasoning_trunc": "No recent headlines available for this ticker; emitting neutral with no manipulation flag (insufficient data, not risk).",
+          "signal_id": 7919,
+          "created_at": "2026-09-29T14:05:03.765688Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (robotics); VIX contained (16.0); Dollar firm (+2.2% 20d) \u2014 risk headwind; Rates headwind\u2026",
+          "signal_id": 7920,
+          "created_at": "2026-09-29T14:05:03.770226Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "fundamental",
+          "statistical_ml"
+        ],
+        "short": [],
+        "neutral": [
+          "sentiment",
+          "macro"
+        ],
+        "disagreement": false,
+        "lead_agent": "fundamental",
+        "lead_confidence": 92.0
+      },
+      "path": {
+        "mfe_pct": 7.9963,
+        "mae_pct": -1.8906,
+        "ret_pct": 2.6845
+      },
+      "verdict": "Made money: Realized PnL=0.1264. Entered aligned; lead agent fundamental was long@92.0 (see fundamental signal #7917 long @ conf=92.0). Entry weighted_score=0.507. Exit was an opportunity-rotate trim to fund another name. Held 340.6h.",
+      "verdict_tags": [
+        "winner",
+        "aligned",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 120,
+          "label": "entry fill",
+          "detail": "buy qty=0.020892 @ 225.35038876590045"
+        },
+        {
+          "kind": "fill",
+          "id": 215,
+          "label": "exit fill",
+          "detail": "sell @ 231.4"
+        },
+        {
+          "kind": "ticket",
+          "id": 236,
+          "label": "entry ticket",
+          "detail": "BUY 0.020251 NVDA @~229.90; weighted_score=0.507; blended_conf=63.7; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 332,
+          "label": "exit ticket",
+          "detail": "SELL 0.020892 NVDA @~231.42; opportunity rotate to fund MSFT (buy_score=0.525 donor_score=0.307)"
+        },
+        {
+          "kind": "signal",
+          "id": 7916,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=89.8"
+        },
+        {
+          "kind": "signal",
+          "id": 7917,
+          "label": "fundamental @ entry",
+          "detail": "long @ conf=92.0"
+        },
+        {
+          "kind": "signal",
+          "id": 7918,
+          "label": "statistical_ml @ entry",
+          "detail": "long @ conf=71.7"
+        },
+        {
+          "kind": "signal",
+          "id": 7919,
+          "label": "sentiment @ entry",
+          "detail": "neutral @ conf=20.0"
+        },
+        {
+          "kind": "signal",
+          "id": 7920,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.507; blended_conf=63.7"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=7.9963; mae_pct=-1.8906; ret_pct=2.6845"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "robotics"
     }
   ]
 }
