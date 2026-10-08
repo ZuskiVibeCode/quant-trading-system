@@ -1,6 +1,6 @@
 {
-  "exported_at": "2026-10-08T19:58:23.782474Z",
-  "count": 168,
+  "exported_at": "2026-10-08T20:00:19.598465Z",
+  "count": 169,
   "reviews": [
     {
       "ticker": "RGTI",
@@ -27052,6 +27052,168 @@
       ],
       "mode": "alpaca",
       "sector": "robotics"
+    },
+    {
+      "ticker": "GOOGL",
+      "qty": 0.002872,
+      "entry": 338.4842248612241,
+      "exit": 348.22,
+      "pnl": 0.027961146198564445,
+      "pnl_pct": 2.8763,
+      "opened_at": "2026-09-06T20:07:40.398360Z",
+      "closed_at": "2026-10-08T19:59:50.610576Z",
+      "hold_hours": 767.87,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.002872 GOOGL @~348.21; opportunity rotate to fund ADSK (buy_score=0.429 donor_score=0.184)",
+      "entry_ticket_id": 130,
+      "exit_ticket_id": 334,
+      "entry_fill_id": 26,
+      "exit_fill_id": 217,
+      "entry_score": {
+        "weighted_score": 0.224,
+        "blended_conf": 55.3
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "short",
+          "confidence": 34.5451083018582,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 < MA200 (intermediate downtrend); MACD histogram positive; 20d RS vs SPY: -2.76%; RVOL 0.95x vs 20d avg; Demand imbala\u2026",
+          "signal_id": 3471,
+          "created_at": "2026-09-23T19:37:06.365044Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "long",
+          "confidence": 92.0,
+          "reasoning_trunc": "Quality: Solid revenue growth (15.1%); Strong earnings growth (32.0%); High profit margin (32.8%); Strong operating margin (32.0%) | Valuation/EV: elevated P/S\u2026",
+          "signal_id": 3472,
+          "created_at": "2026-09-23T19:37:09.384132Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "neutral",
+          "confidence": 50.1,
+          "reasoning_trunc": "price near MA20 (z=-0.47); return z oversold (-1.57); flat 20d momentum -2.2%; cross-sectional mom rank mid (40%); vol regime=normal",
+          "signal_id": 3473,
+          "created_at": "2026-09-23T19:37:09.390536Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 54.67962500000001,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.26; avg source credibility 0.72; 'How Meta's Muse was a total game changer for the AI narrative' (Yahoo Finance Vid\u2026",
+          "signal_id": 3474,
+          "created_at": "2026-09-23T19:37:09.609852Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (quantum); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (\u2026",
+          "signal_id": 3475,
+          "created_at": "2026-09-23T19:37:09.613207Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "fundamental",
+          "sentiment"
+        ],
+        "short": [
+          "momentum"
+        ],
+        "neutral": [
+          "statistical_ml",
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "fundamental",
+        "lead_confidence": 92.0
+      },
+      "path": {
+        "mfe_pct": 7.5885,
+        "mae_pct": -3.1742,
+        "ret_pct": 2.8763
+      },
+      "verdict": "Made money: Realized PnL=0.0280. Entered with a split book: long=[fundamental, sentiment] vs short=[momentum] (see fundamental signal #3472 long @ conf=92.0). Entry weighted_score=0.224. Exit was an opportunity-rotate trim to fund another name. Held 767.9h.",
+      "verdict_tags": [
+        "winner",
+        "split_book",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 26,
+          "label": "entry fill",
+          "detail": "buy qty=0.002872 @ 338.4842248612241"
+        },
+        {
+          "kind": "fill",
+          "id": 217,
+          "label": "exit fill",
+          "detail": "sell @ 348.22"
+        },
+        {
+          "kind": "ticket",
+          "id": 130,
+          "label": "entry ticket",
+          "detail": "BUY 0.01407 GOOGL @~338.96; weighted_score=0.224; blended_conf=55.3; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 334,
+          "label": "exit ticket",
+          "detail": "SELL 0.002872 GOOGL @~348.21; opportunity rotate to fund ADSK (buy_score=0.429 donor_score=0.184)"
+        },
+        {
+          "kind": "signal",
+          "id": 3471,
+          "label": "momentum @ entry",
+          "detail": "short @ conf=34.5"
+        },
+        {
+          "kind": "signal",
+          "id": 3472,
+          "label": "fundamental @ entry",
+          "detail": "long @ conf=92.0"
+        },
+        {
+          "kind": "signal",
+          "id": 3473,
+          "label": "statistical_ml @ entry",
+          "detail": "neutral @ conf=50.1"
+        },
+        {
+          "kind": "signal",
+          "id": 3474,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=54.7"
+        },
+        {
+          "kind": "signal",
+          "id": 3475,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.224; blended_conf=55.3"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=7.5885; mae_pct=-3.1742; ret_pct=2.8763"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "quantum"
     }
   ]
 }
