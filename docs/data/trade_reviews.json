@@ -1,6 +1,6 @@
 {
-  "exported_at": "2026-10-05T19:47:37.305490Z",
-  "count": 158,
+  "exported_at": "2026-10-09T19:59:07.500578Z",
+  "count": 179,
   "reviews": [
     {
       "ticker": "RGTI",
@@ -25437,6 +25437,3395 @@
       ],
       "mode": "alpaca",
       "sector": "robotics"
+    },
+    {
+      "ticker": "LHX",
+      "qty": 0.004234,
+      "entry": 239.632,
+      "exit": 235.872,
+      "pnl": -0.015919839999999963,
+      "pnl_pct": -1.5691,
+      "opened_at": "2026-09-23T19:38:13.811957Z",
+      "closed_at": "2026-10-06T13:34:44.986594Z",
+      "hold_hours": 305.942,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.004234 LHX @~236.18; opportunity rotate to fund ISRG (buy_score=0.473 donor_score=-0.038)",
+      "entry_ticket_id": 134,
+      "exit_ticket_id": 319,
+      "entry_fill_id": 29,
+      "exit_fill_id": 202,
+      "entry_score": {
+        "weighted_score": 0.427,
+        "blended_conf": 57.0
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "short",
+          "confidence": 13.265463839391387,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 < MA200 (intermediate downtrend); RSI oversold (25.1); MACD histogram negative; Near/below 20d low breakdown; 20d RS v\u2026",
+          "signal_id": 3521,
+          "created_at": "2026-09-23T19:37:42.909368Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "long",
+          "confidence": 86.9,
+          "reasoning_trunc": "Quality: Flat/low revenue growth (2.5%); Positive earnings growth (6.9%); Thin profit margin (7.3%); OK operating margin (9.8%) | Valuation/EV: attractive P/S\u2026",
+          "signal_id": 3522,
+          "created_at": "2026-09-23T19:37:46.111923Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "long",
+          "confidence": 62.0475,
+          "reasoning_trunc": "deeply oversold vs MA20 (z=-2.03); residual_to_MA20=-5.7%; strong 20d down-momentum -8.4%; 60d trend down -17.3%; momentum dampened (extreme MA residual); cros\u2026",
+          "signal_id": 3523,
+          "created_at": "2026-09-23T19:37:46.117810Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 77.96108450704226,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.86; avg source credibility 0.71; 'What Could Surprise RKLB Stock Investors On The Upside?' (Trefis, pol=+1.00); 'US\u2026",
+          "signal_id": 3524,
+          "created_at": "2026-09-23T19:37:46.351925Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (space); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (-3\u2026",
+          "signal_id": 3525,
+          "created_at": "2026-09-23T19:37:46.355610Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "fundamental",
+          "statistical_ml",
+          "sentiment"
+        ],
+        "short": [
+          "momentum"
+        ],
+        "neutral": [
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "fundamental",
+        "lead_confidence": 86.9
+      },
+      "path": {
+        "mfe_pct": 1.6141,
+        "mae_pct": -2.3461,
+        "ret_pct": -1.5691
+      },
+      "verdict": "Lost money: Realized PnL=-0.0159. Entered with a split book: long=[fundamental, statistical_ml, sentiment] vs short=[momentum] (see fundamental signal #3522 long @ conf=86.9). Entry weighted_score=0.427. Exit was an opportunity-rotate trim to fund another name. Held 305.9h.",
+      "verdict_tags": [
+        "loser",
+        "split_book",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 29,
+          "label": "entry fill",
+          "detail": "buy qty=0.004234 @ 239.632"
+        },
+        {
+          "kind": "fill",
+          "id": 202,
+          "label": "exit fill",
+          "detail": "sell @ 235.872"
+        },
+        {
+          "kind": "ticket",
+          "id": 134,
+          "label": "entry ticket",
+          "detail": "BUY 0.019901 LHX @~239.64; weighted_score=0.427; blended_conf=57.0; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 319,
+          "label": "exit ticket",
+          "detail": "SELL 0.004234 LHX @~236.18; opportunity rotate to fund ISRG (buy_score=0.473 donor_score=-0.038)"
+        },
+        {
+          "kind": "signal",
+          "id": 3521,
+          "label": "momentum @ entry",
+          "detail": "short @ conf=13.3"
+        },
+        {
+          "kind": "signal",
+          "id": 3522,
+          "label": "fundamental @ entry",
+          "detail": "long @ conf=86.9"
+        },
+        {
+          "kind": "signal",
+          "id": 3523,
+          "label": "statistical_ml @ entry",
+          "detail": "long @ conf=62.0"
+        },
+        {
+          "kind": "signal",
+          "id": 3524,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=78.0"
+        },
+        {
+          "kind": "signal",
+          "id": 3525,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.427; blended_conf=57.0"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=1.6141; mae_pct=-2.3461; ret_pct=-1.5691"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "space"
+    },
+    {
+      "ticker": "LHX",
+      "qty": 0.004234,
+      "entry": 239.632,
+      "exit": 235.872,
+      "pnl": -0.015919839999999963,
+      "pnl_pct": -1.5691,
+      "opened_at": "2026-09-23T19:38:13.811957Z",
+      "closed_at": "2026-10-06T13:34:45.956457Z",
+      "hold_hours": 305.942,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.004234 LHX @~236.18; opportunity rotate to fund MSFT (buy_score=0.236 donor_score=-0.038)",
+      "entry_ticket_id": 134,
+      "exit_ticket_id": 320,
+      "entry_fill_id": 29,
+      "exit_fill_id": 203,
+      "entry_score": {
+        "weighted_score": 0.427,
+        "blended_conf": 57.0
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "short",
+          "confidence": 13.265463839391387,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 < MA200 (intermediate downtrend); RSI oversold (25.1); MACD histogram negative; Near/below 20d low breakdown; 20d RS v\u2026",
+          "signal_id": 3521,
+          "created_at": "2026-09-23T19:37:42.909368Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "long",
+          "confidence": 86.9,
+          "reasoning_trunc": "Quality: Flat/low revenue growth (2.5%); Positive earnings growth (6.9%); Thin profit margin (7.3%); OK operating margin (9.8%) | Valuation/EV: attractive P/S\u2026",
+          "signal_id": 3522,
+          "created_at": "2026-09-23T19:37:46.111923Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "long",
+          "confidence": 62.0475,
+          "reasoning_trunc": "deeply oversold vs MA20 (z=-2.03); residual_to_MA20=-5.7%; strong 20d down-momentum -8.4%; 60d trend down -17.3%; momentum dampened (extreme MA residual); cros\u2026",
+          "signal_id": 3523,
+          "created_at": "2026-09-23T19:37:46.117810Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 77.96108450704226,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.86; avg source credibility 0.71; 'What Could Surprise RKLB Stock Investors On The Upside?' (Trefis, pol=+1.00); 'US\u2026",
+          "signal_id": 3524,
+          "created_at": "2026-09-23T19:37:46.351925Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (space); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (-3\u2026",
+          "signal_id": 3525,
+          "created_at": "2026-09-23T19:37:46.355610Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "fundamental",
+          "statistical_ml",
+          "sentiment"
+        ],
+        "short": [
+          "momentum"
+        ],
+        "neutral": [
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "fundamental",
+        "lead_confidence": 86.9
+      },
+      "path": {
+        "mfe_pct": 1.6141,
+        "mae_pct": -2.3461,
+        "ret_pct": -1.5691
+      },
+      "verdict": "Lost money: Realized PnL=-0.0159. Entered with a split book: long=[fundamental, statistical_ml, sentiment] vs short=[momentum] (see fundamental signal #3522 long @ conf=86.9). Entry weighted_score=0.427. Exit was an opportunity-rotate trim to fund another name. Held 305.9h.",
+      "verdict_tags": [
+        "loser",
+        "split_book",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 29,
+          "label": "entry fill",
+          "detail": "buy qty=0.004234 @ 239.632"
+        },
+        {
+          "kind": "fill",
+          "id": 203,
+          "label": "exit fill",
+          "detail": "sell @ 235.872"
+        },
+        {
+          "kind": "ticket",
+          "id": 134,
+          "label": "entry ticket",
+          "detail": "BUY 0.019901 LHX @~239.64; weighted_score=0.427; blended_conf=57.0; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 320,
+          "label": "exit ticket",
+          "detail": "SELL 0.004234 LHX @~236.18; opportunity rotate to fund MSFT (buy_score=0.236 donor_score=-0.038)"
+        },
+        {
+          "kind": "signal",
+          "id": 3521,
+          "label": "momentum @ entry",
+          "detail": "short @ conf=13.3"
+        },
+        {
+          "kind": "signal",
+          "id": 3522,
+          "label": "fundamental @ entry",
+          "detail": "long @ conf=86.9"
+        },
+        {
+          "kind": "signal",
+          "id": 3523,
+          "label": "statistical_ml @ entry",
+          "detail": "long @ conf=62.0"
+        },
+        {
+          "kind": "signal",
+          "id": 3524,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=78.0"
+        },
+        {
+          "kind": "signal",
+          "id": 3525,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.427; blended_conf=57.0"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=1.6141; mae_pct=-2.3461; ret_pct=-1.5691"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "space"
+    },
+    {
+      "ticker": "GOOGL",
+      "qty": 0.003517,
+      "entry": 338.4842248612241,
+      "exit": 345.1,
+      "pnl": 0.0232676811630749,
+      "pnl_pct": 1.9545,
+      "opened_at": "2026-09-06T20:07:40.398360Z",
+      "closed_at": "2026-10-06T13:56:20.334046Z",
+      "hold_hours": 713.811,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.003517 GOOGL @~345.14; opportunity rotate to fund ISRG (buy_score=0.449 donor_score=0.103)",
+      "entry_ticket_id": 130,
+      "exit_ticket_id": 322,
+      "entry_fill_id": 26,
+      "exit_fill_id": 205,
+      "entry_score": {
+        "weighted_score": 0.224,
+        "blended_conf": 55.3
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "short",
+          "confidence": 34.5451083018582,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 < MA200 (intermediate downtrend); MACD histogram positive; 20d RS vs SPY: -2.76%; RVOL 0.95x vs 20d avg; Demand imbala\u2026",
+          "signal_id": 3471,
+          "created_at": "2026-09-23T19:37:06.365044Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "long",
+          "confidence": 92.0,
+          "reasoning_trunc": "Quality: Solid revenue growth (15.1%); Strong earnings growth (32.0%); High profit margin (32.8%); Strong operating margin (32.0%) | Valuation/EV: elevated P/S\u2026",
+          "signal_id": 3472,
+          "created_at": "2026-09-23T19:37:09.384132Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "neutral",
+          "confidence": 50.1,
+          "reasoning_trunc": "price near MA20 (z=-0.47); return z oversold (-1.57); flat 20d momentum -2.2%; cross-sectional mom rank mid (40%); vol regime=normal",
+          "signal_id": 3473,
+          "created_at": "2026-09-23T19:37:09.390536Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 54.67962500000001,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.26; avg source credibility 0.72; 'How Meta's Muse was a total game changer for the AI narrative' (Yahoo Finance Vid\u2026",
+          "signal_id": 3474,
+          "created_at": "2026-09-23T19:37:09.609852Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (quantum); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (\u2026",
+          "signal_id": 3475,
+          "created_at": "2026-09-23T19:37:09.613207Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "fundamental",
+          "sentiment"
+        ],
+        "short": [
+          "momentum"
+        ],
+        "neutral": [
+          "statistical_ml",
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "fundamental",
+        "lead_confidence": 92.0
+      },
+      "path": {
+        "mfe_pct": 7.5885,
+        "mae_pct": -3.1742,
+        "ret_pct": 1.9545
+      },
+      "verdict": "Made money: Realized PnL=0.0233. Entered with a split book: long=[fundamental, sentiment] vs short=[momentum] (see fundamental signal #3472 long @ conf=92.0). Entry weighted_score=0.224. Exit was an opportunity-rotate trim to fund another name. Held 713.8h.",
+      "verdict_tags": [
+        "winner",
+        "split_book",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 26,
+          "label": "entry fill",
+          "detail": "buy qty=0.003517 @ 338.4842248612241"
+        },
+        {
+          "kind": "fill",
+          "id": 205,
+          "label": "exit fill",
+          "detail": "sell @ 345.1"
+        },
+        {
+          "kind": "ticket",
+          "id": 130,
+          "label": "entry ticket",
+          "detail": "BUY 0.01407 GOOGL @~338.96; weighted_score=0.224; blended_conf=55.3; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 322,
+          "label": "exit ticket",
+          "detail": "SELL 0.003517 GOOGL @~345.14; opportunity rotate to fund ISRG (buy_score=0.449 donor_score=0.103)"
+        },
+        {
+          "kind": "signal",
+          "id": 3471,
+          "label": "momentum @ entry",
+          "detail": "short @ conf=34.5"
+        },
+        {
+          "kind": "signal",
+          "id": 3472,
+          "label": "fundamental @ entry",
+          "detail": "long @ conf=92.0"
+        },
+        {
+          "kind": "signal",
+          "id": 3473,
+          "label": "statistical_ml @ entry",
+          "detail": "neutral @ conf=50.1"
+        },
+        {
+          "kind": "signal",
+          "id": 3474,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=54.7"
+        },
+        {
+          "kind": "signal",
+          "id": 3475,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.224; blended_conf=55.3"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=7.5885; mae_pct=-3.1742; ret_pct=1.9545"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "quantum"
+    },
+    {
+      "ticker": "IRDM",
+      "qty": 0.018836,
+      "entry": 48.446,
+      "exit": 49.004,
+      "pnl": 0.010510487999999997,
+      "pnl_pct": 1.1518,
+      "opened_at": "2026-09-23T19:38:14.717351Z",
+      "closed_at": "2026-10-06T14:56:39.165226Z",
+      "hold_hours": 307.307,
+      "exit_reason": "signal_sell",
+      "exit_rationale": "SELL 0.018836 IRDM @~49.03; weighted_score=-0.122; reduce risk",
+      "entry_ticket_id": 135,
+      "exit_ticket_id": 324,
+      "entry_fill_id": 30,
+      "exit_fill_id": 207,
+      "entry_score": {
+        "weighted_score": 0.11,
+        "blended_conf": 59.0
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 66.7563162652685,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 > MA200 (intermediate uptrend); RSI constructive (56.4); MACD histogram positive; 20d RS vs SPY: +1.93%; RVOL 0.22x vs\u2026",
+          "signal_id": 3536,
+          "created_at": "2026-09-23T19:37:53.344312Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 51.8,
+          "reasoning_trunc": "Quality: Flat/low revenue growth (3.8%); Negative earnings growth (-55.0%); Healthy profit margin (10.5%); Strong operating margin (15.1%) | Valuation/EV: rich\u2026",
+          "signal_id": 3537,
+          "created_at": "2026-09-23T19:37:54.143452Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "short",
+          "confidence": 71.7,
+          "reasoning_trunc": "deeply overbought vs MA20 (z=2.41); residual_to_MA20=+2.9%; flat 20d momentum +2.8%; momentum dampened (extreme MA residual); cross-sectional mom rank mid (77%\u2026",
+          "signal_id": 3538,
+          "created_at": "2026-09-23T19:37:54.150529Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 59.93925000000001,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.50; avg source credibility 0.59; 'RKLB Stock Extends Rally Overnight: CEO Says Iridium Deal Will Forge A Self-Laun'\u2026",
+          "signal_id": 3539,
+          "created_at": "2026-09-23T19:37:54.399885Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (space); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (-3\u2026",
+          "signal_id": 3540,
+          "created_at": "2026-09-23T19:37:54.403508Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "sentiment"
+        ],
+        "short": [
+          "statistical_ml"
+        ],
+        "neutral": [
+          "fundamental",
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "statistical_ml",
+        "lead_confidence": 71.7
+      },
+      "path": {
+        "mfe_pct": 2.4646,
+        "mae_pct": -1.6224,
+        "ret_pct": 1.1518
+      },
+      "verdict": "Made money: Realized PnL=0.0105. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was a signal-driven sell (reduce risk). Held 307.3h.",
+      "verdict_tags": [
+        "winner",
+        "split_book",
+        "signal_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 30,
+          "label": "entry fill",
+          "detail": "buy qty=0.018836 @ 48.446"
+        },
+        {
+          "kind": "fill",
+          "id": 207,
+          "label": "exit fill",
+          "detail": "sell @ 49.004"
+        },
+        {
+          "kind": "ticket",
+          "id": 135,
+          "label": "entry ticket",
+          "detail": "BUY 0.098431 IRDM @~48.45; weighted_score=0.110; blended_conf=59.0; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 324,
+          "label": "exit ticket",
+          "detail": "SELL 0.018836 IRDM @~49.03; weighted_score=-0.122; reduce risk"
+        },
+        {
+          "kind": "signal",
+          "id": 3536,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=66.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3537,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=51.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3538,
+          "label": "statistical_ml @ entry",
+          "detail": "short @ conf=71.7"
+        },
+        {
+          "kind": "signal",
+          "id": 3539,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=59.9"
+        },
+        {
+          "kind": "signal",
+          "id": 3540,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.11; blended_conf=59.0"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-1.6224; ret_pct=1.1518"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "space"
+    },
+    {
+      "ticker": "IRDM",
+      "qty": 0.020396,
+      "entry": 48.446,
+      "exit": 49.004,
+      "pnl": 0.011380967999999997,
+      "pnl_pct": 1.1518,
+      "opened_at": "2026-09-23T19:38:14.717351Z",
+      "closed_at": "2026-10-06T14:56:40.146798Z",
+      "hold_hours": 307.307,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.020396 IRDM @~49.03; opportunity rotate to fund ISRG (buy_score=0.471 donor_score=-0.122)",
+      "entry_ticket_id": 135,
+      "exit_ticket_id": 325,
+      "entry_fill_id": 30,
+      "exit_fill_id": 208,
+      "entry_score": {
+        "weighted_score": 0.11,
+        "blended_conf": 59.0
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 66.7563162652685,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 > MA200 (intermediate uptrend); RSI constructive (56.4); MACD histogram positive; 20d RS vs SPY: +1.93%; RVOL 0.22x vs\u2026",
+          "signal_id": 3536,
+          "created_at": "2026-09-23T19:37:53.344312Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 51.8,
+          "reasoning_trunc": "Quality: Flat/low revenue growth (3.8%); Negative earnings growth (-55.0%); Healthy profit margin (10.5%); Strong operating margin (15.1%) | Valuation/EV: rich\u2026",
+          "signal_id": 3537,
+          "created_at": "2026-09-23T19:37:54.143452Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "short",
+          "confidence": 71.7,
+          "reasoning_trunc": "deeply overbought vs MA20 (z=2.41); residual_to_MA20=+2.9%; flat 20d momentum +2.8%; momentum dampened (extreme MA residual); cross-sectional mom rank mid (77%\u2026",
+          "signal_id": 3538,
+          "created_at": "2026-09-23T19:37:54.150529Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 59.93925000000001,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.50; avg source credibility 0.59; 'RKLB Stock Extends Rally Overnight: CEO Says Iridium Deal Will Forge A Self-Laun'\u2026",
+          "signal_id": 3539,
+          "created_at": "2026-09-23T19:37:54.399885Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (space); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (-3\u2026",
+          "signal_id": 3540,
+          "created_at": "2026-09-23T19:37:54.403508Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "sentiment"
+        ],
+        "short": [
+          "statistical_ml"
+        ],
+        "neutral": [
+          "fundamental",
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "statistical_ml",
+        "lead_confidence": 71.7
+      },
+      "path": {
+        "mfe_pct": 2.4646,
+        "mae_pct": -1.6224,
+        "ret_pct": 1.1518
+      },
+      "verdict": "Made money: Realized PnL=0.0114. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was an opportunity-rotate trim to fund another name. Held 307.3h.",
+      "verdict_tags": [
+        "winner",
+        "split_book",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 30,
+          "label": "entry fill",
+          "detail": "buy qty=0.020396 @ 48.446"
+        },
+        {
+          "kind": "fill",
+          "id": 208,
+          "label": "exit fill",
+          "detail": "sell @ 49.004"
+        },
+        {
+          "kind": "ticket",
+          "id": 135,
+          "label": "entry ticket",
+          "detail": "BUY 0.098431 IRDM @~48.45; weighted_score=0.110; blended_conf=59.0; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 325,
+          "label": "exit ticket",
+          "detail": "SELL 0.020396 IRDM @~49.03; opportunity rotate to fund ISRG (buy_score=0.471 donor_score=-0.122)"
+        },
+        {
+          "kind": "signal",
+          "id": 3536,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=66.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3537,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=51.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3538,
+          "label": "statistical_ml @ entry",
+          "detail": "short @ conf=71.7"
+        },
+        {
+          "kind": "signal",
+          "id": 3539,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=59.9"
+        },
+        {
+          "kind": "signal",
+          "id": 3540,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.11; blended_conf=59.0"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-1.6224; ret_pct=1.1518"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "space"
+    },
+    {
+      "ticker": "IRDM",
+      "qty": 0.020396,
+      "entry": 48.446,
+      "exit": 49.004,
+      "pnl": 0.011380967999999997,
+      "pnl_pct": 1.1518,
+      "opened_at": "2026-09-23T19:38:14.717351Z",
+      "closed_at": "2026-10-06T14:56:41.141160Z",
+      "hold_hours": 307.307,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.020396 IRDM @~49.03; opportunity rotate to fund MSFT (buy_score=0.237 donor_score=-0.122)",
+      "entry_ticket_id": 135,
+      "exit_ticket_id": 326,
+      "entry_fill_id": 30,
+      "exit_fill_id": 209,
+      "entry_score": {
+        "weighted_score": 0.11,
+        "blended_conf": 59.0
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 66.7563162652685,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 > MA200 (intermediate uptrend); RSI constructive (56.4); MACD histogram positive; 20d RS vs SPY: +1.93%; RVOL 0.22x vs\u2026",
+          "signal_id": 3536,
+          "created_at": "2026-09-23T19:37:53.344312Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 51.8,
+          "reasoning_trunc": "Quality: Flat/low revenue growth (3.8%); Negative earnings growth (-55.0%); Healthy profit margin (10.5%); Strong operating margin (15.1%) | Valuation/EV: rich\u2026",
+          "signal_id": 3537,
+          "created_at": "2026-09-23T19:37:54.143452Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "short",
+          "confidence": 71.7,
+          "reasoning_trunc": "deeply overbought vs MA20 (z=2.41); residual_to_MA20=+2.9%; flat 20d momentum +2.8%; momentum dampened (extreme MA residual); cross-sectional mom rank mid (77%\u2026",
+          "signal_id": 3538,
+          "created_at": "2026-09-23T19:37:54.150529Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 59.93925000000001,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.50; avg source credibility 0.59; 'RKLB Stock Extends Rally Overnight: CEO Says Iridium Deal Will Forge A Self-Laun'\u2026",
+          "signal_id": 3539,
+          "created_at": "2026-09-23T19:37:54.399885Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (space); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (-3\u2026",
+          "signal_id": 3540,
+          "created_at": "2026-09-23T19:37:54.403508Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "sentiment"
+        ],
+        "short": [
+          "statistical_ml"
+        ],
+        "neutral": [
+          "fundamental",
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "statistical_ml",
+        "lead_confidence": 71.7
+      },
+      "path": {
+        "mfe_pct": 2.4646,
+        "mae_pct": -1.6224,
+        "ret_pct": 1.1518
+      },
+      "verdict": "Made money: Realized PnL=0.0114. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was an opportunity-rotate trim to fund another name. Held 307.3h.",
+      "verdict_tags": [
+        "winner",
+        "split_book",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 30,
+          "label": "entry fill",
+          "detail": "buy qty=0.020396 @ 48.446"
+        },
+        {
+          "kind": "fill",
+          "id": 209,
+          "label": "exit fill",
+          "detail": "sell @ 49.004"
+        },
+        {
+          "kind": "ticket",
+          "id": 135,
+          "label": "entry ticket",
+          "detail": "BUY 0.098431 IRDM @~48.45; weighted_score=0.110; blended_conf=59.0; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 326,
+          "label": "exit ticket",
+          "detail": "SELL 0.020396 IRDM @~49.03; opportunity rotate to fund MSFT (buy_score=0.237 donor_score=-0.122)"
+        },
+        {
+          "kind": "signal",
+          "id": 3536,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=66.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3537,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=51.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3538,
+          "label": "statistical_ml @ entry",
+          "detail": "short @ conf=71.7"
+        },
+        {
+          "kind": "signal",
+          "id": 3539,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=59.9"
+        },
+        {
+          "kind": "signal",
+          "id": 3540,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.11; blended_conf=59.0"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-1.6224; ret_pct=1.1518"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "space"
+    },
+    {
+      "ticker": "IRDM",
+      "qty": 0.004311,
+      "entry": 48.446,
+      "exit": 48.992,
+      "pnl": 0.0023538059999999974,
+      "pnl_pct": 1.127,
+      "opened_at": "2026-09-23T19:38:14.717351Z",
+      "closed_at": "2026-10-06T15:59:47.144038Z",
+      "hold_hours": 308.359,
+      "exit_reason": "signal_sell",
+      "exit_rationale": "SELL 0.004311 IRDM @~49.02; weighted_score=-0.122; reduce risk",
+      "entry_ticket_id": 135,
+      "exit_ticket_id": 329,
+      "entry_fill_id": 30,
+      "exit_fill_id": 212,
+      "entry_score": {
+        "weighted_score": 0.11,
+        "blended_conf": 59.0
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 66.7563162652685,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 > MA200 (intermediate uptrend); RSI constructive (56.4); MACD histogram positive; 20d RS vs SPY: +1.93%; RVOL 0.22x vs\u2026",
+          "signal_id": 3536,
+          "created_at": "2026-09-23T19:37:53.344312Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 51.8,
+          "reasoning_trunc": "Quality: Flat/low revenue growth (3.8%); Negative earnings growth (-55.0%); Healthy profit margin (10.5%); Strong operating margin (15.1%) | Valuation/EV: rich\u2026",
+          "signal_id": 3537,
+          "created_at": "2026-09-23T19:37:54.143452Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "short",
+          "confidence": 71.7,
+          "reasoning_trunc": "deeply overbought vs MA20 (z=2.41); residual_to_MA20=+2.9%; flat 20d momentum +2.8%; momentum dampened (extreme MA residual); cross-sectional mom rank mid (77%\u2026",
+          "signal_id": 3538,
+          "created_at": "2026-09-23T19:37:54.150529Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 59.93925000000001,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.50; avg source credibility 0.59; 'RKLB Stock Extends Rally Overnight: CEO Says Iridium Deal Will Forge A Self-Laun'\u2026",
+          "signal_id": 3539,
+          "created_at": "2026-09-23T19:37:54.399885Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (space); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (-3\u2026",
+          "signal_id": 3540,
+          "created_at": "2026-09-23T19:37:54.403508Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "sentiment"
+        ],
+        "short": [
+          "statistical_ml"
+        ],
+        "neutral": [
+          "fundamental",
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "statistical_ml",
+        "lead_confidence": 71.7
+      },
+      "path": {
+        "mfe_pct": 2.4646,
+        "mae_pct": -1.6224,
+        "ret_pct": 1.127
+      },
+      "verdict": "Made money: Realized PnL=0.0024. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was a signal-driven sell (reduce risk). Held 308.4h.",
+      "verdict_tags": [
+        "winner",
+        "split_book",
+        "signal_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 30,
+          "label": "entry fill",
+          "detail": "buy qty=0.004311 @ 48.446"
+        },
+        {
+          "kind": "fill",
+          "id": 212,
+          "label": "exit fill",
+          "detail": "sell @ 48.992"
+        },
+        {
+          "kind": "ticket",
+          "id": 135,
+          "label": "entry ticket",
+          "detail": "BUY 0.098431 IRDM @~48.45; weighted_score=0.110; blended_conf=59.0; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 329,
+          "label": "exit ticket",
+          "detail": "SELL 0.004311 IRDM @~49.02; weighted_score=-0.122; reduce risk"
+        },
+        {
+          "kind": "signal",
+          "id": 3536,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=66.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3537,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=51.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3538,
+          "label": "statistical_ml @ entry",
+          "detail": "short @ conf=71.7"
+        },
+        {
+          "kind": "signal",
+          "id": 3539,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=59.9"
+        },
+        {
+          "kind": "signal",
+          "id": 3540,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.11; blended_conf=59.0"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-1.6224; ret_pct=1.127"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "space"
+    },
+    {
+      "ticker": "QUBT",
+      "qty": 1e-06,
+      "entry": 8.64,
+      "exit": 7.882,
+      "pnl": -7.580000000000008e-07,
+      "pnl_pct": -8.7731,
+      "opened_at": "2026-09-18T19:46:07.142348Z",
+      "closed_at": "2026-10-06T19:55:22.568783Z",
+      "hold_hours": 432.154,
+      "exit_reason": "signal_sell",
+      "exit_rationale": "SELL 1e-06 QUBT @~7.89; weighted_score=-0.331; reduce risk",
+      "entry_ticket_id": 79,
+      "exit_ticket_id": 330,
+      "entry_fill_id": 16,
+      "exit_fill_id": 213,
+      "entry_score": {
+        "weighted_score": 0.113,
+        "blended_conf": 65.5
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "neutral",
+          "confidence": 53.36497345385213,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 < MA200 (intermediate downtrend); RSI constructive (56.5); MACD histogram positive; 20d RS vs SPY: +6.61%; RVOL 0.84x\u2026",
+          "signal_id": 2411,
+          "created_at": "2026-09-18T19:45:36.147461Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "short",
+          "confidence": 82.4,
+          "reasoning_trunc": "Strong revenue growth (9000.0%); Negative profit margin (-152.5%); Negative operating margin (-281.3%); Negative FCF (-53,905,876) \u2014 cash burn risk; Moderate l\u2026",
+          "signal_id": 2412,
+          "created_at": "2026-09-18T19:45:36.718548Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "neutral",
+          "confidence": 52.8,
+          "reasoning_trunc": "overbought vs MA20 (z=1.55); residual_to_MA20=+5.9%; positive 20d momentum +6.4%; cross-sectional mom rank top (90%); vol regime=normal",
+          "signal_id": 2413,
+          "created_at": "2026-09-18T19:45:36.724843Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 49.908067164179116,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.17; avg source credibility 0.67; 'What Needs To Be True To Buy Rigetti Stock Today?' (Trefis, pol=+1.00); 'Here's H\u2026",
+          "signal_id": 2414,
+          "created_at": "2026-09-18T19:45:36.909522Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning_trunc": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (quantum); VIX contained (15.0); Dollar stable (+1.7% 20d); Rates stable (-1.0%); Benc\u2026",
+          "signal_id": 2415,
+          "created_at": "2026-09-18T19:45:36.914497Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "sentiment",
+          "macro"
+        ],
+        "short": [
+          "fundamental"
+        ],
+        "neutral": [
+          "momentum",
+          "statistical_ml"
+        ],
+        "disagreement": true,
+        "lead_agent": "macro",
+        "lead_confidence": 89.0
+      },
+      "path": {
+        "mfe_pct": 12.963,
+        "mae_pct": -9.375,
+        "ret_pct": -8.7731
+      },
+      "verdict": "Scratch: Realized PnL=-0.0000. Entered with a split book: long=[sentiment, macro] vs short=[fundamental] (see macro signal #2415 long @ conf=89.0). Entry weighted_score=0.113. Exit was a signal-driven sell (reduce risk). Held 432.2h.",
+      "verdict_tags": [
+        "scratch",
+        "split_book",
+        "signal_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 16,
+          "label": "entry fill",
+          "detail": "buy qty=1e-06 @ 8.64"
+        },
+        {
+          "kind": "fill",
+          "id": 213,
+          "label": "exit fill",
+          "detail": "sell @ 7.882"
+        },
+        {
+          "kind": "ticket",
+          "id": 79,
+          "label": "entry ticket",
+          "detail": "BUY 2.143144 QUBT @~8.66; weighted_score=0.113; blended_conf=65.5; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 330,
+          "label": "exit ticket",
+          "detail": "SELL 1e-06 QUBT @~7.89; weighted_score=-0.331; reduce risk"
+        },
+        {
+          "kind": "signal",
+          "id": 2411,
+          "label": "momentum @ entry",
+          "detail": "neutral @ conf=53.4"
+        },
+        {
+          "kind": "signal",
+          "id": 2412,
+          "label": "fundamental @ entry",
+          "detail": "short @ conf=82.4"
+        },
+        {
+          "kind": "signal",
+          "id": 2413,
+          "label": "statistical_ml @ entry",
+          "detail": "neutral @ conf=52.8"
+        },
+        {
+          "kind": "signal",
+          "id": 2414,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=49.9"
+        },
+        {
+          "kind": "signal",
+          "id": 2415,
+          "label": "macro @ entry",
+          "detail": "long @ conf=89.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.113; blended_conf=65.5"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=12.963; mae_pct=-9.375; ret_pct=-8.7731"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "quantum"
+    },
+    {
+      "ticker": "IRDM",
+      "qty": 0.00326,
+      "entry": 48.446,
+      "exit": 49.042,
+      "pnl": 0.0019429600000000118,
+      "pnl_pct": 1.2302,
+      "opened_at": "2026-09-23T19:38:14.717351Z",
+      "closed_at": "2026-10-06T19:55:23.529974Z",
+      "hold_hours": 312.286,
+      "exit_reason": "signal_sell",
+      "exit_rationale": "SELL 0.00326 IRDM @~49.03; weighted_score=-0.122; reduce risk",
+      "entry_ticket_id": 135,
+      "exit_ticket_id": 331,
+      "entry_fill_id": 30,
+      "exit_fill_id": 214,
+      "entry_score": {
+        "weighted_score": 0.11,
+        "blended_conf": 59.0
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 66.7563162652685,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 > MA200 (intermediate uptrend); RSI constructive (56.4); MACD histogram positive; 20d RS vs SPY: +1.93%; RVOL 0.22x vs\u2026",
+          "signal_id": 3536,
+          "created_at": "2026-09-23T19:37:53.344312Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 51.8,
+          "reasoning_trunc": "Quality: Flat/low revenue growth (3.8%); Negative earnings growth (-55.0%); Healthy profit margin (10.5%); Strong operating margin (15.1%) | Valuation/EV: rich\u2026",
+          "signal_id": 3537,
+          "created_at": "2026-09-23T19:37:54.143452Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "short",
+          "confidence": 71.7,
+          "reasoning_trunc": "deeply overbought vs MA20 (z=2.41); residual_to_MA20=+2.9%; flat 20d momentum +2.8%; momentum dampened (extreme MA residual); cross-sectional mom rank mid (77%\u2026",
+          "signal_id": 3538,
+          "created_at": "2026-09-23T19:37:54.150529Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 59.93925000000001,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.50; avg source credibility 0.59; 'RKLB Stock Extends Rally Overnight: CEO Says Iridium Deal Will Forge A Self-Laun'\u2026",
+          "signal_id": 3539,
+          "created_at": "2026-09-23T19:37:54.399885Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (space); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (-3\u2026",
+          "signal_id": 3540,
+          "created_at": "2026-09-23T19:37:54.403508Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "sentiment"
+        ],
+        "short": [
+          "statistical_ml"
+        ],
+        "neutral": [
+          "fundamental",
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "statistical_ml",
+        "lead_confidence": 71.7
+      },
+      "path": {
+        "mfe_pct": 2.4646,
+        "mae_pct": -1.6224,
+        "ret_pct": 1.2302
+      },
+      "verdict": "Made money: Realized PnL=0.0019. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was a signal-driven sell (reduce risk). Held 312.3h.",
+      "verdict_tags": [
+        "winner",
+        "split_book",
+        "signal_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 30,
+          "label": "entry fill",
+          "detail": "buy qty=0.00326 @ 48.446"
+        },
+        {
+          "kind": "fill",
+          "id": 214,
+          "label": "exit fill",
+          "detail": "sell @ 49.042"
+        },
+        {
+          "kind": "ticket",
+          "id": 135,
+          "label": "entry ticket",
+          "detail": "BUY 0.098431 IRDM @~48.45; weighted_score=0.110; blended_conf=59.0; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 331,
+          "label": "exit ticket",
+          "detail": "SELL 0.00326 IRDM @~49.03; weighted_score=-0.122; reduce risk"
+        },
+        {
+          "kind": "signal",
+          "id": 3536,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=66.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3537,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=51.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3538,
+          "label": "statistical_ml @ entry",
+          "detail": "short @ conf=71.7"
+        },
+        {
+          "kind": "signal",
+          "id": 3539,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=59.9"
+        },
+        {
+          "kind": "signal",
+          "id": 3540,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.11; blended_conf=59.0"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-1.6224; ret_pct=1.2302"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "space"
+    },
+    {
+      "ticker": "NVDA",
+      "qty": 0.020892,
+      "entry": 225.35038876590045,
+      "exit": 231.4,
+      "pnl": 0.12638847790280797,
+      "pnl_pct": 2.6845,
+      "opened_at": "2026-09-24T13:52:28.493532Z",
+      "closed_at": "2026-10-08T18:28:55.686989Z",
+      "hold_hours": 340.608,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.020892 NVDA @~231.42; opportunity rotate to fund MSFT (buy_score=0.525 donor_score=0.307)",
+      "entry_ticket_id": 236,
+      "exit_ticket_id": 332,
+      "entry_fill_id": 120,
+      "exit_fill_id": 215,
+      "entry_score": {
+        "weighted_score": 0.507,
+        "blended_conf": 63.7
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 89.76512480866012,
+          "reasoning_trunc": "MA20 > MA50 (short-term uptrend); MA50 > MA200 (intermediate uptrend); RSI constructive (59.7); MACD histogram positive; 20d RS vs SPY: +4.28%; RVOL 0.17x vs 2\u2026",
+          "signal_id": 7916,
+          "created_at": "2026-09-29T14:05:02.795761Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "long",
+          "confidence": 92.0,
+          "reasoning_trunc": "Quality: Strong revenue growth (105.9%); Strong earnings growth (127.8%); High profit margin (63.7%); Strong operating margin (66.2%) | Valuation/EV: elevated\u2026",
+          "signal_id": 7917,
+          "created_at": "2026-09-29T14:05:03.320052Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "long",
+          "confidence": 71.7,
+          "reasoning_trunc": "price near MA20 (z=1.21); positive 20d momentum +4.2%; 60d trend up +17.7%; cross-sectional mom rank mid (69%); low vol regime",
+          "signal_id": 7918,
+          "created_at": "2026-09-29T14:05:03.326866Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "neutral",
+          "confidence": 20.0,
+          "reasoning_trunc": "No recent headlines available for this ticker; emitting neutral with no manipulation flag (insufficient data, not risk).",
+          "signal_id": 7919,
+          "created_at": "2026-09-29T14:05:03.765688Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (robotics); VIX contained (16.0); Dollar firm (+2.2% 20d) \u2014 risk headwind; Rates headwind\u2026",
+          "signal_id": 7920,
+          "created_at": "2026-09-29T14:05:03.770226Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "fundamental",
+          "statistical_ml"
+        ],
+        "short": [],
+        "neutral": [
+          "sentiment",
+          "macro"
+        ],
+        "disagreement": false,
+        "lead_agent": "fundamental",
+        "lead_confidence": 92.0
+      },
+      "path": {
+        "mfe_pct": 7.9963,
+        "mae_pct": -1.8906,
+        "ret_pct": 2.6845
+      },
+      "verdict": "Made money: Realized PnL=0.1264. Entered aligned; lead agent fundamental was long@92.0 (see fundamental signal #7917 long @ conf=92.0). Entry weighted_score=0.507. Exit was an opportunity-rotate trim to fund another name. Held 340.6h.",
+      "verdict_tags": [
+        "winner",
+        "aligned",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 120,
+          "label": "entry fill",
+          "detail": "buy qty=0.020892 @ 225.35038876590045"
+        },
+        {
+          "kind": "fill",
+          "id": 215,
+          "label": "exit fill",
+          "detail": "sell @ 231.4"
+        },
+        {
+          "kind": "ticket",
+          "id": 236,
+          "label": "entry ticket",
+          "detail": "BUY 0.020251 NVDA @~229.90; weighted_score=0.507; blended_conf=63.7; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 332,
+          "label": "exit ticket",
+          "detail": "SELL 0.020892 NVDA @~231.42; opportunity rotate to fund MSFT (buy_score=0.525 donor_score=0.307)"
+        },
+        {
+          "kind": "signal",
+          "id": 7916,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=89.8"
+        },
+        {
+          "kind": "signal",
+          "id": 7917,
+          "label": "fundamental @ entry",
+          "detail": "long @ conf=92.0"
+        },
+        {
+          "kind": "signal",
+          "id": 7918,
+          "label": "statistical_ml @ entry",
+          "detail": "long @ conf=71.7"
+        },
+        {
+          "kind": "signal",
+          "id": 7919,
+          "label": "sentiment @ entry",
+          "detail": "neutral @ conf=20.0"
+        },
+        {
+          "kind": "signal",
+          "id": 7920,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.507; blended_conf=63.7"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=7.9963; mae_pct=-1.8906; ret_pct=2.6845"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "robotics"
+    },
+    {
+      "ticker": "GOOGL",
+      "qty": 0.002872,
+      "entry": 338.4842248612241,
+      "exit": 348.22,
+      "pnl": 0.027961146198564445,
+      "pnl_pct": 2.8763,
+      "opened_at": "2026-09-06T20:07:40.398360Z",
+      "closed_at": "2026-10-08T19:59:50.610576Z",
+      "hold_hours": 767.87,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.002872 GOOGL @~348.21; opportunity rotate to fund ADSK (buy_score=0.429 donor_score=0.184)",
+      "entry_ticket_id": 130,
+      "exit_ticket_id": 334,
+      "entry_fill_id": 26,
+      "exit_fill_id": 217,
+      "entry_score": {
+        "weighted_score": 0.224,
+        "blended_conf": 55.3
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "short",
+          "confidence": 34.5451083018582,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 < MA200 (intermediate downtrend); MACD histogram positive; 20d RS vs SPY: -2.76%; RVOL 0.95x vs 20d avg; Demand imbala\u2026",
+          "signal_id": 3471,
+          "created_at": "2026-09-23T19:37:06.365044Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "long",
+          "confidence": 92.0,
+          "reasoning_trunc": "Quality: Solid revenue growth (15.1%); Strong earnings growth (32.0%); High profit margin (32.8%); Strong operating margin (32.0%) | Valuation/EV: elevated P/S\u2026",
+          "signal_id": 3472,
+          "created_at": "2026-09-23T19:37:09.384132Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "neutral",
+          "confidence": 50.1,
+          "reasoning_trunc": "price near MA20 (z=-0.47); return z oversold (-1.57); flat 20d momentum -2.2%; cross-sectional mom rank mid (40%); vol regime=normal",
+          "signal_id": 3473,
+          "created_at": "2026-09-23T19:37:09.390536Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 54.67962500000001,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.26; avg source credibility 0.72; 'How Meta's Muse was a total game changer for the AI narrative' (Yahoo Finance Vid\u2026",
+          "signal_id": 3474,
+          "created_at": "2026-09-23T19:37:09.609852Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (quantum); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (\u2026",
+          "signal_id": 3475,
+          "created_at": "2026-09-23T19:37:09.613207Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "fundamental",
+          "sentiment"
+        ],
+        "short": [
+          "momentum"
+        ],
+        "neutral": [
+          "statistical_ml",
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "fundamental",
+        "lead_confidence": 92.0
+      },
+      "path": {
+        "mfe_pct": 7.5885,
+        "mae_pct": -3.1742,
+        "ret_pct": 2.8763
+      },
+      "verdict": "Made money: Realized PnL=0.0280. Entered with a split book: long=[fundamental, sentiment] vs short=[momentum] (see fundamental signal #3472 long @ conf=92.0). Entry weighted_score=0.224. Exit was an opportunity-rotate trim to fund another name. Held 767.9h.",
+      "verdict_tags": [
+        "winner",
+        "split_book",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 26,
+          "label": "entry fill",
+          "detail": "buy qty=0.002872 @ 338.4842248612241"
+        },
+        {
+          "kind": "fill",
+          "id": 217,
+          "label": "exit fill",
+          "detail": "sell @ 348.22"
+        },
+        {
+          "kind": "ticket",
+          "id": 130,
+          "label": "entry ticket",
+          "detail": "BUY 0.01407 GOOGL @~338.96; weighted_score=0.224; blended_conf=55.3; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 334,
+          "label": "exit ticket",
+          "detail": "SELL 0.002872 GOOGL @~348.21; opportunity rotate to fund ADSK (buy_score=0.429 donor_score=0.184)"
+        },
+        {
+          "kind": "signal",
+          "id": 3471,
+          "label": "momentum @ entry",
+          "detail": "short @ conf=34.5"
+        },
+        {
+          "kind": "signal",
+          "id": 3472,
+          "label": "fundamental @ entry",
+          "detail": "long @ conf=92.0"
+        },
+        {
+          "kind": "signal",
+          "id": 3473,
+          "label": "statistical_ml @ entry",
+          "detail": "neutral @ conf=50.1"
+        },
+        {
+          "kind": "signal",
+          "id": 3474,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=54.7"
+        },
+        {
+          "kind": "signal",
+          "id": 3475,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.224; blended_conf=55.3"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=7.5885; mae_pct=-3.1742; ret_pct=2.8763"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "quantum"
+    },
+    {
+      "ticker": "IRDM",
+      "qty": 0.001574,
+      "entry": 48.446,
+      "exit": 47.336,
+      "pnl": -0.0017471399999999992,
+      "pnl_pct": -2.2912,
+      "opened_at": "2026-09-23T19:38:14.717351Z",
+      "closed_at": "2026-10-09T15:17:08.000571Z",
+      "hold_hours": 379.648,
+      "exit_reason": "signal_sell",
+      "exit_rationale": "SELL 0.001574 IRDM @~47.33; weighted_score=-0.078; reduce risk",
+      "entry_ticket_id": 135,
+      "exit_ticket_id": 336,
+      "entry_fill_id": 30,
+      "exit_fill_id": 219,
+      "entry_score": {
+        "weighted_score": 0.11,
+        "blended_conf": 59.0
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 66.7563162652685,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 > MA200 (intermediate uptrend); RSI constructive (56.4); MACD histogram positive; 20d RS vs SPY: +1.93%; RVOL 0.22x vs\u2026",
+          "signal_id": 3536,
+          "created_at": "2026-09-23T19:37:53.344312Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 51.8,
+          "reasoning_trunc": "Quality: Flat/low revenue growth (3.8%); Negative earnings growth (-55.0%); Healthy profit margin (10.5%); Strong operating margin (15.1%) | Valuation/EV: rich\u2026",
+          "signal_id": 3537,
+          "created_at": "2026-09-23T19:37:54.143452Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "short",
+          "confidence": 71.7,
+          "reasoning_trunc": "deeply overbought vs MA20 (z=2.41); residual_to_MA20=+2.9%; flat 20d momentum +2.8%; momentum dampened (extreme MA residual); cross-sectional mom rank mid (77%\u2026",
+          "signal_id": 3538,
+          "created_at": "2026-09-23T19:37:54.150529Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 59.93925000000001,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.50; avg source credibility 0.59; 'RKLB Stock Extends Rally Overnight: CEO Says Iridium Deal Will Forge A Self-Laun'\u2026",
+          "signal_id": 3539,
+          "created_at": "2026-09-23T19:37:54.399885Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (space); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (-3\u2026",
+          "signal_id": 3540,
+          "created_at": "2026-09-23T19:37:54.403508Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "sentiment"
+        ],
+        "short": [
+          "statistical_ml"
+        ],
+        "neutral": [
+          "fundamental",
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "statistical_ml",
+        "lead_confidence": 71.7
+      },
+      "path": {
+        "mfe_pct": 2.4646,
+        "mae_pct": -2.83,
+        "ret_pct": -2.2912
+      },
+      "verdict": "Lost money: Realized PnL=-0.0017. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was a signal-driven sell (reduce risk). Held 379.6h.",
+      "verdict_tags": [
+        "loser",
+        "split_book",
+        "signal_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 30,
+          "label": "entry fill",
+          "detail": "buy qty=0.001574 @ 48.446"
+        },
+        {
+          "kind": "fill",
+          "id": 219,
+          "label": "exit fill",
+          "detail": "sell @ 47.336"
+        },
+        {
+          "kind": "ticket",
+          "id": 135,
+          "label": "entry ticket",
+          "detail": "BUY 0.098431 IRDM @~48.45; weighted_score=0.110; blended_conf=59.0; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 336,
+          "label": "exit ticket",
+          "detail": "SELL 0.001574 IRDM @~47.33; weighted_score=-0.078; reduce risk"
+        },
+        {
+          "kind": "signal",
+          "id": 3536,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=66.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3537,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=51.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3538,
+          "label": "statistical_ml @ entry",
+          "detail": "short @ conf=71.7"
+        },
+        {
+          "kind": "signal",
+          "id": 3539,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=59.9"
+        },
+        {
+          "kind": "signal",
+          "id": 3540,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.11; blended_conf=59.0"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.83; ret_pct=-2.2912"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "space"
+    },
+    {
+      "ticker": "GOOGL",
+      "qty": 0.002849,
+      "entry": 338.4842248612241,
+      "exit": 350.968,
+      "pnl": 0.035566275370372574,
+      "pnl_pct": 3.6881,
+      "opened_at": "2026-09-06T20:07:40.398360Z",
+      "closed_at": "2026-10-09T15:17:09.088539Z",
+      "hold_hours": 787.158,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.002849 GOOGL @~351.03; opportunity rotate to fund ADSK (buy_score=0.430 donor_score=0.184)",
+      "entry_ticket_id": 130,
+      "exit_ticket_id": 337,
+      "entry_fill_id": 26,
+      "exit_fill_id": 220,
+      "entry_score": {
+        "weighted_score": 0.224,
+        "blended_conf": 55.3
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "short",
+          "confidence": 34.5451083018582,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 < MA200 (intermediate downtrend); MACD histogram positive; 20d RS vs SPY: -2.76%; RVOL 0.95x vs 20d avg; Demand imbala\u2026",
+          "signal_id": 3471,
+          "created_at": "2026-09-23T19:37:06.365044Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "long",
+          "confidence": 92.0,
+          "reasoning_trunc": "Quality: Solid revenue growth (15.1%); Strong earnings growth (32.0%); High profit margin (32.8%); Strong operating margin (32.0%) | Valuation/EV: elevated P/S\u2026",
+          "signal_id": 3472,
+          "created_at": "2026-09-23T19:37:09.384132Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "neutral",
+          "confidence": 50.1,
+          "reasoning_trunc": "price near MA20 (z=-0.47); return z oversold (-1.57); flat 20d momentum -2.2%; cross-sectional mom rank mid (40%); vol regime=normal",
+          "signal_id": 3473,
+          "created_at": "2026-09-23T19:37:09.390536Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 54.67962500000001,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.26; avg source credibility 0.72; 'How Meta's Muse was a total game changer for the AI narrative' (Yahoo Finance Vid\u2026",
+          "signal_id": 3474,
+          "created_at": "2026-09-23T19:37:09.609852Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (quantum); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (\u2026",
+          "signal_id": 3475,
+          "created_at": "2026-09-23T19:37:09.613207Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "fundamental",
+          "sentiment"
+        ],
+        "short": [
+          "momentum"
+        ],
+        "neutral": [
+          "statistical_ml",
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "fundamental",
+        "lead_confidence": 92.0
+      },
+      "path": {
+        "mfe_pct": 7.5885,
+        "mae_pct": -3.1742,
+        "ret_pct": 3.6881
+      },
+      "verdict": "Made money: Realized PnL=0.0356. Entered with a split book: long=[fundamental, sentiment] vs short=[momentum] (see fundamental signal #3472 long @ conf=92.0). Entry weighted_score=0.224. Exit was an opportunity-rotate trim to fund another name. Held 787.2h.",
+      "verdict_tags": [
+        "winner",
+        "split_book",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 26,
+          "label": "entry fill",
+          "detail": "buy qty=0.002849 @ 338.4842248612241"
+        },
+        {
+          "kind": "fill",
+          "id": 220,
+          "label": "exit fill",
+          "detail": "sell @ 350.968"
+        },
+        {
+          "kind": "ticket",
+          "id": 130,
+          "label": "entry ticket",
+          "detail": "BUY 0.01407 GOOGL @~338.96; weighted_score=0.224; blended_conf=55.3; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 337,
+          "label": "exit ticket",
+          "detail": "SELL 0.002849 GOOGL @~351.03; opportunity rotate to fund ADSK (buy_score=0.430 donor_score=0.184)"
+        },
+        {
+          "kind": "signal",
+          "id": 3471,
+          "label": "momentum @ entry",
+          "detail": "short @ conf=34.5"
+        },
+        {
+          "kind": "signal",
+          "id": 3472,
+          "label": "fundamental @ entry",
+          "detail": "long @ conf=92.0"
+        },
+        {
+          "kind": "signal",
+          "id": 3473,
+          "label": "statistical_ml @ entry",
+          "detail": "neutral @ conf=50.1"
+        },
+        {
+          "kind": "signal",
+          "id": 3474,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=54.7"
+        },
+        {
+          "kind": "signal",
+          "id": 3475,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.224; blended_conf=55.3"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=7.5885; mae_pct=-3.1742; ret_pct=3.6881"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "quantum"
+    },
+    {
+      "ticker": "IRDM",
+      "qty": 0.001329,
+      "entry": 48.446,
+      "exit": 47.336,
+      "pnl": -0.0014751899999999993,
+      "pnl_pct": -2.2912,
+      "opened_at": "2026-09-23T19:38:14.717351Z",
+      "closed_at": "2026-10-09T15:17:37.296002Z",
+      "hold_hours": 379.656,
+      "exit_reason": "signal_sell",
+      "exit_rationale": "SELL 0.001329 IRDM @~47.33; weighted_score=-0.078; reduce risk",
+      "entry_ticket_id": 135,
+      "exit_ticket_id": 339,
+      "entry_fill_id": 30,
+      "exit_fill_id": 222,
+      "entry_score": {
+        "weighted_score": 0.11,
+        "blended_conf": 59.0
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 66.7563162652685,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 > MA200 (intermediate uptrend); RSI constructive (56.4); MACD histogram positive; 20d RS vs SPY: +1.93%; RVOL 0.22x vs\u2026",
+          "signal_id": 3536,
+          "created_at": "2026-09-23T19:37:53.344312Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 51.8,
+          "reasoning_trunc": "Quality: Flat/low revenue growth (3.8%); Negative earnings growth (-55.0%); Healthy profit margin (10.5%); Strong operating margin (15.1%) | Valuation/EV: rich\u2026",
+          "signal_id": 3537,
+          "created_at": "2026-09-23T19:37:54.143452Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "short",
+          "confidence": 71.7,
+          "reasoning_trunc": "deeply overbought vs MA20 (z=2.41); residual_to_MA20=+2.9%; flat 20d momentum +2.8%; momentum dampened (extreme MA residual); cross-sectional mom rank mid (77%\u2026",
+          "signal_id": 3538,
+          "created_at": "2026-09-23T19:37:54.150529Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 59.93925000000001,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.50; avg source credibility 0.59; 'RKLB Stock Extends Rally Overnight: CEO Says Iridium Deal Will Forge A Self-Laun'\u2026",
+          "signal_id": 3539,
+          "created_at": "2026-09-23T19:37:54.399885Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (space); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (-3\u2026",
+          "signal_id": 3540,
+          "created_at": "2026-09-23T19:37:54.403508Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "sentiment"
+        ],
+        "short": [
+          "statistical_ml"
+        ],
+        "neutral": [
+          "fundamental",
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "statistical_ml",
+        "lead_confidence": 71.7
+      },
+      "path": {
+        "mfe_pct": 2.4646,
+        "mae_pct": -2.83,
+        "ret_pct": -2.2912
+      },
+      "verdict": "Lost money: Realized PnL=-0.0015. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was a signal-driven sell (reduce risk). Held 379.7h.",
+      "verdict_tags": [
+        "loser",
+        "split_book",
+        "signal_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 30,
+          "label": "entry fill",
+          "detail": "buy qty=0.001329 @ 48.446"
+        },
+        {
+          "kind": "fill",
+          "id": 222,
+          "label": "exit fill",
+          "detail": "sell @ 47.336"
+        },
+        {
+          "kind": "ticket",
+          "id": 135,
+          "label": "entry ticket",
+          "detail": "BUY 0.098431 IRDM @~48.45; weighted_score=0.110; blended_conf=59.0; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 339,
+          "label": "exit ticket",
+          "detail": "SELL 0.001329 IRDM @~47.33; weighted_score=-0.078; reduce risk"
+        },
+        {
+          "kind": "signal",
+          "id": 3536,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=66.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3537,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=51.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3538,
+          "label": "statistical_ml @ entry",
+          "detail": "short @ conf=71.7"
+        },
+        {
+          "kind": "signal",
+          "id": 3539,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=59.9"
+        },
+        {
+          "kind": "signal",
+          "id": 3540,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.11; blended_conf=59.0"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.83; ret_pct=-2.2912"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "space"
+    },
+    {
+      "ticker": "IRDM",
+      "qty": 0.001026,
+      "entry": 48.446,
+      "exit": 47.07,
+      "pnl": -0.0014117759999999976,
+      "pnl_pct": -2.8403,
+      "opened_at": "2026-09-23T19:38:14.717351Z",
+      "closed_at": "2026-10-09T16:09:01.316223Z",
+      "hold_hours": 380.513,
+      "exit_reason": "signal_sell",
+      "exit_rationale": "SELL 0.001026 IRDM @~47.08; weighted_score=-0.071; reduce risk",
+      "entry_ticket_id": 135,
+      "exit_ticket_id": 340,
+      "entry_fill_id": 30,
+      "exit_fill_id": 223,
+      "entry_score": {
+        "weighted_score": 0.11,
+        "blended_conf": 59.0
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 66.7563162652685,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 > MA200 (intermediate uptrend); RSI constructive (56.4); MACD histogram positive; 20d RS vs SPY: +1.93%; RVOL 0.22x vs\u2026",
+          "signal_id": 3536,
+          "created_at": "2026-09-23T19:37:53.344312Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 51.8,
+          "reasoning_trunc": "Quality: Flat/low revenue growth (3.8%); Negative earnings growth (-55.0%); Healthy profit margin (10.5%); Strong operating margin (15.1%) | Valuation/EV: rich\u2026",
+          "signal_id": 3537,
+          "created_at": "2026-09-23T19:37:54.143452Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "short",
+          "confidence": 71.7,
+          "reasoning_trunc": "deeply overbought vs MA20 (z=2.41); residual_to_MA20=+2.9%; flat 20d momentum +2.8%; momentum dampened (extreme MA residual); cross-sectional mom rank mid (77%\u2026",
+          "signal_id": 3538,
+          "created_at": "2026-09-23T19:37:54.150529Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 59.93925000000001,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.50; avg source credibility 0.59; 'RKLB Stock Extends Rally Overnight: CEO Says Iridium Deal Will Forge A Self-Laun'\u2026",
+          "signal_id": 3539,
+          "created_at": "2026-09-23T19:37:54.399885Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (space); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (-3\u2026",
+          "signal_id": 3540,
+          "created_at": "2026-09-23T19:37:54.403508Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "sentiment"
+        ],
+        "short": [
+          "statistical_ml"
+        ],
+        "neutral": [
+          "fundamental",
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "statistical_ml",
+        "lead_confidence": 71.7
+      },
+      "path": {
+        "mfe_pct": 2.4646,
+        "mae_pct": -2.83,
+        "ret_pct": -2.8403
+      },
+      "verdict": "Lost money: Realized PnL=-0.0014. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was a signal-driven sell (reduce risk). Held 380.5h.",
+      "verdict_tags": [
+        "loser",
+        "split_book",
+        "signal_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 30,
+          "label": "entry fill",
+          "detail": "buy qty=0.001026 @ 48.446"
+        },
+        {
+          "kind": "fill",
+          "id": 223,
+          "label": "exit fill",
+          "detail": "sell @ 47.07"
+        },
+        {
+          "kind": "ticket",
+          "id": 135,
+          "label": "entry ticket",
+          "detail": "BUY 0.098431 IRDM @~48.45; weighted_score=0.110; blended_conf=59.0; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 340,
+          "label": "exit ticket",
+          "detail": "SELL 0.001026 IRDM @~47.08; weighted_score=-0.071; reduce risk"
+        },
+        {
+          "kind": "signal",
+          "id": 3536,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=66.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3537,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=51.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3538,
+          "label": "statistical_ml @ entry",
+          "detail": "short @ conf=71.7"
+        },
+        {
+          "kind": "signal",
+          "id": 3539,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=59.9"
+        },
+        {
+          "kind": "signal",
+          "id": 3540,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.11; blended_conf=59.0"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.83; ret_pct=-2.8403"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "space"
+    },
+    {
+      "ticker": "GOOGL",
+      "qty": 0.002822,
+      "entry": 338.4842248612241,
+      "exit": 354.49,
+      "pnl": 0.04516829744162559,
+      "pnl_pct": 4.7287,
+      "opened_at": "2026-09-06T20:07:40.398360Z",
+      "closed_at": "2026-10-09T16:09:02.244350Z",
+      "hold_hours": 788.023,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.002822 GOOGL @~354.38; opportunity rotate to fund ADSK (buy_score=0.430 donor_score=0.184)",
+      "entry_ticket_id": 130,
+      "exit_ticket_id": 341,
+      "entry_fill_id": 26,
+      "exit_fill_id": 224,
+      "entry_score": {
+        "weighted_score": 0.224,
+        "blended_conf": 55.3
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "short",
+          "confidence": 34.5451083018582,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 < MA200 (intermediate downtrend); MACD histogram positive; 20d RS vs SPY: -2.76%; RVOL 0.95x vs 20d avg; Demand imbala\u2026",
+          "signal_id": 3471,
+          "created_at": "2026-09-23T19:37:06.365044Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "long",
+          "confidence": 92.0,
+          "reasoning_trunc": "Quality: Solid revenue growth (15.1%); Strong earnings growth (32.0%); High profit margin (32.8%); Strong operating margin (32.0%) | Valuation/EV: elevated P/S\u2026",
+          "signal_id": 3472,
+          "created_at": "2026-09-23T19:37:09.384132Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "neutral",
+          "confidence": 50.1,
+          "reasoning_trunc": "price near MA20 (z=-0.47); return z oversold (-1.57); flat 20d momentum -2.2%; cross-sectional mom rank mid (40%); vol regime=normal",
+          "signal_id": 3473,
+          "created_at": "2026-09-23T19:37:09.390536Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 54.67962500000001,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.26; avg source credibility 0.72; 'How Meta's Muse was a total game changer for the AI narrative' (Yahoo Finance Vid\u2026",
+          "signal_id": 3474,
+          "created_at": "2026-09-23T19:37:09.609852Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (quantum); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (\u2026",
+          "signal_id": 3475,
+          "created_at": "2026-09-23T19:37:09.613207Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "fundamental",
+          "sentiment"
+        ],
+        "short": [
+          "momentum"
+        ],
+        "neutral": [
+          "statistical_ml",
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "fundamental",
+        "lead_confidence": 92.0
+      },
+      "path": {
+        "mfe_pct": 7.5885,
+        "mae_pct": -3.1742,
+        "ret_pct": 4.7287
+      },
+      "verdict": "Made money: Realized PnL=0.0452. Entered with a split book: long=[fundamental, sentiment] vs short=[momentum] (see fundamental signal #3472 long @ conf=92.0). Entry weighted_score=0.224. Exit was an opportunity-rotate trim to fund another name. Held 788.0h.",
+      "verdict_tags": [
+        "winner",
+        "split_book",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 26,
+          "label": "entry fill",
+          "detail": "buy qty=0.002822 @ 338.4842248612241"
+        },
+        {
+          "kind": "fill",
+          "id": 224,
+          "label": "exit fill",
+          "detail": "sell @ 354.49"
+        },
+        {
+          "kind": "ticket",
+          "id": 130,
+          "label": "entry ticket",
+          "detail": "BUY 0.01407 GOOGL @~338.96; weighted_score=0.224; blended_conf=55.3; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 341,
+          "label": "exit ticket",
+          "detail": "SELL 0.002822 GOOGL @~354.38; opportunity rotate to fund ADSK (buy_score=0.430 donor_score=0.184)"
+        },
+        {
+          "kind": "signal",
+          "id": 3471,
+          "label": "momentum @ entry",
+          "detail": "short @ conf=34.5"
+        },
+        {
+          "kind": "signal",
+          "id": 3472,
+          "label": "fundamental @ entry",
+          "detail": "long @ conf=92.0"
+        },
+        {
+          "kind": "signal",
+          "id": 3473,
+          "label": "statistical_ml @ entry",
+          "detail": "neutral @ conf=50.1"
+        },
+        {
+          "kind": "signal",
+          "id": 3474,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=54.7"
+        },
+        {
+          "kind": "signal",
+          "id": 3475,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.224; blended_conf=55.3"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=7.5885; mae_pct=-3.1742; ret_pct=4.7287"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "quantum"
+    },
+    {
+      "ticker": "IRDM",
+      "qty": 0.000881,
+      "entry": 48.446,
+      "exit": 47.128,
+      "pnl": -0.001161157999999998,
+      "pnl_pct": -2.7206,
+      "opened_at": "2026-09-23T19:38:14.717351Z",
+      "closed_at": "2026-10-09T17:07:44.952024Z",
+      "hold_hours": 381.492,
+      "exit_reason": "signal_sell",
+      "exit_rationale": "SELL 0.000881 IRDM @~47.15; weighted_score=-0.071; reduce risk",
+      "entry_ticket_id": 135,
+      "exit_ticket_id": 343,
+      "entry_fill_id": 30,
+      "exit_fill_id": 226,
+      "entry_score": {
+        "weighted_score": 0.11,
+        "blended_conf": 59.0
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 66.7563162652685,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 > MA200 (intermediate uptrend); RSI constructive (56.4); MACD histogram positive; 20d RS vs SPY: +1.93%; RVOL 0.22x vs\u2026",
+          "signal_id": 3536,
+          "created_at": "2026-09-23T19:37:53.344312Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 51.8,
+          "reasoning_trunc": "Quality: Flat/low revenue growth (3.8%); Negative earnings growth (-55.0%); Healthy profit margin (10.5%); Strong operating margin (15.1%) | Valuation/EV: rich\u2026",
+          "signal_id": 3537,
+          "created_at": "2026-09-23T19:37:54.143452Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "short",
+          "confidence": 71.7,
+          "reasoning_trunc": "deeply overbought vs MA20 (z=2.41); residual_to_MA20=+2.9%; flat 20d momentum +2.8%; momentum dampened (extreme MA residual); cross-sectional mom rank mid (77%\u2026",
+          "signal_id": 3538,
+          "created_at": "2026-09-23T19:37:54.150529Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 59.93925000000001,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.50; avg source credibility 0.59; 'RKLB Stock Extends Rally Overnight: CEO Says Iridium Deal Will Forge A Self-Laun'\u2026",
+          "signal_id": 3539,
+          "created_at": "2026-09-23T19:37:54.399885Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (space); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (-3\u2026",
+          "signal_id": 3540,
+          "created_at": "2026-09-23T19:37:54.403508Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "sentiment"
+        ],
+        "short": [
+          "statistical_ml"
+        ],
+        "neutral": [
+          "fundamental",
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "statistical_ml",
+        "lead_confidence": 71.7
+      },
+      "path": {
+        "mfe_pct": 2.4646,
+        "mae_pct": -2.83,
+        "ret_pct": -2.7206
+      },
+      "verdict": "Lost money: Realized PnL=-0.0012. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was a signal-driven sell (reduce risk). Held 381.5h.",
+      "verdict_tags": [
+        "loser",
+        "split_book",
+        "signal_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 30,
+          "label": "entry fill",
+          "detail": "buy qty=0.000881 @ 48.446"
+        },
+        {
+          "kind": "fill",
+          "id": 226,
+          "label": "exit fill",
+          "detail": "sell @ 47.128"
+        },
+        {
+          "kind": "ticket",
+          "id": 135,
+          "label": "entry ticket",
+          "detail": "BUY 0.098431 IRDM @~48.45; weighted_score=0.110; blended_conf=59.0; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 343,
+          "label": "exit ticket",
+          "detail": "SELL 0.000881 IRDM @~47.15; weighted_score=-0.071; reduce risk"
+        },
+        {
+          "kind": "signal",
+          "id": 3536,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=66.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3537,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=51.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3538,
+          "label": "statistical_ml @ entry",
+          "detail": "short @ conf=71.7"
+        },
+        {
+          "kind": "signal",
+          "id": 3539,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=59.9"
+        },
+        {
+          "kind": "signal",
+          "id": 3540,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.11; blended_conf=59.0"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.83; ret_pct=-2.7206"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "space"
+    },
+    {
+      "ticker": "IRDM",
+      "qty": 0.000824,
+      "entry": 48.446,
+      "exit": 47.326,
+      "pnl": -0.0009228799999999979,
+      "pnl_pct": -2.3119,
+      "opened_at": "2026-09-23T19:38:14.717351Z",
+      "closed_at": "2026-10-09T17:59:25.652636Z",
+      "hold_hours": 382.353,
+      "exit_reason": "signal_sell",
+      "exit_rationale": "SELL 0.000824 IRDM @~47.32; weighted_score=-0.078; reduce risk",
+      "entry_ticket_id": 135,
+      "exit_ticket_id": 344,
+      "entry_fill_id": 30,
+      "exit_fill_id": 227,
+      "entry_score": {
+        "weighted_score": 0.11,
+        "blended_conf": 59.0
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 66.7563162652685,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 > MA200 (intermediate uptrend); RSI constructive (56.4); MACD histogram positive; 20d RS vs SPY: +1.93%; RVOL 0.22x vs\u2026",
+          "signal_id": 3536,
+          "created_at": "2026-09-23T19:37:53.344312Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 51.8,
+          "reasoning_trunc": "Quality: Flat/low revenue growth (3.8%); Negative earnings growth (-55.0%); Healthy profit margin (10.5%); Strong operating margin (15.1%) | Valuation/EV: rich\u2026",
+          "signal_id": 3537,
+          "created_at": "2026-09-23T19:37:54.143452Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "short",
+          "confidence": 71.7,
+          "reasoning_trunc": "deeply overbought vs MA20 (z=2.41); residual_to_MA20=+2.9%; flat 20d momentum +2.8%; momentum dampened (extreme MA residual); cross-sectional mom rank mid (77%\u2026",
+          "signal_id": 3538,
+          "created_at": "2026-09-23T19:37:54.150529Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 59.93925000000001,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.50; avg source credibility 0.59; 'RKLB Stock Extends Rally Overnight: CEO Says Iridium Deal Will Forge A Self-Laun'\u2026",
+          "signal_id": 3539,
+          "created_at": "2026-09-23T19:37:54.399885Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (space); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (-3\u2026",
+          "signal_id": 3540,
+          "created_at": "2026-09-23T19:37:54.403508Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "sentiment"
+        ],
+        "short": [
+          "statistical_ml"
+        ],
+        "neutral": [
+          "fundamental",
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "statistical_ml",
+        "lead_confidence": 71.7
+      },
+      "path": {
+        "mfe_pct": 2.4646,
+        "mae_pct": -2.83,
+        "ret_pct": -2.3119
+      },
+      "verdict": "Lost money: Realized PnL=-0.0009. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was a signal-driven sell (reduce risk). Held 382.4h.",
+      "verdict_tags": [
+        "loser",
+        "split_book",
+        "signal_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 30,
+          "label": "entry fill",
+          "detail": "buy qty=0.000824 @ 48.446"
+        },
+        {
+          "kind": "fill",
+          "id": 227,
+          "label": "exit fill",
+          "detail": "sell @ 47.326"
+        },
+        {
+          "kind": "ticket",
+          "id": 135,
+          "label": "entry ticket",
+          "detail": "BUY 0.098431 IRDM @~48.45; weighted_score=0.110; blended_conf=59.0; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 344,
+          "label": "exit ticket",
+          "detail": "SELL 0.000824 IRDM @~47.32; weighted_score=-0.078; reduce risk"
+        },
+        {
+          "kind": "signal",
+          "id": 3536,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=66.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3537,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=51.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3538,
+          "label": "statistical_ml @ entry",
+          "detail": "short @ conf=71.7"
+        },
+        {
+          "kind": "signal",
+          "id": 3539,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=59.9"
+        },
+        {
+          "kind": "signal",
+          "id": 3540,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.11; blended_conf=59.0"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.83; ret_pct=-2.3119"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "space"
+    },
+    {
+      "ticker": "IRDM",
+      "qty": 0.000698,
+      "entry": 48.446,
+      "exit": 47.384,
+      "pnl": -0.0007412759999999984,
+      "pnl_pct": -2.1921,
+      "opened_at": "2026-09-23T19:38:14.717351Z",
+      "closed_at": "2026-10-09T18:58:49.486258Z",
+      "hold_hours": 383.343,
+      "exit_reason": "signal_sell",
+      "exit_rationale": "SELL 0.000698 IRDM @~47.42; weighted_score=-0.078; reduce risk",
+      "entry_ticket_id": 135,
+      "exit_ticket_id": 345,
+      "entry_fill_id": 30,
+      "exit_fill_id": 228,
+      "entry_score": {
+        "weighted_score": 0.11,
+        "blended_conf": 59.0
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 66.7563162652685,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 > MA200 (intermediate uptrend); RSI constructive (56.4); MACD histogram positive; 20d RS vs SPY: +1.93%; RVOL 0.22x vs\u2026",
+          "signal_id": 3536,
+          "created_at": "2026-09-23T19:37:53.344312Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 51.8,
+          "reasoning_trunc": "Quality: Flat/low revenue growth (3.8%); Negative earnings growth (-55.0%); Healthy profit margin (10.5%); Strong operating margin (15.1%) | Valuation/EV: rich\u2026",
+          "signal_id": 3537,
+          "created_at": "2026-09-23T19:37:54.143452Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "short",
+          "confidence": 71.7,
+          "reasoning_trunc": "deeply overbought vs MA20 (z=2.41); residual_to_MA20=+2.9%; flat 20d momentum +2.8%; momentum dampened (extreme MA residual); cross-sectional mom rank mid (77%\u2026",
+          "signal_id": 3538,
+          "created_at": "2026-09-23T19:37:54.150529Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 59.93925000000001,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.50; avg source credibility 0.59; 'RKLB Stock Extends Rally Overnight: CEO Says Iridium Deal Will Forge A Self-Laun'\u2026",
+          "signal_id": 3539,
+          "created_at": "2026-09-23T19:37:54.399885Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (space); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (-3\u2026",
+          "signal_id": 3540,
+          "created_at": "2026-09-23T19:37:54.403508Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "sentiment"
+        ],
+        "short": [
+          "statistical_ml"
+        ],
+        "neutral": [
+          "fundamental",
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "statistical_ml",
+        "lead_confidence": 71.7
+      },
+      "path": {
+        "mfe_pct": 2.4646,
+        "mae_pct": -2.83,
+        "ret_pct": -2.1921
+      },
+      "verdict": "Lost money: Realized PnL=-0.0007. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was a signal-driven sell (reduce risk). Held 383.3h.",
+      "verdict_tags": [
+        "loser",
+        "split_book",
+        "signal_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 30,
+          "label": "entry fill",
+          "detail": "buy qty=0.000698 @ 48.446"
+        },
+        {
+          "kind": "fill",
+          "id": 228,
+          "label": "exit fill",
+          "detail": "sell @ 47.384"
+        },
+        {
+          "kind": "ticket",
+          "id": 135,
+          "label": "entry ticket",
+          "detail": "BUY 0.098431 IRDM @~48.45; weighted_score=0.110; blended_conf=59.0; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 345,
+          "label": "exit ticket",
+          "detail": "SELL 0.000698 IRDM @~47.42; weighted_score=-0.078; reduce risk"
+        },
+        {
+          "kind": "signal",
+          "id": 3536,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=66.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3537,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=51.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3538,
+          "label": "statistical_ml @ entry",
+          "detail": "short @ conf=71.7"
+        },
+        {
+          "kind": "signal",
+          "id": 3539,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=59.9"
+        },
+        {
+          "kind": "signal",
+          "id": 3540,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.11; blended_conf=59.0"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.83; ret_pct=-2.1921"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "space"
+    },
+    {
+      "ticker": "IRDM",
+      "qty": 0.00059,
+      "entry": 48.446,
+      "exit": 47.436,
+      "pnl": -0.0005958999999999988,
+      "pnl_pct": -2.0848,
+      "opened_at": "2026-09-23T19:38:14.717351Z",
+      "closed_at": "2026-10-09T19:28:57.879794Z",
+      "hold_hours": 383.845,
+      "exit_reason": "signal_sell",
+      "exit_rationale": "SELL 0.00059 IRDM @~47.44; weighted_score=-0.078; reduce risk",
+      "entry_ticket_id": 135,
+      "exit_ticket_id": 346,
+      "entry_fill_id": 30,
+      "exit_fill_id": 229,
+      "entry_score": {
+        "weighted_score": 0.11,
+        "blended_conf": 59.0
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 66.7563162652685,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 > MA200 (intermediate uptrend); RSI constructive (56.4); MACD histogram positive; 20d RS vs SPY: +1.93%; RVOL 0.22x vs\u2026",
+          "signal_id": 3536,
+          "created_at": "2026-09-23T19:37:53.344312Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 51.8,
+          "reasoning_trunc": "Quality: Flat/low revenue growth (3.8%); Negative earnings growth (-55.0%); Healthy profit margin (10.5%); Strong operating margin (15.1%) | Valuation/EV: rich\u2026",
+          "signal_id": 3537,
+          "created_at": "2026-09-23T19:37:54.143452Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "short",
+          "confidence": 71.7,
+          "reasoning_trunc": "deeply overbought vs MA20 (z=2.41); residual_to_MA20=+2.9%; flat 20d momentum +2.8%; momentum dampened (extreme MA residual); cross-sectional mom rank mid (77%\u2026",
+          "signal_id": 3538,
+          "created_at": "2026-09-23T19:37:54.150529Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 59.93925000000001,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.50; avg source credibility 0.59; 'RKLB Stock Extends Rally Overnight: CEO Says Iridium Deal Will Forge A Self-Laun'\u2026",
+          "signal_id": 3539,
+          "created_at": "2026-09-23T19:37:54.399885Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (space); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (-3\u2026",
+          "signal_id": 3540,
+          "created_at": "2026-09-23T19:37:54.403508Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "sentiment"
+        ],
+        "short": [
+          "statistical_ml"
+        ],
+        "neutral": [
+          "fundamental",
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "statistical_ml",
+        "lead_confidence": 71.7
+      },
+      "path": {
+        "mfe_pct": 2.4646,
+        "mae_pct": -2.83,
+        "ret_pct": -2.0848
+      },
+      "verdict": "Lost money: Realized PnL=-0.0006. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was a signal-driven sell (reduce risk). Held 383.8h.",
+      "verdict_tags": [
+        "loser",
+        "split_book",
+        "signal_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 30,
+          "label": "entry fill",
+          "detail": "buy qty=0.00059 @ 48.446"
+        },
+        {
+          "kind": "fill",
+          "id": 229,
+          "label": "exit fill",
+          "detail": "sell @ 47.436"
+        },
+        {
+          "kind": "ticket",
+          "id": 135,
+          "label": "entry ticket",
+          "detail": "BUY 0.098431 IRDM @~48.45; weighted_score=0.110; blended_conf=59.0; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 346,
+          "label": "exit ticket",
+          "detail": "SELL 0.00059 IRDM @~47.44; weighted_score=-0.078; reduce risk"
+        },
+        {
+          "kind": "signal",
+          "id": 3536,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=66.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3537,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=51.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3538,
+          "label": "statistical_ml @ entry",
+          "detail": "short @ conf=71.7"
+        },
+        {
+          "kind": "signal",
+          "id": 3539,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=59.9"
+        },
+        {
+          "kind": "signal",
+          "id": 3540,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.11; blended_conf=59.0"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.83; ret_pct=-2.0848"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "space"
+    },
+    {
+      "ticker": "IRDM",
+      "qty": 0.0005,
+      "entry": 48.446,
+      "exit": 47.522,
+      "pnl": -0.00046199999999999974,
+      "pnl_pct": -1.9073,
+      "opened_at": "2026-09-23T19:38:14.717351Z",
+      "closed_at": "2026-10-09T19:58:56.616731Z",
+      "hold_hours": 384.345,
+      "exit_reason": "signal_sell",
+      "exit_rationale": "SELL 0.0005 IRDM @~47.53; weighted_score=-0.078; reduce risk",
+      "entry_ticket_id": 135,
+      "exit_ticket_id": 347,
+      "entry_fill_id": 30,
+      "exit_fill_id": 230,
+      "entry_score": {
+        "weighted_score": 0.11,
+        "blended_conf": 59.0
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 66.7563162652685,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 > MA200 (intermediate uptrend); RSI constructive (56.4); MACD histogram positive; 20d RS vs SPY: +1.93%; RVOL 0.22x vs\u2026",
+          "signal_id": 3536,
+          "created_at": "2026-09-23T19:37:53.344312Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "neutral",
+          "confidence": 51.8,
+          "reasoning_trunc": "Quality: Flat/low revenue growth (3.8%); Negative earnings growth (-55.0%); Healthy profit margin (10.5%); Strong operating margin (15.1%) | Valuation/EV: rich\u2026",
+          "signal_id": 3537,
+          "created_at": "2026-09-23T19:37:54.143452Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "short",
+          "confidence": 71.7,
+          "reasoning_trunc": "deeply overbought vs MA20 (z=2.41); residual_to_MA20=+2.9%; flat 20d momentum +2.8%; momentum dampened (extreme MA residual); cross-sectional mom rank mid (77%\u2026",
+          "signal_id": 3538,
+          "created_at": "2026-09-23T19:37:54.150529Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "long",
+          "confidence": 59.93925000000001,
+          "reasoning_trunc": "Scored 10 headline(s); weighted polarity +0.50; avg source credibility 0.59; 'RKLB Stock Extends Rally Overnight: CEO Says Iridium Deal Will Forge A Self-Laun'\u2026",
+          "signal_id": 3539,
+          "created_at": "2026-09-23T19:37:54.399885Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (space); VIX contained (15.1); Dollar firm (+2.4% 20d) \u2014 risk headwind; Rates headwind (-3\u2026",
+          "signal_id": 3540,
+          "created_at": "2026-09-23T19:37:54.403508Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "sentiment"
+        ],
+        "short": [
+          "statistical_ml"
+        ],
+        "neutral": [
+          "fundamental",
+          "macro"
+        ],
+        "disagreement": true,
+        "lead_agent": "statistical_ml",
+        "lead_confidence": 71.7
+      },
+      "path": {
+        "mfe_pct": 2.4646,
+        "mae_pct": -2.83,
+        "ret_pct": -1.9073
+      },
+      "verdict": "Lost money: Realized PnL=-0.0005. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was a signal-driven sell (reduce risk). Held 384.3h.",
+      "verdict_tags": [
+        "loser",
+        "split_book",
+        "signal_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 30,
+          "label": "entry fill",
+          "detail": "buy qty=0.0005 @ 48.446"
+        },
+        {
+          "kind": "fill",
+          "id": 230,
+          "label": "exit fill",
+          "detail": "sell @ 47.522"
+        },
+        {
+          "kind": "ticket",
+          "id": 135,
+          "label": "entry ticket",
+          "detail": "BUY 0.098431 IRDM @~48.45; weighted_score=0.110; blended_conf=59.0; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 347,
+          "label": "exit ticket",
+          "detail": "SELL 0.0005 IRDM @~47.53; weighted_score=-0.078; reduce risk"
+        },
+        {
+          "kind": "signal",
+          "id": 3536,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=66.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3537,
+          "label": "fundamental @ entry",
+          "detail": "neutral @ conf=51.8"
+        },
+        {
+          "kind": "signal",
+          "id": 3538,
+          "label": "statistical_ml @ entry",
+          "detail": "short @ conf=71.7"
+        },
+        {
+          "kind": "signal",
+          "id": 3539,
+          "label": "sentiment @ entry",
+          "detail": "long @ conf=59.9"
+        },
+        {
+          "kind": "signal",
+          "id": 3540,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.11; blended_conf=59.0"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.83; ret_pct=-1.9073"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "space"
     }
   ]
 }
