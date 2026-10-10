@@ -107,8 +107,8 @@ Routines run while the user is away. Each routine belongs to one bot, and the bo
 
 - They work in a local git checkout on the shared computer.
 - **Two GitHub identities:**
-  - **ZuskiVibeCode** (Sabastian's account) is the shared default `gh` login on the computer, over https. Only Orbit Control uses it: to approve and merge PRs, and for the `docs/data/**` routine pushes.
-  - **A dedicated bot GitHub account** is used by every coding bot to push branches and open PRs. It's a collaborator on the repo with **write access only, never admin**. Its token is a fine-grained token scoped to this repo, stored in its own environment variable (for example `BOT_GH_TOKEN`), and passed as `GH_TOKEN` only in that bot's own commands (for example `GH_TOKEN="$BOT_GH_TOKEN" gh pr create ...`). Coding bots never use the default ZuskiVibeCode login.
+  - **ZuskiVibeCode** (Sabastian's account) is the shared default `gh` login on the computer, over https. Only Orbit Control uses it: to merge PRs (with the admin bypass), and for the `docs/data/**` routine pushes.
+  - **A dedicated bot GitHub account** is used by every coding bot to push branches and open PRs. It's a collaborator on the repo with **write access only, never admin**. Its token is a classic token with `repo` scope, stored in its own environment variable `BOT_GH_TOKEN`, and passed as `GH_TOKEN` only in that bot's own commands (for example `GH_TOKEN="$BOT_GH_TOKEN" gh pr create ...`). Coding bots never use the default ZuskiVibeCode login.
 - Several bots may share the one bot account, so each PR names its author bot in the branch prefix and the PR body (section 10).
 - They edit code, run tests (`pytest`), commit, and push to their own branch. They never push to main.
 - Vercel deploys go through the REST API with `VERCEL_TOKEN` (set as an environment variable and never committed). Before deploying, `/workspace/orbit-full-deploy` is refreshed from `docs/`, and then the files are uploaded to the v13 deployments endpoint. The Vercel connector is barely usable (team-scoped calls return 403).
@@ -118,7 +118,7 @@ Routines run while the user is away. Each routine belongs to one bot, and the bo
 - The local checkout is at `/workspace/quant-trading-system`.
 - The dashboard is the Vercel project `orbit-quant-ledger` (team sabby5), deployed at orbit-quant-ledger.vercel.app as a static site built from `docs/`.
 - Orbit Control runs three routines: a morning digest, an afternoon digest, and an hourly cycle on weekdays at :45 past the hour, from 9:45 AM to 3:45 PM ET. These run the paper-trading cycle, commit only `docs/data/**`, push straight to main, and redeploy.
-- There's no CI yet. The repo has no `.github/workflows`.
+- CI: `.github/workflows/ci.yml` (added in #13) runs the `pytest` job on Python 3.13 with `QUANT_LAB_DATA_CEILING=2021-12-31`, on every PR to main and on pushes to main except `docs/data/**`-only ones.
 - Guardrails: paper trading only, `.env` is never committed, and any change to risk policy needs Sabastian's approval.
 
 ### Prerequisites (Sabastian only)
@@ -143,14 +143,15 @@ Rules:
 7. **Clear ownership.** Orbit Control assigns tasks and file areas so two bots aren't editing the same files at the same time.
 8. **Exception for data routines.** Orbit Control's routines keep pushing `docs/data/**` straight to main as ZuskiVibeCode, which is on the bypass list. All code changes go through PRs.
 9. **Risk policy is protected.** Any PR that changes risk policy needs Sabastian's explicit approval before merge, not just Orbit Control's.
-10. **Authors never merge.** Only Orbit Control approves and merges, as ZuskiVibeCode. Coding bots open PRs as the bot account, which can't approve its own PRs, so GitHub enforces this.
+10. **Authors never merge.** Only Orbit Control merges, as ZuskiVibeCode with the admin bypass. Coding bots push as the bot account, which is not on the bypass list, and their PRs only become mergeable with an approval from ZuskiVibeCode. Orbit Control merges with the bypass instead of approving, so a bot can never merge its own PR.
 
 ### Branch protection on main (ON)
 - Require a pull request before merging.
 - Require **1 approving review**.
-- Require the **pytest status check** to pass, once CI exists, with branches up to date before merging.
+- Require the **pytest** status check to pass. Branches don't have to be up to date with main to merge (rule 3 still asks authors to sync).
+- Dismiss stale approvals when new commits are pushed.
 - **Bypass list: ZuskiVibeCode only**, so the `docs/data/**` routines can keep pushing directly. The bot account is **not** on the bypass list.
-- Orbit Control approves and merges as ZuskiVibeCode. Coding bots, using the bot account, can't push to main or merge without that approval.
+- Orbit Control merges as ZuskiVibeCode with the admin bypass rather than approving. The bypass also skips the required checks, so before merging Orbit Control confirms that `pytest` passed on the PR and that the rules above are met. Coding bots, using the bot account, can't push to main or merge.
 
 Be aware that the bypass applies to anything pushed as ZuskiVibeCode, not just `docs/data/**`, since GitHub can't scope protection by path. That's why coding bots must never use the default `gh` login.
 
@@ -229,7 +230,7 @@ Also include an **Orbit Control changes** section. Orbit Control already exists,
 - Add the PR review routine: a weekday scheduled poll at an odd minute (for example :17) using `gh pr list --state open`.
 - Keep its data routines as they are, pushing `docs/data/**` directly.
 - Add the pytest GitHub Actions workflow through a self-merged PR, once Sabastian adds the `workflow` scope.
-- Approve and merge PRs as ZuskiVibeCode once branch protection is on (see section 10).
+- Merge PRs as ZuskiVibeCode with the admin bypass, after confirming `pytest` passed on the PR (see section 10).
 - Assign work and file areas to coding bots.
 
 ### Hard rules for the spec writer

@@ -347,7 +347,7 @@ smith opens a PR, skeptic attacks it, and Orbit Control merges it.
   one_job: Attack every open nomination and new-indicator PR, and post a verdict comment before Orbit Control merges it.
   anti_jobs:
     - never writes specs, indicators or fixes; points out problems and leaves the fix to the author
-    - never approves or merges PRs (only Orbit Control does), never pushes to main, never uses the ZuskiVibeCode login
+    - never approves or merges PRs (only Orbit Control merges), never pushes to main, never uses the ZuskiVibeCode login
     - never runs lab validate or lab holdout, never sets QUANT_LAB_UNLOCK or QUANT_LAB_DATA_CEILING, never looks at prices after 2021-12-31
     - never edits quant_system/, config/ or docs/data/; never changes risk policy
   voice: dry prosecutor; evidence only, no adjectives
@@ -400,7 +400,7 @@ smith opens a PR, skeptic attacks it, and Orbit Control merges it.
       math.
     - Verdict: one comment per new commit, starting "Skeptic: no objection" or
       "Skeptic: objection", then the evidence (numbers, file:line). Post it with
-      GH_TOKEN="$BOT_GH_TOKEN" gh pr comment. You can't approve; that is Orbit Control's.
+      GH_TOKEN="$BOT_GH_TOKEN" gh pr comment. You can't approve or merge; only Orbit Control merges.
     - Suspect a bug in the lab itself (engine, costs, metrics, windows)? Message Orbit
       Control with the evidence. Don't fix it.
 
@@ -449,15 +449,17 @@ routines and instructions:
 
 ## Before any bot starts
 
-Prerequisites from guide section 9 (Sabastian only). Orbit Control, confirm
-the state of each one:
+Prerequisites from guide section 9 (Sabastian only). All four were done by
+Oct 10, 2026: the bot account is `orbit-control-grok-bot`, CI merged in #13,
+and Orbit Control merges with the ZuskiVibeCode admin bypass rather than
+approving.
 
 1. Bot GitHub account created and invited to the repo with write access (not admin).
-2. Its fine-grained token saved as `BOT_GH_TOKEN` through a secure prompt.
+2. Its token (classic, `repo` scope) saved as `BOT_GH_TOKEN` through a secure prompt.
 3. `gh auth refresh -s workflow` on ZuskiVibeCode, then the pytest workflow PR.
 4. Branch protection on main, with ZuskiVibeCode on the bypass list only.
 
-Then: PRs #9 and #11 merged, this spec reviewed, and Sabastian's go.
+Then: PRs #9 and #11 merged (both done), this spec reviewed, and Sabastian's go.
 
 ## Decided (Sabastian, Oct 6, 2026)
 
