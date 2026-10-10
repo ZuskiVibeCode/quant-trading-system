@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-10-09T19:59:07.500578Z",
+  "exported_at": "2026-10-10T19:35:19.081056Z",
   "count": 179,
   "reviews": [
     {
@@ -27295,7 +27295,7 @@
       },
       "path": {
         "mfe_pct": 2.4646,
-        "mae_pct": -2.83,
+        "mae_pct": -2.8196,
         "ret_pct": -2.2912
       },
       "verdict": "Lost money: Realized PnL=-0.0017. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was a signal-driven sell (reduce risk). Held 379.6h.",
@@ -27370,7 +27370,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.83; ret_pct=-2.2912"
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.8196; ret_pct=-2.2912"
         }
       ],
       "mode": "alpaca",
@@ -27618,7 +27618,7 @@
       },
       "path": {
         "mfe_pct": 2.4646,
-        "mae_pct": -2.83,
+        "mae_pct": -2.8196,
         "ret_pct": -2.2912
       },
       "verdict": "Lost money: Realized PnL=-0.0015. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was a signal-driven sell (reduce risk). Held 379.7h.",
@@ -27693,7 +27693,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.83; ret_pct=-2.2912"
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.8196; ret_pct=-2.2912"
         }
       ],
       "mode": "alpaca",
@@ -27779,7 +27779,7 @@
       },
       "path": {
         "mfe_pct": 2.4646,
-        "mae_pct": -2.83,
+        "mae_pct": -2.8196,
         "ret_pct": -2.8403
       },
       "verdict": "Lost money: Realized PnL=-0.0014. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was a signal-driven sell (reduce risk). Held 380.5h.",
@@ -27854,7 +27854,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.83; ret_pct=-2.8403"
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.8196; ret_pct=-2.8403"
         }
       ],
       "mode": "alpaca",
@@ -28102,7 +28102,7 @@
       },
       "path": {
         "mfe_pct": 2.4646,
-        "mae_pct": -2.83,
+        "mae_pct": -2.8196,
         "ret_pct": -2.7206
       },
       "verdict": "Lost money: Realized PnL=-0.0012. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was a signal-driven sell (reduce risk). Held 381.5h.",
@@ -28177,7 +28177,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.83; ret_pct=-2.7206"
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.8196; ret_pct=-2.7206"
         }
       ],
       "mode": "alpaca",
@@ -28263,7 +28263,7 @@
       },
       "path": {
         "mfe_pct": 2.4646,
-        "mae_pct": -2.83,
+        "mae_pct": -2.8196,
         "ret_pct": -2.3119
       },
       "verdict": "Lost money: Realized PnL=-0.0009. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was a signal-driven sell (reduce risk). Held 382.4h.",
@@ -28338,7 +28338,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.83; ret_pct=-2.3119"
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.8196; ret_pct=-2.3119"
         }
       ],
       "mode": "alpaca",
@@ -28424,7 +28424,7 @@
       },
       "path": {
         "mfe_pct": 2.4646,
-        "mae_pct": -2.83,
+        "mae_pct": -2.8196,
         "ret_pct": -2.1921
       },
       "verdict": "Lost money: Realized PnL=-0.0007. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was a signal-driven sell (reduce risk). Held 383.3h.",
@@ -28499,7 +28499,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.83; ret_pct=-2.1921"
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.8196; ret_pct=-2.1921"
         }
       ],
       "mode": "alpaca",
@@ -28585,7 +28585,7 @@
       },
       "path": {
         "mfe_pct": 2.4646,
-        "mae_pct": -2.83,
+        "mae_pct": -2.8196,
         "ret_pct": -2.0848
       },
       "verdict": "Lost money: Realized PnL=-0.0006. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was a signal-driven sell (reduce risk). Held 383.8h.",
@@ -28660,7 +28660,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.83; ret_pct=-2.0848"
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.8196; ret_pct=-2.0848"
         }
       ],
       "mode": "alpaca",
@@ -28746,7 +28746,7 @@
       },
       "path": {
         "mfe_pct": 2.4646,
-        "mae_pct": -2.83,
+        "mae_pct": -2.8196,
         "ret_pct": -1.9073
       },
       "verdict": "Lost money: Realized PnL=-0.0005. Entered with a split book: long=[momentum, sentiment] vs short=[statistical_ml] (see statistical_ml signal #3538 short @ conf=71.7). Entry weighted_score=0.11. Exit was a signal-driven sell (reduce risk). Held 384.3h.",
@@ -28821,7 +28821,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.83; ret_pct=-1.9073"
+          "detail": "source=daily_bars; mfe_pct=2.4646; mae_pct=-2.8196; ret_pct=-1.9073"
         }
       ],
       "mode": "alpaca",
