@@ -92,3 +92,36 @@ def test_slim_latest_preserves_trade_reviews_and_closed_review():
     assert out["ticker_pnl"][0]["review_count"] == 1
     # reasoning truncated in slim agents
     assert len(out["trade_reviews"][0]["agents_at_entry"][0]["reasoning_trunc"]) <= 141
+
+
+def test_slim_latest_keeps_why_bought_and_trims_text():
+    from scripts.build_orbit_slim_deploy import slim_latest
+
+    fills = [{"fill_id": 1, "at": "2026-10-06T14:01:00Z", "qty": 0.06, "price": 230.0, "mode": "alpaca"}]
+    wb = {
+        "opened_at": "2026-10-06T14:01:00Z",
+        "buy_count": 1,
+        "omitted": 0,
+        "buys": [
+            {
+                "ticket_id": 101,
+                "created_at": "2026-10-06T14:00:00Z",
+                "rationale": "r" * 600,
+                "score": {"weighted_score": 0.65},
+                "signals": [
+                    {"agent_id": "momentum", "direction": "long", "confidence": 78.0,
+                     "signal_id": 7, "created_at": "2026-10-06T13:55:00Z", "reasoning_trunc": "x" * 300},
+                ],
+                "fills": fills,
+            }
+        ],
+    }
+    out = slim_latest({"sectors": {}, "holdings": [{"ticker": "NVDA", "qty": 0.06, "why_bought": wb}]})
+    slim = out["holdings"][0]["why_bought"]
+    assert slim["buy_count"] == 1 and slim["opened_at"] == wb["opened_at"]
+    (buy,) = slim["buys"]
+    assert buy["ticket_id"] == 101 and buy["fills"] == fills and buy["score"] == {"weighted_score": 0.65}
+    assert len(buy["rationale"]) <= 400
+    sig = buy["signals"][0]
+    assert (sig["agent_id"], sig["direction"], sig["confidence"]) == ("momentum", "long", 78.0)
+    assert len(sig["reasoning_trunc"]) <= 140

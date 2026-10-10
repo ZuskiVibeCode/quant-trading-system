@@ -14,7 +14,7 @@ Optional: `--no-alpaca`, `--no-history`, `--docs PATH`.
 |-----|------|-------|
 | `meta` | object | `exported_at`, `account`, `starting_equity`, `paper` (always `true`), `day_start_utc` (ET local midnight as UTC ISO), `day_timezone` (`America/New_York`), `day_local` (YYYY-MM-DD), `day_label` (`ET day`) |
 | `snapshot` | object | `equity`, `cash`, `peak_equity`, `daily_pnl`, `unrealized` (sum of available holding dollar marks, or `null`), `drawdown`, `halted`, `day_halted`, `halt_reason` |
-| `holdings` | array | `{ticker, qty, avg_cost, last?, sector, unrealized?, updated_at?}` |
+| `holdings` | array | `{ticker, qty, avg_cost, last?, sector, unrealized?, updated_at?, why_bought?}` — `why_bought` is additive, see below |
 | `closed` | array | From sell fills when trackable; may be `[]` |
 | `equity_curve` | array | `{t, equity, cash, daily_pnl, drawdown, peak_equity}` from `portfolio_snapshots` |
 | `agents_today` | object | Per `agent_id`: `{agent_id, count, long, short, neutral, signals[]}` |
@@ -37,6 +37,26 @@ Optional: `--no-alpaca`, `--no-history`, `--docs PATH`.
 `{ticker, direction, confidence, reasoning, supporting_data, created_at, signal_id}`
 
 `supporting_data` is a **summary** (selected scalar keys), not the full research blob.
+
+### `holdings[].why_bought` (additive)
+
+The buy tickets behind the current open lot, or `null` when no buy fills are on
+record for the position.
+
+```
+{opened_at, buy_count, omitted,
+ buys: [{ticket_id, created_at, rationale, score?: {weighted_score?, blended_conf?},
+         signals: [{agent_id, direction, confidence, reasoning_trunc, signal_id, created_at}],
+         fills: [{fill_id, at, qty, price, mode}]}]}
+```
+
+- The lot opens on the first buy from flat and resets when a sell flattens it.
+- `buys` are chronological and grouped by ticket. Over 10 tickets, the opening
+  buy and the 9 most recent are kept, and `omitted` counts the rest.
+- `signals` (one per desk) come only from the ticket's own `signal_ids`.
+  Backfilled buys (`mode` `alpaca_backfill`) have none.
+- `rationale` is the portfolio manager's ticket text. `score` is parsed from it
+  when present.
 
 
 ### `zones` (additive)
