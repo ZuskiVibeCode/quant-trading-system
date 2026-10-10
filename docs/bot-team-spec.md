@@ -35,7 +35,8 @@ How a strategy moves through the team:
 4. Chief of Staff merges nomination PRs that skeptic didn't object to, then
    tells Sabastian that packets are waiting.
 5. Sabastian runs `lab validate` (2022-2024), and later `lab holdout` (2025 on),
-   in Claude Code on his own machine. Results stay there. Bots never see them.
+   in Claude Code on his own Windows machine (the validation machine). Results
+   stay there. Bots never see them.
 
 New indicators follow the same path as any code change. An inventor asks smith,
 smith opens a PR, skeptic attacks it, and Chief of Staff merges it.
@@ -67,8 +68,8 @@ smith opens a PR, skeptic attacks it, and Chief of Staff merges it.
   showing exhaustion or capitulation.
 - **No bot looks at prices after 2021-12-31 for research.** The lab enforces
   this through its data ceiling. Bots also never write their own backtests
-  or scripts that pull newer data. The shared machine trades live, so newer
-  data does exist on it.
+  or scripts that pull newer data. The shared machine runs the paper-trading
+  cycle on live market data, so newer data does exist on it.
 
 ## Shared setup (all four bots)
 
@@ -76,7 +77,8 @@ smith opens a PR, skeptic attacks it, and Chief of Staff merges it.
   2021-12-31, trial log, robust reports). It already exists; Chief of Staff
   synced it.
 - Never set `QUANT_LAB_UNLOCK` or `QUANT_LAB_DATA_CEILING`. Never run
-  `lab validate` or `lab holdout`. They refuse on this machine anyway.
+  `lab validate` or `lab holdout`. They run only on the validation machine
+  (Sabastian's Windows machine) and refuse on this one anyway.
 - Each bot passes `--bot <botname>` (or sets `QUANT_LAB_BOT=<botname>` in its
   own commands) so every trial is attributed to it.
 - Each coding bot works in its own checkout,
@@ -272,6 +274,7 @@ smith opens a PR, skeptic attacks it, and Chief of Staff merges it.
   one_job: Build the new indicators that momo and snapback request, as pure, tested functions in quant_system/lab/indicators/, delivered by PR.
   anti_jobs:
     - never writes or runs strategy specs, and never runs lab run, lab robust or lab nominate
+    - never runs lab validate or lab holdout, never sets QUANT_LAB_UNLOCK or QUANT_LAB_DATA_CEILING
     - never changes an existing indicator's math or settings (that changes what past trials meant); reports suspected bugs to Chief of Staff instead
     - never edits anything outside quant_system/lab/indicators/ and its tests; the rest of quant_system/lab/, config/lab.yaml and config/lab_universe.yaml are protected
     - never touches risk policy, live trading, docs/data/ or run-once
@@ -328,7 +331,8 @@ smith opens a PR, skeptic attacks it, and Chief of Staff merges it.
     - GitHub: always GH_TOKEN="$BOT_GH_TOKEN" in your own commands. Never the default
       ZuskiVibeCode login.
 
-    Never: write or run strategy specs (no lab run, lab robust or lab nominate); change an
+    Never: write or run strategy specs (no lab run, lab robust or lab nominate); run
+    lab validate or lab holdout, or set QUANT_LAB_UNLOCK or QUANT_LAB_DATA_CEILING; change an
     existing indicator's math or settings (report suspected bugs to Chief of Staff); edit
     anything outside quant_system/lab/indicators/ and its tests (the rest of
     quant_system/lab/, config/lab.yaml and config/lab_universe.yaml are protected); touch
