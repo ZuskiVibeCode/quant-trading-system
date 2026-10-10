@@ -124,7 +124,7 @@ Routines run while the user is away. Each routine belongs to one bot, and the bo
 ### Prerequisites (Sabastian only)
 1. **Create the bot GitHub account** and invite it to `ZuskiVibeCode/quant-trading-system` as a collaborator with **write** access (not admin).
 2. **Create a fine-grained token** on the bot account, scoped to this repo only, and save it through a secure prompt as `BOT_GH_TOKEN`. Never paste it into chat or commit it.
-3. **Add the `workflow` scope to ZuskiVibeCode.** The default `gh` login only has `repo` scope, and GitHub rejects pushes that change `.github/workflows/*` without `workflow`. Sabastian runs `gh auth refresh -s workflow` and finishes the browser or device-code step. Orbit Control then adds the pytest GitHub Actions workflow through a PR it merges itself, so the new process gets tested on its own first change.
+3. **Add the `workflow` scope to ZuskiVibeCode.** GitHub rejects pushes that change `.github/workflows/*` without `workflow`. Done: the default `gh` login now has both `repo` and `workflow`, and Orbit Control added the pytest GitHub Actions workflow in #13 through a PR it merged itself.
 4. **Turn on branch protection** for main as described in section 10, with ZuskiVibeCode on the bypass list.
 
 ---
