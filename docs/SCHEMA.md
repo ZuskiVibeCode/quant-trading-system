@@ -13,7 +13,7 @@ Optional: `--no-alpaca`, `--no-history`, `--docs PATH`.
 | Key | Type | Notes |
 |-----|------|-------|
 | `meta` | object | `exported_at`, `account`, `starting_equity`, `paper` (always `true`), `day_start_utc` (ET local midnight as UTC ISO), `day_timezone` (`America/New_York`), `day_local` (YYYY-MM-DD), `day_label` (`ET day`), `research_day_local`, `research_fallback` — see Research day below |
-| `snapshot` | object | `equity`, `cash`, `peak_equity`, `daily_pnl`, `unrealized` (sum of available holding dollar marks, or `null`), `drawdown`, `halted`, `day_halted`, `halt_reason` |
+| `snapshot` | object | `equity`, `cash`, `peak_equity`, `daily_pnl` (vs the prior ET-day close), `unrealized` (sum of available holding dollar marks, or `null`), `drawdown`, `halted`, `day_halted`, `halt_reason` |
 | `holdings` | array | `{ticker, qty, avg_cost, last?, sector, unrealized?, updated_at?, why_bought?}` — `why_bought` is additive, see below. Dust positions (`qty × avg_cost` under $0.01) are left out |
 | `closed` | array | From sell fills when trackable; may be `[]` |
 | `equity_curve` | array | `{t, equity, cash, daily_pnl, drawdown, peak_equity}` from `portfolio_snapshots` |
@@ -21,8 +21,8 @@ Optional: `--no-alpaca`, `--no-history`, `--docs PATH`.
 | `decisions_today` | object | `tickets`, `holds`, `fills`, `order_submitted`, `failed`, `counts` |
 | `auditor_flags_today` | array | Flags with `created_at` on the current ET calendar day |
 | `mission_log` | array | Timeline `{id, at, type, actor, ticker, summary}` |
-| `watchlist` | array | Universe tickers not held + top agent signal |
-| `sectors` | object | Theme → ticker list from `config/universe.yaml` |
+| `watchlist` | array | Live active tickers (after rotation) not held + top agent signal |
+| `sectors` | object | Theme → live active ticker list (rotation state; seeded from `config/universe.yaml`) |
 | `alpaca_snapshot` | object? | Optional public cash/equity/positions only — **never secrets** |
 | `rotation` | object? | **Additive.** `{active: theme→tickers, cold: [...], settings}` from cold/active researcher |
 | `zones` | object? | **Additive.** Today's buy/sell pressure map — see below |

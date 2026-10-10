@@ -69,6 +69,8 @@ def run_once(
     cfg = config or load_config()
     md = market_data or build_market_data(mock=mock)
     tr = tracker or Tracker()
+    # First cycle after ET midnight: daily P&L restarts from the prior close, day halt lifts.
+    tr.roll_trading_day()
 
     # Explicit tickers override rotation; otherwise research active (+ checkup-due cold).
     if tickers is not None:
