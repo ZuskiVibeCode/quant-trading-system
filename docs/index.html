@@ -3,187 +3,186 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Quant Mission Ledger — Paper</title>
+  <title>Mission Ledger — Paper</title>
   <meta name="description" content="Paper-only multi-agent quant tracker for quantum, space, and robotics themes." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
-<body class="starfield">
-  <div class="circuit-grid" aria-hidden="true"></div>
-
-  <header class="hero" id="top">
-    <img class="hero-art" id="heroArt" src="./art/observatory.jpg" alt="" />
-    <div class="hero-wash"></div>
-    <div class="hero-inner">
-      <div class="hero-brand"><svg class="orbit-mark" width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
-  <circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.35"/>
-  <circle cx="20" cy="20" r="11" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.55"/>
-  <circle cx="20" cy="20" r="3.2" fill="currentColor"/>
-  <ellipse cx="20" cy="20" rx="18" ry="7" fill="none" stroke="currentColor" stroke-width="1" opacity="0.45" transform="rotate(-28 20 20)"/>
-</svg>
-<p class="kicker">Mission ledger · paper only</p></div>
-      <h1>Quantum · Space · Robotics</h1>
-      <p class="subtitle">
-        Multi-agent research book for a $100 paper account. Snapshot, holdings, agent work,
-        and watchlist — exported from Tracker SQLite.
-      </p>
-      <div class="badge-row" id="heroBadges"></div>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#today">
+        <svg class="orbit-mark" width="28" height="28" viewBox="0 0 40 40" aria-hidden="true">
+          <circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="1.4" opacity="0.4"/>
+          <circle cx="20" cy="20" r="11" fill="none" stroke="currentColor" stroke-width="1.4" opacity="0.6"/>
+          <circle cx="20" cy="20" r="3.4" fill="currentColor"/>
+          <ellipse cx="20" cy="20" rx="18" ry="7" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.5" transform="rotate(-28 20 20)"/>
+        </svg>
+        <span class="brand-name">Mission Ledger</span>
+        <span class="pill accent" id="modePill">Paper</span>
+      </a>
+      <nav class="nav" id="nav" aria-label="Sections">
+        <a href="#today">Today</a>
+        <a href="#book">Book</a>
+        <a href="#research">Research</a>
+        <a href="#watch">Watchlist</a>
+        <a href="#log">Log</a>
+      </nav>
+      <div class="freshness" id="exportedAt">Loading…</div>
     </div>
   </header>
 
-  <div class="wrap">
-    <div class="topbar">
-      <nav class="nav" id="nav">
-        <a href="#snapshot">Snapshot</a>
-        <a href="#sectors">Sectors</a>
-        <a href="#holdings">Open</a>
-        <a href="#zones">Zones</a>
-        <a href="#closed">Closed</a>
-        <a href="#lifetime">Lifetime</a>
-        <a href="#agents">Agents</a>
-        <a href="#research">Research</a>
-        <a href="#watch">Watchlist</a>
-        <a href="#mission">Mission log</a>
-      </nav>
-      <div class="meta-line" id="exportedAt">Loading…</div>
-    </div>
-
-    <div class="filters" id="filters" role="group" aria-label="Sector filter"></div>
+  <main class="wrap">
     <div id="loadError" class="error-banner" hidden></div>
 
-    <section id="snapshot">
-      <div class="section-head">
-        <div>
-          <p class="kicker">01 · Snapshot</p>
-          <h2>Current totals</h2>
-        </div>
-        <p class="hint">Equity, cash, unrealized PnL, daily PnL, and drawdown from the latest Tracker / Alpaca reconcile.</p>
+    <!-- Today: the answer first -->
+    <section id="today" class="today">
+      <div class="today-copy">
+        <p class="eyebrow" id="equityEyebrow">Equity · paper account</p>
+        <p class="big-number" id="equityBig">—</p>
+        <div class="chip-row" id="equityChips"></div>
+        <p class="summary" id="daySummary"></p>
+        <p class="footnote" id="dayBasis"></p>
       </div>
-      <div class="grid-stats" id="statGrid"></div>
-      <div class="panel chart-wrap">
-        <p class="kicker">Equity curve</p>
-        <div id="equityChart"></div>
-      </div>
-      <div id="sectors">
-        <div class="section-head">
-          <div>
-            <p class="kicker">01b · Sectors</p>
-            <h2>Theme comparison</h2>
-          </div>
-          <p class="hint">Pressure, relative tape (eq-wt 1d/5d/20d), breadth, and book weight per theme. Click a card to filter Zones, watchlist, and agents — click again or All to clear.</p>
-        </div>
-        <div class="sector-board" id="sectorBoard"></div>
-      </div>
+      <figure class="card chart-card">
+        <figcaption class="card-head">
+          <span class="card-title" id="curveTitle">Equity</span>
+          <span class="legend">
+            <span class="legend-item"><span class="swatch-line" aria-hidden="true"></span>Equity</span>
+            <span class="legend-item"><span class="swatch-dash" aria-hidden="true"></span><span id="startLegend">Start</span></span>
+          </span>
+        </figcaption>
+        <div class="curve" id="equityChart"></div>
+      </figure>
     </section>
 
-    <section id="holdings">
-      <div class="section-head">
-        <div>
-          <p class="kicker">02 · Holdings</p>
+    <section class="stat-strip" id="statStrip" aria-label="Account"></section>
+
+    <!-- Book -->
+    <section id="book" class="split">
+      <div class="card grow">
+        <div class="card-head">
           <h2>Open book</h2>
+          <span class="hint">Sorted by weight · click a ticker for detail</span>
         </div>
-        <p class="hint">Positions with sector tags. Click a row for marks, fills, and latest research.</p>
+        <div class="table-scroll" id="holdingsTable"></div>
+        <button type="button" class="btn" id="smallToggle" hidden></button>
       </div>
-      <div class="panel table-scroll" id="holdingsTable"></div>
+      <div class="card side">
+        <div class="card-head">
+          <h2>Themes</h2>
+          <span class="hint">Click a theme for everything in it</span>
+        </div>
+        <div class="theme-split" id="themeSplit" aria-hidden="true"></div>
+        <div id="sectorBoard"></div>
+      </div>
     </section>
 
-    <section id="zones">
-      <div class="section-head">
+    <section id="exits" class="card">
+      <div class="card-head">
+        <h2>Recent exits</h2>
+        <span class="hint">Today and yesterday (ET), grouped by ticker · full history in Lifetime</span>
+      </div>
+      <div id="closedTable"></div>
+    </section>
+
+    <!-- Research -->
+    <div class="group-head" id="research">
+      <div>
+        <p class="eyebrow">Research</p>
+        <h2 id="agentsTitle">Today's research</h2>
+        <p class="hint" id="agentsHint"></p>
+      </div>
+      <div class="chip-row" id="filters" role="group" aria-label="Filter research by theme"></div>
+    </div>
+
+    <section id="consensus" class="card">
+      <div class="card-head">
         <div>
-          <p class="kicker">03 · Zones</p>
+          <h2>Agent consensus</h2>
+          <p class="hint">One row per ticker. Color is direction, strength is confidence. Click a cell for that agent's reasoning.</p>
+        </div>
+        <span class="legend">
+          <span class="legend-item"><span class="swatch long" aria-hidden="true"></span>Long</span>
+          <span class="legend-item"><span class="swatch short" aria-hidden="true"></span>Short</span>
+          <span class="legend-item"><span class="swatch neutral" aria-hidden="true"></span>Neutral</span>
+        </span>
+      </div>
+      <div id="consensusNote"></div>
+      <div class="table-scroll" id="consensusGrid"></div>
+    </section>
+
+    <section id="watch" class="card">
+      <div class="card-head">
+        <div>
+          <h2>Watchlist</h2>
+          <p class="hint" id="watchHint">Active names not held, closest to a buy first.</p>
+        </div>
+      </div>
+      <div class="table-scroll" id="watchTable"></div>
+      <p class="footnote" id="coldNote"></p>
+    </section>
+
+    <section id="zones" class="card">
+      <div class="card-head">
+        <div>
           <h2>Buy vs sell pressure</h2>
+          <p class="hint" id="zonesHint">Every active name by aggregated research pressure. Filled = held, open = watch. Click a point for history.</p>
         </div>
-        <p class="hint" id="zonesHint">Universe map of aggregated research pressure. Held = filled markers; watch = open. Click a point for history.</p>
+        <div class="chip-row" id="zonesLegend"></div>
       </div>
-      <div class="zones-legend" id="zonesLegend"></div>
-      <div class="panel chart-wrap zones-wrap">
-        <div id="zonesScatter"></div>
-      </div>
+      <div class="zones-wrap" id="zonesScatter"></div>
     </section>
 
-    <section id="closed">
-      <div class="section-head">
-        <div>
-          <p class="kicker">04 · Closed book</p>
-          <h2>Realized exits</h2>
-        </div>
-        <p class="hint">Today and yesterday (ET) realized exits — entry/P&amp;L when buy cost is known. Full history stays in Lifetime.</p>
+    <section id="signals" class="card">
+      <div class="card-head">
+        <h2>Signals &amp; decisions</h2>
+        <span class="hint">Tickets, holds, fills and auditor flags for the research day</span>
       </div>
-      <div class="panel table-scroll" id="closedTable"></div>
+      <div class="mini-stats" id="decisionStats"></div>
+      <div class="table-scroll" id="researchTable"></div>
+      <div class="table-scroll spaced" id="flagsTable"></div>
     </section>
 
-    <section id="lifetime">
-      <div class="section-head">
-        <div>
-          <p class="kicker">04b · Lifetime book</p>
-          <h2>Per-ticker PnL</h2>
-        </div>
-        <p class="hint">Every name ever bought or sold — lifetime realized, open unrealized, and cumulative realized chart when closed 2+ times. Click a row for detail.</p>
+    <!-- Log -->
+    <div class="group-head" id="log">
+      <div>
+        <p class="eyebrow">Log</p>
+        <h2>History</h2>
       </div>
-      <div class="panel table-scroll" id="lifetimeTable"></div>
+    </div>
+
+    <section id="lifetime" class="card">
+      <div class="card-head">
+        <h2>Lifetime P&amp;L by ticker</h2>
+        <span class="hint">Every name ever traded · click a row for its cumulative realized chart and last review</span>
+      </div>
+      <div class="table-scroll" id="lifetimeTable"></div>
     </section>
 
-    <section id="agents">
-      <div class="section-head">
-        <div>
-          <p class="kicker">05 · Agents</p>
-          <h2 id="agentsTitle">Today's research work</h2>
-        </div>
-        <p class="hint" id="agentsHint">Per-agent signals for today (ET) — direction, confidence, truncated reasoning.</p>
-      </div>
-      <div class="agent-grid" id="agentGrid"></div>
-    </section>
-
-    <section id="research">
-      <div class="section-head">
-        <div>
-          <p class="kicker">06 · Research</p>
-          <h2>Signals &amp; decisions</h2>
-        </div>
-        <p class="hint">Tickets, holds, fills, and auditor flags from today (ET).</p>
-      </div>
-      <div class="grid-stats" id="decisionStats" style="margin-bottom:1rem"></div>
-      <div class="panel table-scroll" id="researchTable"></div>
-      <div style="height:0.75rem"></div>
-      <div class="panel table-scroll" id="flagsTable"></div>
-    </section>
-
-
-    <section id="watch">
-      <div class="section-head">
-        <div>
-          <p class="kicker">07 · Watchlist</p>
-          <h2>Universe not held</h2>
-        </div>
-        <p class="hint">Tickers outside the open book with the strongest agent signal today (ET).</p>
-      </div>
-      <div class="panel table-scroll" id="watchTable"></div>
-    </section>
-
-    <section id="mission">
-      <div class="section-head">
-        <div>
-          <p class="kicker">08 · Mission log</p>
-          <h2>Timeline</h2>
-        </div>
-        <p class="hint">Recent decisions as a readable mission trail.</p>
+    <section id="mission" class="card">
+      <div class="card-head">
+        <h2>Mission log</h2>
+        <span class="hint">Recent decisions, newest first</span>
       </div>
       <ul class="timeline" id="missionLog"></ul>
     </section>
 
     <footer class="footer">
       Paper trading only · No live capital · Data from <code>./data/latest.json</code>
-      · Schema: <a class="muted" href="./SCHEMA.md">SCHEMA.md</a>
+      · Schema: <a href="./SCHEMA.md">SCHEMA.md</a>
     </footer>
-  </div>
+  </main>
 
-  <div class="dialog-backdrop" id="dialog" role="dialog" aria-modal="true" hidden>
-    <div class="dialog">
-      <button type="button" class="dialog-close" id="dialogClose">CLOSE</button>
+  <div class="drawer-backdrop" id="dialog" hidden>
+    <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+      <button type="button" class="drawer-close" id="dialogClose" aria-label="Close details">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
       <div id="dialogBody"></div>
-    </div>
+    </aside>
   </div>
 
   <script src="./app.js" defer></script>
