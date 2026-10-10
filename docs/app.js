@@ -2,7 +2,6 @@
 (() => {
   const DATA_URL = "./data/latest.json";
   const ZONES_HISTORY_URL = "./data/zones_history.json";
-  const SECTORS = ["all", "quantum", "robotics", "space"];
   const AGENT_ORDER = [
     "momentum",
     "fundamental",
@@ -10,16 +9,29 @@
     "sentiment",
     "macro",
   ];
+  const AGENT_LABEL = {
+    momentum: "Momentum",
+    fundamental: "Fundamental",
+    statistical_ml: "Stat ML",
+    sentiment: "Sentiment",
+    macro: "Macro",
+  };
   const ART = {
-    all: "./art/observatory.jpg",
     quantum: "./art/quantum.jpg",
     robotics: "./art/robotics.jpg",
     space: "./art/space.jpg",
   };
+  const THEME_COLOR = { robotics: "#8fb4c4", quantum: "#5f8597", space: "#46606f" };
+  const EXTRA_THEME_COLORS = ["#7d9aa8", "#3f5866", "#9fb8c2"];
+  const C = { gain: "#86d0a0", loss: "#ef9a86", accent: "#8fb4c4", muted: "#a3acb5", subtle: "#7d8790", line: "#1c2229", warn: "#e3c79a" };
+  // Positions worth less than this are folded behind "Show N positions under $1".
+  const SMALL_POSITION_USD = 1;
 
   let DATA = null;
   let zonesHistory = null;
   let filter = "all";
+  let showSmall = false;
+  let lastFocus = null;
 
   const $ = (id) => document.getElementById(id);
 
@@ -58,6 +70,60 @@
     } catch {
       return iso;
     }
+  }
+
+  function fmtClock(iso) {
+    if (!iso) return "—";
+    try {
+      return new Date(iso).toLocaleTimeString("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" });
+    } catch {
+      return iso;
+    }
+  }
+
+  /** "2026-10-09" -> "Oct 9" (no timezone shift: the string is already an ET day). */
+  function fmtDay(ymd, { weekday = false } = {}) {
+    if (!ymd) return "—";
+    const [Y, M, D] = String(ymd).slice(0, 10).split("-").map(Number);
+    if (!Y || !M || !D) return String(ymd);
+    const d = new Date(Date.UTC(Y, M - 1, D, 12));
+    return d.toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", ...(weekday ? { weekday: "short" } : {}) });
+  }
+
+  /** Signed money that stays readable at $100 scale: "+$1.32", "−7¢", "<1¢". */
+  function fmtMoneySigned(n) {
+    const v = safeNum(n);
+    if (v == null) return "—";
+    const a = Math.abs(v);
+    if (a < 0.005) return "<1¢";
+    const sign = v < 0 ? "−" : "+";
+    if (a < 1) return `${sign}${Math.round(a * 100)}¢`;
+    return `${sign}$${a.toFixed(2)}`;
+  }
+
+  /** Unsigned money for prose: "55¢", "$2.98". */
+  function fmtMoneyPlain(n) {
+    const a = Math.abs(Number(n) || 0);
+    if (a < 0.005) return "<1¢";
+    return a < 1 ? `${Math.round(a * 100)}¢` : `$${a.toFixed(2)}`;
+  }
+
+  function fmtArrowPct(frac, digits = 1) {
+    const v = safeNum(frac);
+    if (v == null) return "—";
+    const p = v * 100;
+    if (Math.abs(p) < 0.05) return "0.0%";
+    return `${p > 0 ? "▲" : "▼"} ${Math.abs(p).toFixed(digits)}%`;
+  }
+
+  function capitalize(s) {
+    const t = String(s || "");
+    return t ? t[0].toUpperCase() + t.slice(1) : t;
+  }
+
+  function joinAnd(list) {
+    if (list.length <= 1) return list.join("");
+    return `${list.slice(0, -1).join(", ")} and ${list[list.length - 1]}`;
   }
 
 
@@ -118,6 +184,13 @@
   function pnlClass(n) {
     if (n == null) return "";
     return Number(n) >= 0 ? "gain" : "loss";
+  }
+
+  /** Like pnlClass, but amounts under a cent read as flat. */
+  function pnlTone(n) {
+    const v = safeNum(n);
+    if (v == null || Math.abs(v) < 0.005) return "muted";
+    return v > 0 ? "gain" : "loss";
   }
 
   function safeNum(n) {
@@ -204,6 +277,11 @@
       .sort((a, b) => String(b.closed_at || "").localeCompare(String(a.closed_at || "")));
   }
 
+  function lifetimeForTicker(ticker) {
+    const want = tickerKey(ticker);
+    return (DATA?.ticker_pnl || []).find((r) => tickerKey(r.ticker) === want) || null;
+  }
+
   function reviewTagsHtml(tags) {
     const list = Array.isArray(tags) ? tags : [];
     if (!list.length) return "";
@@ -233,7 +311,7 @@
     const rows = Array.isArray(agents) ? agents : [];
     let table = "";
     if (rows.length) {
-      table = `<table style="margin-top:0.5rem;font-size:0.85rem">
+      table = `<table style="margin-top:0.5rem;font-size:0.85rem;min-width:0">
         <thead><tr><th>Agent</th><th>Dir</th><th>Conf</th><th>Signal</th></tr></thead>
         <tbody>
           ${rows.map((a) => `<tr>
@@ -296,6 +374,11 @@
     return out;
   }
 
+  function zoneThresholds() {
+    const t = DATA?.zones?.thresholds || {};
+    return { buy: safeNum(t.buy_zone_min) ?? 0.35, sell: safeNum(t.sell_zone_min) ?? 0.35 };
+  }
+
   function zoneBadgeHtml(zone) {
     const z = escapeHtml(zone || "quiet");
     const label = z.replace(/_/g, " ");
@@ -327,18 +410,18 @@
     const last = escapeHtml(series[series.length - 1].day.slice(5));
     const thresh =
       0.35 <= yMax
-        ? `<line x1="${pad.l}" x2="${w - pad.r}" y1="${y(0.35)}" y2="${y(0.35)}" stroke="#232a32" stroke-dasharray="3 4"/>`
+        ? `<line x1="${pad.l}" x2="${w - pad.r}" y1="${y(0.35)}" y2="${y(0.35)}" stroke="#3a4652" stroke-dasharray="3 4"/>`
         : "";
     return `<div class="zone-chart"><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Buy and sell pressure history">
       ${thresh}
-      <text x="4" y="${y(yMax) + 3}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono">${yMax.toFixed(2)}</text>
-      <text x="4" y="${y(0) + 3}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono">0</text>
-      <polyline points="${buyPts}" fill="none" stroke="#8aa58f" stroke-width="1.6"/>
-      <polyline points="${sellPts}" fill="none" stroke="#c48980" stroke-width="1.6"/>
-      <text x="${pad.l}" y="${h - 8}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono">${first}</text>
-      <text x="${w - pad.r}" y="${h - 8}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono" text-anchor="end">${last}</text>
-      <text x="${pad.l + 4}" y="12" fill="#8aa58f" font-size="10" font-family="IBM Plex Mono">buy</text>
-      <text x="${pad.l + 40}" y="12" fill="#c48980" font-size="10" font-family="IBM Plex Mono">sell</text>
+      <text x="4" y="${y(yMax) + 3}" fill="${C.subtle}" font-size="10" font-family="IBM Plex Mono">${yMax.toFixed(2)}</text>
+      <text x="4" y="${y(0) + 3}" fill="${C.subtle}" font-size="10" font-family="IBM Plex Mono">0</text>
+      <polyline points="${buyPts}" fill="none" stroke="${C.gain}" stroke-width="1.6"/>
+      <polyline points="${sellPts}" fill="none" stroke="${C.loss}" stroke-width="1.6"/>
+      <text x="${pad.l}" y="${h - 8}" fill="${C.subtle}" font-size="10" font-family="IBM Plex Mono">${first}</text>
+      <text x="${w - pad.r}" y="${h - 8}" fill="${C.subtle}" font-size="10" font-family="IBM Plex Mono" text-anchor="end">${last}</text>
+      <text x="${pad.l + 4}" y="12" fill="${C.gain}" font-size="10" font-family="IBM Plex Mono">buy</text>
+      <text x="${pad.l + 40}" y="12" fill="${C.loss}" font-size="10" font-family="IBM Plex Mono">sell</text>
     </svg></div>`;
   }
 
@@ -361,53 +444,44 @@
     </table>`;
   }
 
+  function pressureBarsHtml(pt) {
+    if (!pt) return `<p class="muted">No zone score for this ticker yet.</p>`;
+    const th = zoneThresholds();
+    const scale = Math.max(0.6, th.buy * 1.7);
+    const w = (v) => Math.min(100, ((Number(v) || 0) / scale) * 100).toFixed(1);
+    return `<div class="pbars">
+        <span>Buy</span><div class="track"><div class="fill" style="width:${w(pt.buy)}%;background:${C.gain}"></div></div><span class="num">${Number(pt.buy).toFixed(2)}</span>
+        <span>Sell</span><div class="track"><div class="fill" style="width:${w(pt.sell)}%;background:${C.loss}"></div></div><span class="num">${Number(pt.sell).toFixed(2)}</span>
+      </div>
+      <p class="footnote" style="margin-top:0.4rem">Buy zone starts at ${th.buy.toFixed(2)} · ${zoneBadgeHtml(pt.zone)}</p>`;
+  }
+
   function zoneDetailBlock(ticker) {
     const pt = zonePointForTicker(ticker);
     const series = zoneSeriesForTicker(ticker);
     if (!pt && !series.length) {
-      return `<p class="kicker" style="margin-top:1rem">Zones</p>
+      return `<h4>Pressure history</h4>
         <p class="muted">No zone score for this ticker yet.</p>`;
     }
-    const badge = pt ? zoneBadgeHtml(pt.zone) : "";
-    const nums = pt
-      ? `<div class="grid-stats" style="margin-top:0.75rem">
-          <div class="stat"><p class="label">Buy</p><p class="value mono gain">${Number(pt.buy).toFixed(3)}</p></div>
-          <div class="stat"><p class="label">Sell</p><p class="value mono loss">${Number(pt.sell).toFixed(3)}</p></div>
-          <div class="stat"><p class="label">Net</p><p class="value mono">${Number(pt.net).toFixed(3)}</p></div>
-          <div class="stat"><p class="label">Zone</p><p class="value">${badge}</p></div>
-        </div>`
-      : "";
-    return `<p class="kicker" style="margin-top:1rem">Zones</p>
-      ${nums}
-      ${drawZoneHistoryChart(series)}
-      <p class="kicker" style="margin-top:0.75rem">Agent mix (today)</p>
-      ${agentMixTableHtml(pt?.agents || [])}`;
+    return `<h4>Pressure history</h4>
+      ${drawZoneHistoryChart(series)}`;
   }
 
   function openZoneDetail(pt) {
-    const series = zoneSeriesForTicker(pt.ticker);
-    openDialogHtml(`
-      <p class="kicker">Zones</p>
-      <h3>${escapeHtml(pt.ticker)} · <span class="muted">${escapeHtml(pt.sector || "—")}</span> ${zoneBadgeHtml(pt.zone)}</h3>
-      <p class="muted">${pt.held ? "Held in open book" : "Watchlist only"}</p>
-      <div class="grid-stats" style="margin-top:1rem">
-        <div class="stat"><p class="label">Buy pressure</p><p class="value mono gain">${Number(pt.buy).toFixed(3)}</p></div>
-        <div class="stat"><p class="label">Sell pressure</p><p class="value mono loss">${Number(pt.sell).toFixed(3)}</p></div>
-        <div class="stat"><p class="label">Net</p><p class="value mono">${Number(pt.net != null ? pt.net : pt.buy - pt.sell).toFixed(3)}</p></div>
-        ${pt.weight != null ? `<div class="stat"><p class="label">Weight</p><p class="value mono">${(Number(pt.weight) * 100).toFixed(1)}%</p></div>` : ""}
-      </div>
-      <p class="kicker" style="margin-top:1rem">History</p>
-      ${drawZoneHistoryChart(series)}
-      <p class="kicker" style="margin-top:0.75rem">Agent mix (today)</p>
-      ${agentMixTableHtml(pt.agents || [])}`);
+    openTickerDetail(pt.ticker);
   }
 
   function openDialogHtml(html) {
     const dlg = $("dialog");
     const body = $("dialogBody");
+    if (dlg.hidden) lastFocus = document.activeElement;
     body.innerHTML = html;
+    const title = body.querySelector("h3");
+    if (title) title.id = "dialogTitle";
     dlg.hidden = false;
     dlg.classList.add("open");
+    dlg.querySelector(".drawer").scrollTop = 0;
+    $("dialogClose").focus();
   }
 
   function bindRowActivation(tr, onActivate) {
@@ -430,35 +504,40 @@
         return sec;
       }
     }
-    return null;
+    const pt = zonePointForTicker(ticker);
+    return pt?.sector || null;
   }
 
   function matchesSector(sec) {
     return filter === "all" || sec === filter;
   }
 
-  function setSectorFilter(key) {
-    filter = SECTORS.includes(key) ? key : "all";
-    setHeroArt();
-    renderAll();
+  function themeKeys() {
+    const keys = Object.keys(DATA?.sectors || {});
+    (DATA?.sector_board || []).forEach((r) => { if (!keys.includes(r.theme)) keys.push(r.theme); });
+    const weight = (t) => Number((DATA?.sector_board || []).find((r) => r.theme === t)?.weight) || 0;
+    return keys.sort((a, b) => weight(b) - weight(a) || a.localeCompare(b));
   }
 
-  function setHeroArt() {
-    const img = $("heroArt");
-    if (!img) return;
-    const src = ART[filter] || ART.all;
-    img.onerror = () => { if (img.src.indexOf("observatory") === -1) img.src = ART.all; };
-    img.src = src;
+  function themeColor(theme) {
+    if (THEME_COLOR[theme]) return THEME_COLOR[theme];
+    const extras = themeKeys().filter((t) => !THEME_COLOR[t]);
+    return EXTRA_THEME_COLORS[Math.max(0, extras.indexOf(theme)) % EXTRA_THEME_COLORS.length];
+  }
+
+  function setSectorFilter(key) {
+    filter = key === "all" || themeKeys().includes(key) ? key : "all";
+    renderFilteredSections();
   }
 
   function renderFilters() {
     const el = $("filters");
     el.innerHTML = "";
-    SECTORS.forEach((key) => {
+    ["all", ...themeKeys()].forEach((key) => {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "chip sector";
-      btn.textContent = key === "all" ? "All" : key;
+      btn.className = "filter-chip";
+      btn.textContent = key === "all" ? "All themes" : key;
       btn.setAttribute("aria-pressed", filter === key ? "true" : "false");
       btn.addEventListener("click", () => {
         setSectorFilter(key);
@@ -467,82 +546,215 @@
     });
   }
 
-  function renderHeroBadges() {
-    const snap = DATA.snapshot || {};
-    const meta = DATA.meta || {};
-    const el = $("heroBadges");
-    const bits = [
-      `<span class="chip paper">PAPER</span>`,
-      `<span class="chip">START ${fmtUsd(meta.starting_equity)}</span>`,
-      snap.halted || snap.day_halted
-        ? `<span class="chip halt">HALTED</span>`
-        : `<span class="chip active">LIVE BOOK</span>`,
-    ];
-    el.innerHTML = bits.join("");
+  // ---- Today ----------------------------------------------------------------
+
+  /** Last equity point of each ET day, oldest first. */
+  function dailyCloses(curve) {
+    const byDay = new Map();
+    (curve || []).forEach((p) => {
+      const day = etCalendarDay(p.t);
+      if (day && safeNum(p.equity) != null) byDay.set(day, { day, t: p.t, equity: Number(p.equity) });
+    });
+    return [...byDay.values()].sort((a, b) => a.day.localeCompare(b.day));
   }
 
-  function renderSnapshot() {
+  /** Last session vs the close before it (works on weekends and before the open). */
+  function sessionChange() {
+    const s = DATA.snapshot || {};
+    const closes = dailyCloses(DATA.equity_curve);
+    const equity = safeNum(s.equity) ?? (closes.length ? closes[closes.length - 1].equity : null);
+    if (equity == null || closes.length < 2) {
+      return { equity, change: safeNum(s.daily_pnl), prior: null, session: closes.length ? closes[closes.length - 1].day : null };
+    }
+    const last = closes[closes.length - 1];
+    const prior = closes[closes.length - 2];
+    return { equity, change: equity - prior.equity, prior, session: last.day };
+  }
+
+  function todayFills() {
+    // The export's own day, not the viewer's clock: a Saturday visit still describes Friday.
+    const day = researchFallbackDay() || DATA?.meta?.day_local || etTodayYesterday().today;
+    return (DATA.closed || []).filter((c) => etCalendarDay(c.closed_at) === day);
+  }
+
+  function buildSummary(sc) {
+    const parts = [];
+    if (sc.change != null) {
+      const word = Math.abs(sc.change) < 0.005 ? "Flat" : sc.change > 0 ? "Up" : "Down";
+      parts.push(word === "Flat" ? "Flat on the day." : `${word} ${fmtMoneyPlain(sc.change)} on the day.`);
+    }
+    const board = (DATA.sector_board || []).slice().sort((a, b) => (Number(b.unrealized) || 0) - (Number(a.unrealized) || 0));
+    const lead = board[0];
+    if (lead && Number(lead.unrealized) > 0.005) {
+      const best = holdingsView()
+        .filter((r) => r.theme === lead.theme && r.pct != null)
+        .sort((a, b) => (Number(b.h.unrealized) || 0) - (Number(a.h.unrealized) || 0))[0];
+      const who = best && best.pct > 0 ? ` — ${escapeHtml(best.h.ticker)} is ${fmtArrowPct(best.pct).replace("▲ ", "+")} on cost` : "";
+      parts.push(`<strong>${escapeHtml(capitalize(lead.theme))} carried the book</strong>${who}.`);
+    }
+    const byTicker = {};
+    todayFills().forEach((c) => {
+      const k = tickerKey(c.ticker);
+      byTicker[k] = byTicker[k] || { n: 0, pnl: 0 };
+      byTicker[k].n += 1;
+      byTicker[k].pnl += Number(c.pnl) || 0;
+    });
+    const churn = Object.entries(byTicker).sort((a, b) => b[1].n - a[1].n)[0];
+    if (churn && churn[1].n >= 4) {
+      parts.push(`The bot sold <strong>${escapeHtml(churn[0])} ${churn[1].n} times for ${fmtMoneySigned(churn[1].pnl)}</strong>.`);
+    }
+    const c = DATA.decisions_today?.counts || {};
+    const flags = (DATA.auditor_flags_today || []).length;
+    parts.push(`${c.fills || 0} fill${c.fills === 1 ? "" : "s"}, ${c.holds || 0} hold${c.holds === 1 ? "" : "s"}, ${flags ? `${flags} auditor flag${flags === 1 ? "" : "s"}` : "no auditor flags"}.`);
+    return parts.join(" ");
+  }
+
+  function renderFreshness() {
     const s = DATA.snapshot || {};
     const meta = DATA.meta || {};
-    const dayBit = meta.day_local
-      ? ` · ${meta.day_label || "ET day"} ${meta.day_local}`
-      : "";
-    $("exportedAt").textContent = `Exported ${fmtTime(meta.exported_at)} · account ${meta.account || "paper"}${dayBit}`;
-    const cards = [
-      { label: "Equity", value: fmtUsd(s.equity) },
-      { label: "Cash", value: fmtUsd(s.cash) },
-      { label: "Unrealized", value: fmtUsd(s.unrealized), cls: pnlClass(s.unrealized) },
-      { label: "Daily PnL", value: fmtUsd(s.daily_pnl), cls: pnlClass(s.daily_pnl) },
-      { label: "Drawdown", value: fmtPct(s.drawdown), cls: Number(s.drawdown) > 0 ? "loss" : "" },
-    ];
-    $("statGrid").innerHTML = cards
-      .map(
-        (c) => `<div class="stat"><p class="label">${c.label}</p><p class="value ${c.cls || ""}">${c.value}</p></div>`
-      )
-      .join("");
-    drawEquityChart(DATA.equity_curve || []);
+    const exported = meta.exported_at ? new Date(meta.exported_at) : null;
+    const ageH = exported ? (Date.now() - exported.getTime()) / 36e5 : null;
+    const halted = s.halted || s.day_halted;
+    const stale = ageH != null && ageH > 26;
+    const cls = halted ? "halt" : stale ? "stale" : "";
+    const when = exported
+      ? `${exported.toLocaleTimeString("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" })} ET · ${fmtDay(etCalendarDay(exported), { weekday: true })}`
+      : "—";
+    $("exportedAt").innerHTML = `<span class="dot ${cls}" aria-hidden="true"></span>${halted ? "Halted · " : ""}Updated ${escapeHtml(when)}${stale ? ` <span class="subtle">(${Math.round(ageH)}h old)</span>` : ""}`;
+    $("modePill").textContent = meta.paper === false ? "Live" : "Paper";
   }
 
-  function drawEquityChart(curve) {
+  function renderToday() {
+    const s = DATA.snapshot || {};
+    const meta = DATA.meta || {};
+    const sc = sessionChange();
+    const start = safeNum(meta.starting_equity);
+    $("equityEyebrow").textContent = start != null ? `Equity · ${fmtUsd(start)} ${meta.paper === false ? "" : "paper "}account` : "Equity";
+    $("equityBig").textContent = fmtUsd(sc.equity);
+
+    const chips = [];
+    if (sc.change != null) {
+      const pct = sc.prior ? sc.change / sc.prior.equity : null;
+      const tone = pnlTone(sc.change);
+      const arrow = tone === "gain" ? "▲" : tone === "loss" ? "▼" : "";
+      const label = sc.session && sc.session !== meta.day_local ? fmtDay(sc.session) : "today";
+      chips.push(`<span class="delta ${tone}">${arrow} ${fmtMoneyPlain(sc.change)} ${escapeHtml(label)}${pct != null ? ` (${fmtSignedPct(pct)})` : ""}</span>`);
+    }
+    if (start && sc.equity != null) {
+      const sinceStart = (sc.equity - start) / start;
+      chips.push(`<span class="delta ${pnlTone(sc.equity - start)}">${fmtArrowPct(sinceStart, 2)} since start</span>`);
+    }
+    if (s.halted || s.day_halted) {
+      chips.push(`<span class="delta halt">Halted: ${escapeHtml(trunc(s.halt_reason || (s.day_halted ? "day halt" : "halted"), 60))}</span>`);
+    }
+    $("equityChips").innerHTML = chips.join("");
+    $("daySummary").innerHTML = buildSummary(sc);
+    $("dayBasis").textContent = sc.prior
+      ? `${sc.session && sc.session !== meta.day_local ? `Last session ${fmtDay(sc.session)}, ` : "Today is "}measured against the ${fmtDay(sc.prior.day)} close (${fmtUsd(sc.prior.equity)}).`
+      : "";
+    $("startLegend").textContent = start != null ? `${fmtUsd(start).replace(".00", "")} start` : "Start";
+    drawEquityChart(dailyCloses(DATA.equity_curve), start);
+  }
+
+  function drawEquityChart(closes, start) {
     const host = $("equityChart");
-    if (!curve.length) {
-      host.innerHTML = `<div class="empty">No portfolio snapshots yet</div>`;
+    if (!closes.length) {
+      host.innerHTML = `<div class="empty" style="flex:1">No portfolio snapshots yet</div>`;
       return;
     }
-    const w = 720;
-    const h = 220;
-    const pad = { t: 16, r: 12, b: 28, l: 48 };
-    const vals = curve.map((p) => Number(p.equity));
-    const min = Math.min(...vals);
-    const max = Math.max(...vals);
-    const span = max - min || 1;
-    const x = (i) => pad.l + (i / Math.max(curve.length - 1, 1)) * (w - pad.l - pad.r);
-    const y = (v) => pad.t + (1 - (v - min) / span) * (h - pad.t - pad.b);
-    const pts = curve.map((p, i) => `${x(i).toFixed(1)},${y(Number(p.equity)).toFixed(1)}`);
-    const line = pts.join(" ");
-    const area = `${pad.l},${h - pad.b} ${line} ${w - pad.r},${h - pad.b}`;
-    const yTicks = [min, min + span / 2, max];
+    $("curveTitle").textContent = `Equity since ${fmtDay(closes[0].day)}`;
+    const W = 640;
+    const H = 200;
+    const vals = closes.map((p) => p.equity).concat(start != null ? [start] : []);
+    let lo = Math.min(...vals);
+    let hi = Math.max(...vals);
+    const padV = Math.max((hi - lo) * 0.08, 0.5);
+    lo -= padV;
+    hi += padV;
+    const x = (i) => (closes.length === 1 ? W / 2 : (i / (closes.length - 1)) * W);
+    const y = (v) => H - ((v - lo) / (hi - lo)) * H;
+    const line = closes.map((p, i) => `${x(i).toFixed(1)},${y(p.equity).toFixed(1)}`).join(" ");
+    const area = `0,${H} ${line} ${W},${H}`;
+    const mid = (lo + hi) / 2;
+    const iLow = closes.reduce((m, p, i) => (p.equity < closes[m].equity ? i : m), 0);
+    const iHigh = closes.reduce((m, p, i) => (p.equity > closes[m].equity ? i : m), 0);
+    const xLabels = [0, iLow, iHigh, closes.length - 1]
+      .filter((v, i, arr) => arr.indexOf(v) === i)
+      .sort((a, b) => a - b)
+      .map((i) => {
+        const tag = i === iLow && i !== 0 && i !== closes.length - 1 ? " · low" : i === iHigh && i !== 0 && i !== closes.length - 1 ? " · high" : "";
+        return `<span>${escapeHtml(fmtDay(closes[i].day))}${tag}</span>`;
+      })
+      .join("");
+    const aria = `Equity from ${fmtUsd(closes[0].equity)} on ${fmtDay(closes[0].day)} to ${fmtUsd(closes[closes.length - 1].equity)} on ${fmtDay(closes[closes.length - 1].day)}; low ${fmtUsd(closes[iLow].equity)} on ${fmtDay(closes[iLow].day)}, high ${fmtUsd(closes[iHigh].equity)} on ${fmtDay(closes[iHigh].day)}.`;
     host.innerHTML = `
-      <svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Equity curve">
-        <defs>
-          <linearGradient id="navFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#8fb4c4" stop-opacity="0.28"/>
-            <stop offset="100%" stop-color="#8fb4c4" stop-opacity="0"/>
-          </linearGradient>
-        </defs>
-        ${yTicks
-          .map(
-            (t) =>
-              `<text x="8" y="${y(t) + 3}" fill="#5c656e" font-size="11" font-family="IBM Plex Mono">${fmtUsd(t)}</text>
-               <line x1="${pad.l}" x2="${w - pad.r}" y1="${y(t)}" y2="${y(t)}" stroke="#232a32" stroke-dasharray="3 4"/>`
-          )
-          .join("")}
-        <polygon points="${area}" fill="url(#navFill)"/>
-        <polyline points="${line}" fill="none" stroke="#8fb4c4" stroke-width="1.5"/>
-        <text x="${pad.l}" y="${h - 8}" fill="#5c656e" font-size="11" font-family="IBM Plex Mono">${fmtTime(curve[0].t)}</text>
-        <text x="${w - pad.r}" y="${h - 8}" fill="#5c656e" font-size="11" font-family="IBM Plex Mono" text-anchor="end">${fmtTime(curve[curve.length - 1].t)}</text>
-      </svg>`;
+      <div class="curve-axis" aria-hidden="true"><span>${fmtUsd(hi).replace(/\.\d\d$/, "")}</span><span>${fmtUsd(mid).replace(/\.\d\d$/, "")}</span><span>${fmtUsd(lo).replace(/\.\d\d$/, "")}</span></div>
+      <div class="curve-plot">
+        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${escapeHtml(aria)}">
+          <line x1="0" x2="${W}" y1="${y(mid)}" y2="${y(mid)}" stroke="${C.line}" vector-effect="non-scaling-stroke"/>
+          ${start != null ? `<line x1="0" x2="${W}" y1="${y(start)}" y2="${y(start)}" stroke="${C.subtle}" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>` : ""}
+          <polygon points="${area}" fill="rgb(143 180 196 / 0.10)"/>
+          <polyline points="${line}" fill="none" stroke="${C.accent}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+          <line id="curveCursor" x1="0" x2="0" y1="0" y2="${H}" stroke="${C.accent}" opacity="0.4" vector-effect="non-scaling-stroke"/>
+        </svg>
+        <div class="curve-hit" id="curveHit"></div>
+        <div class="curve-tip" id="curveTip" aria-live="polite"></div>
+        <div class="curve-x" aria-hidden="true">${xLabels}</div>
+      </div>`;
+    const hit = $("curveHit");
+    const show = (i) => {
+      const p = closes[i];
+      const prev = closes[i - 1];
+      const chg = prev ? p.equity - prev.equity : null;
+      const pctX = (x(i) / W) * 100;
+      $("curveCursor").setAttribute("x1", x(i));
+      $("curveCursor").setAttribute("x2", x(i));
+      const tip = $("curveTip");
+      tip.style.left = `${Math.min(86, Math.max(14, pctX))}%`;
+      // Keep the tip off the line: below the point when it sits in the top half.
+      const high = y(p.equity) < H / 2;
+      tip.style.top = high ? "auto" : "0.25rem";
+      tip.style.bottom = high ? "1.9rem" : "auto";
+      tip.innerHTML = `<span class="muted">${escapeHtml(fmtDay(p.day, { weekday: true }))} close</span>
+        <span class="v">${fmtUsd(p.equity)}</span>
+        <span class="${pnlTone(chg)}">${chg == null ? "first day" : `${chg >= 0 ? "▲" : "▼"} ${fmtMoneyPlain(chg)} that day`}</span>
+        ${start ? `<span class="subtle">${fmtSignedPct((p.equity - start) / start)} from start</span>` : ""}`;
+    };
+    closes.forEach((p, i) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("aria-label", `${fmtDay(p.day)} close ${fmtUsd(p.equity)}`);
+      b.addEventListener("mouseenter", () => show(i));
+      b.addEventListener("focus", () => show(i));
+      b.addEventListener("click", () => show(i));
+      hit.appendChild(b);
+    });
+    show(closes.length - 1);
   }
+
+  function renderStats() {
+    const s = DATA.snapshot || {};
+    const view = holdingsView();
+    const cost = view.reduce((a, r) => a + (costBasis(r.h.qty, r.h.avg_cost) || 0), 0);
+    const unr = safeNum(s.unrealized);
+    const equity = safeNum(s.equity);
+    const cash = safeNum(s.cash);
+    const idle = equity && cash != null ? cash / equity : null;
+    const peak = safeNum(s.peak_equity);
+    const c = DATA.decisions_today?.counts || {};
+    const flags = (DATA.auditor_flags_today || []).length;
+    const tiles = [
+      { k: "Cash", v: fmtUsd(cash), s: idle == null ? "" : `${(idle * 100).toFixed(1)}% idle${idle < 0.03 ? " · fully invested" : ""}` },
+      { k: "Unrealized", v: unr == null ? "—" : `${unr >= 0 ? "▲" : "▼"} ${fmtUsd(Math.abs(unr))}`, cls: pnlTone(unr), s: unr != null && cost ? `${fmtSignedPct(unr / cost)} on ${fmtUsd(cost)} cost` : "" },
+      { k: "Drawdown", v: fmtPct(s.drawdown), cls: Number(s.drawdown) > 0.0005 ? "loss" : "", s: peak != null ? `from ${fmtUsd(peak)} peak` : "" },
+      { k: researchFallbackDay() ? `Activity · ${fmtDay(researchFallbackDay())}` : "Activity today", v: `${c.fills || 0} fill${c.fills === 1 ? "" : "s"}`, s: `${c.tickets || 0} tickets · ${c.holds || 0} holds · ${flags} flag${flags === 1 ? "" : "s"}` },
+    ];
+    $("statStrip").innerHTML = tiles
+      .map((t) => `<div class="tile"><span class="k">${escapeHtml(t.k)}</span><span class="v ${t.cls || ""}">${t.v}</span><span class="s">${escapeHtml(t.s)}</span></div>`)
+      .join("");
+  }
+
+  // ---- Book -----------------------------------------------------------------
 
   /** Same rule as the export's is_dust: under $0.01 at cost is leftover rounding. */
   function isDust(h) {
@@ -563,38 +775,63 @@
     const title = $("agentsTitle");
     const hint = $("agentsHint");
     const zonesHint = $("zonesHint");
-    if (title) title.textContent = day ? `Research work · ${day}` : "Today's research work";
+    if (title) title.textContent = day ? `Research · ${fmtDay(day, { weekday: true })}` : "Today's research";
     if (hint) {
       hint.textContent = day
         ? `No research yet today (ET), so this shows ${day}, the last day with signals.`
-        : "Per-agent signals for today (ET) — direction, confidence, truncated reasoning.";
+        : "Every agent's call on every active name today (ET).";
     }
     if (zonesHint) {
       zonesHint.textContent =
         (day ? `Pressure from ${day}, the last day with research. ` : "") +
-        "Universe map of aggregated research pressure. Held = filled markers; watch = open. Click a point for history.";
+        "Every active name by aggregated research pressure. Filled = held, open = watch. Click a point for detail.";
     }
   }
 
+  /** Non-dust holdings with value, weight and % on cost, largest first. */
+  function holdingsView() {
+    const equity = safeNum(DATA?.snapshot?.equity);
+    return (DATA?.holdings || [])
+      .filter((h) => !isDust(h))
+      .map((h) => {
+        const mv = marketValue(h.qty, h.last);
+        return {
+          h,
+          mv,
+          weight: mv != null && equity ? mv / equity : null,
+          pct: unrealizedPct(h.unrealized, h.qty, h.avg_cost),
+          theme: h.sector || sectorOf(h.ticker),
+        };
+      })
+      .sort((a, b) => (b.mv ?? -1) - (a.mv ?? -1));
+  }
+
   function renderHoldings() {
-    const rows = (DATA.holdings || []).filter((h) => !isDust(h) && matchesSector(h.sector || sectorOf(h.ticker)));
+    const all = holdingsView();
+    const small = all.filter((r) => r.mv != null && r.mv < SMALL_POSITION_USD);
+    const rows = showSmall ? all : all.filter((r) => !(r.mv != null && r.mv < SMALL_POSITION_USD));
+    const toggle = $("smallToggle");
+    toggle.hidden = !small.length;
+    toggle.textContent = showSmall
+      ? `Hide ${small.length} position${small.length === 1 ? "" : "s"} under $1`
+      : `Show ${small.length} position${small.length === 1 ? "" : "s"} under $1`;
     if (!rows.length) {
-      $("holdingsTable").innerHTML = `<div class="empty">No open holdings${filter !== "all" ? " in this sector" : ""}</div>`;
+      $("holdingsTable").innerHTML = `<div class="empty">No open holdings</div>`;
       return;
     }
+    const maxW = Math.max(0.25, ...rows.map((r) => r.weight || 0));
     $("holdingsTable").innerHTML = `
       <table>
-        <thead><tr><th>Ticker</th><th>Sector</th><th>Qty</th><th>Avg cost</th><th>Last</th><th>Unrealized</th></tr></thead>
+        <thead><tr><th>Ticker</th><th>Weight</th><th class="num">Value</th><th class="num">On cost</th><th class="num">P&amp;L</th></tr></thead>
         <tbody>
           ${rows
             .map(
-              (h, i) => `<tr data-hold-idx="${i}" aria-label="Open details for ${escapeHtml(h.ticker)}">
-                <td class="mono">${escapeHtml(h.ticker)}</td>
-                <td class="muted">${escapeHtml(h.sector || "—")}</td>
-                <td class="mono">${Number(h.qty).toFixed(4)}</td>
-                <td class="mono">${fmtUsd(h.avg_cost)}</td>
-                <td class="mono">${fmtUsd(h.last)}</td>
-                <td class="mono ${pnlClass(h.unrealized)}">${fmtUsd(h.unrealized)}</td>
+              (r, i) => `<tr data-hold-idx="${i}" aria-label="Open details for ${escapeHtml(r.h.ticker)}">
+                <td><span class="tick">${escapeHtml(r.h.ticker)}</span><span class="tick-sub">${escapeHtml(r.theme || "—")}</span><span class="chev" aria-hidden="true">›</span></td>
+                <td><div class="wbar"><div class="track"><div class="fill" style="width:${r.weight == null ? 0 : ((r.weight / maxW) * 100).toFixed(1)}%"></div></div><span class="num">${r.weight == null ? "—" : (r.weight * 100).toFixed(1) + "%"}</span></div></td>
+                <td class="num mono">${r.mv != null && r.mv < 0.005 ? "<1¢" : fmtUsd(r.mv)}</td>
+                <td class="num mono ${pnlTone(r.h.unrealized)}">${fmtArrowPct(r.pct)}</td>
+                <td class="num mono ${pnlTone(r.h.unrealized)}">${fmtMoneySigned(r.h.unrealized)}</td>
               </tr>`
             )
             .join("")}
@@ -602,61 +839,7 @@
       </table>`;
     $("holdingsTable").querySelectorAll("tr[data-hold-idx]").forEach((tr) => {
       const idx = Number(tr.getAttribute("data-hold-idx"));
-      bindRowActivation(tr, () => openHoldingDetail(rows[idx]));
-    });
-  }
-
-  function renderClosed() {
-    const host = $("closedTable");
-    if (!host) return;
-    // UI-only window: full DATA.closed stays intact for Lifetime / detail helpers.
-    const recent = closedRowsForRecentWindow(DATA.closed || [], matchesSector);
-    if (!recent.length) {
-      const sectorBit = filter !== "all" ? " in this sector" : "";
-      host.innerHTML = `<div class="empty">No closes today or yesterday (ET)${sectorBit}. Full history is in Lifetime.</div>`;
-      return;
-    }
-    const { today, yesterday } = etTodayYesterday();
-    const groups = [
-      { key: "today", label: `Today · ${today} ET`, items: recent.filter((x) => x.bucket === "today") },
-      { key: "yesterday", label: `Yesterday · ${yesterday} ET`, items: recent.filter((x) => x.bucket === "yesterday") },
-    ].filter((g) => g.items.length);
-
-    const ordered = [];
-    const bodyHtml = groups
-      .map((g) => {
-        const head = `<tr class="day-group" aria-hidden="true"><td colspan="8">${escapeHtml(g.label)}</td></tr>`;
-        const rows = g.items
-          .map((x) => {
-            const i = ordered.length;
-            const c = x.row;
-            ordered.push(c);
-            return `<tr data-closed-idx="${i}" aria-label="Open closed trade details for ${escapeHtml(c.ticker)}">
-                <td class="mono">${escapeHtml(c.ticker)}</td>
-                <td class="muted">${escapeHtml(c.sector || "—")}</td>
-                <td class="mono">${c.qty != null ? Number(c.qty).toFixed(4) : "—"}</td>
-                <td class="mono">${fmtUsd(c.entry)}</td>
-                <td class="mono">${fmtUsd(c.exit)}</td>
-                <td class="mono ${pnlClass(c.pnl)}">${fmtUsd(c.pnl)}</td>
-                <td class="mono subtle">${fmtTime(c.closed_at)}</td>
-                <td class="mono muted">${escapeHtml(c.mode || "—")}</td>
-              </tr>`;
-          })
-          .join("");
-        return head + rows;
-      })
-      .join("");
-
-    host.innerHTML = `
-      <table>
-        <thead><tr><th>Ticker</th><th>Sector</th><th>Qty</th><th>Entry</th><th>Exit</th><th>Realized</th><th>Closed</th><th>Mode</th></tr></thead>
-        <tbody>
-          ${bodyHtml}
-        </tbody>
-      </table>`;
-    host.querySelectorAll("tr[data-closed-idx]").forEach((tr) => {
-      const idx = Number(tr.getAttribute("data-closed-idx"));
-      bindRowActivation(tr, () => openClosedDetail(ordered[idx]));
+      bindRowActivation(tr, () => openHoldingDetail(rows[idx].h));
     });
   }
 
@@ -709,7 +892,7 @@
   }
 
   function whyBoughtHtml(wb) {
-    const head = `<p class="kicker" style="margin-top:1rem">Why we bought it</p>`;
+    const head = `<h4>Why we bought it</h4>`;
     const buys = wb && Array.isArray(wb.buys) ? wb.buys : [];
     if (!buys.length) {
       return `${head}<p class="muted">No buy records for this position in the feed.</p>`;
@@ -727,29 +910,118 @@
       ${html}`;
   }
 
-  function openHoldingDetail(h) {
+  // ---- Agent votes -----------------------------------------------------------
+
+  /** One entry per agent: today's direction/confidence and its latest signal for the ticker. */
+  function votesForTicker(ticker) {
+    const pt = zonePointForTicker(ticker);
+    const sigs = signalsForTicker(ticker);
+    return AGENT_ORDER.map((agent) => {
+      const sig = sigs.find((s) => s.agent_id === agent) || null;
+      const z = (pt?.agents || []).find((a) => a.agent_id === agent) || null;
+      const src = sig || z;
+      return {
+        agent,
+        direction: src ? String(src.direction || "neutral") : null,
+        confidence: src ? safeNum(src.confidence) : null,
+        signal: sig,
+      };
+    });
+  }
+
+  function voteFill(v) {
+    if (!v || !v.direction) return { cls: "none", bg: "transparent" };
+    const a = (0.10 + Math.min(100, Math.max(0, v.confidence || 0)) / 100 * 0.42).toFixed(2);
+    if (v.direction === "long") return { cls: "long", bg: `rgb(134 208 160 / ${a})` };
+    if (v.direction === "short") return { cls: "short", bg: `rgb(239 154 134 / ${a})` };
+    return { cls: "neutral", bg: "" };
+  }
+
+  function dotsHtml(ticker) {
+    const votes = votesForTicker(ticker);
+    const label = votes.map((v) => `${AGENT_LABEL[v.agent]} ${v.direction || "no call"}${v.confidence != null ? " " + Math.round(v.confidence) : ""}`).join(", ");
+    return `<span class="dots" role="img" aria-label="${escapeHtml(label)}">${votes.map((v) => {
+      const f = voteFill(v);
+      const style = f.cls === "long" || f.cls === "short" ? ` style="background:${f.bg};border-color:transparent"` : "";
+      return `<span${style}></span>`;
+    }).join("")}</span>`;
+  }
+
+  /** Each agent's newest signal per ticker (research runs several cycles a day). */
+  function latestSignals(agent) {
+    const byTicker = new Map();
+    (DATA?.agents_today?.[agent]?.signals || []).forEach((s) => {
+      const k = tickerKey(s.ticker);
+      const prev = byTicker.get(k);
+      if (!prev || String(s.created_at || "") > String(prev.created_at || "")) byTicker.set(k, { ...s, agent_id: s.agent_id || agent });
+    });
+    return [...byTicker.values()];
+  }
+
+  /** Agents whose latest call was the same direction and confidence on every ticker. */
+  function flatAgents() {
+    const out = [];
+    AGENT_ORDER.forEach((agent) => {
+      const sigs = latestSignals(agent);
+      if (sigs.length < 5) return;
+      const keys = new Set(sigs.map((s) => `${s.direction}|${Math.round(Number(s.confidence) || 0)}`));
+      if (keys.size === 1) {
+        const s = sigs[0];
+        const noData = sigs.every((x) => /no recent headlines|insufficient data/i.test(String(x.reasoning || "")));
+        out.push({ agent, direction: s.direction, confidence: Math.round(Number(s.confidence) || 0), noData });
+      }
+    });
+    return out;
+  }
+
+  function agentReadsHtml(ticker, focusAgent) {
+    const votes = votesForTicker(ticker);
+    if (votes.every((v) => !v.direction)) {
+      return `<h4>Agent reads</h4><p class="muted">No agent signals for this ticker in the feed.</p>`;
+    }
+    return `<h4>${researchFallbackDay() ? `Agent reads · ${escapeHtml(fmtDay(researchFallbackDay()))}` : "Today's agent reads"}</h4>
+      ${votes.map((v) => {
+        const reason = v.signal ? escapeHtml(trunc(v.signal.reasoning || "", 260)) : "No reasoning in the feed.";
+        return `<div class="read${v.agent === focusAgent ? " focus" : ""}">
+          <div class="top"><span class="who">${AGENT_LABEL[v.agent]}</span>
+            <span class="dir ${escapeHtml(v.direction || "")}">${escapeHtml(v.direction || "no call")}${v.confidence != null ? " · " + Math.round(v.confidence) : ""}</span></div>
+          <p class="why">${reason}</p>
+        </div>`;
+      }).join("")}`;
+  }
+
+  function lifetimeStatsHtml(ticker) {
+    const r = lifetimeForTicker(ticker);
+    if (!r) return "";
+    return `<h4>Lifetime</h4>
+      <div class="grid-stats">
+        <div class="stat"><p class="label">First bought</p><p class="value">${r.first_buy_at ? escapeHtml(fmtDay(etCalendarDay(r.first_buy_at))) : "—"}</p></div>
+        <div class="stat"><p class="label">Buys · closes</p><p class="value">${r.buy_events ?? "—"} · ${r.close_events ?? "—"}</p></div>
+        <div class="stat"><p class="label">Realized</p><p class="value ${pnlTone(r.realized)}">${fmtMoneySigned(r.realized)}</p></div>
+        <div class="stat"><p class="label">Total P&amp;L</p><p class="value ${pnlTone(r.total)}">${fmtMoneySigned(r.total)}</p></div>
+      </div>`;
+  }
+
+  function openTickerDetail(ticker, focusAgent) {
+    const h = (DATA.holdings || []).find((x) => tickerKey(x.ticker) === tickerKey(ticker) && !isDust(x));
+    if (h) {
+      openHoldingDetail(h, focusAgent);
+      return;
+    }
+    const w = (DATA.watchlist || []).find((x) => tickerKey(x.ticker) === tickerKey(ticker)) || { ticker, sector: sectorOf(ticker) };
+    openWatchDetail(w, focusAgent);
+  }
+
+  function openHoldingDetail(h, focusAgent) {
     const mv = marketValue(h.qty, h.last);
     const pct = unrealizedPct(h.unrealized, h.qty, h.avg_cost);
-    const sigs = signalsForTicker(h.ticker);
+    const view = holdingsView().find((r) => tickerKey(r.h.ticker) === tickerKey(h.ticker));
     const decisions = decisionsForTicker(h.ticker);
     const mission = missionForTicker(h.ticker);
     const closed = closedFillsForTicker(h.ticker);
     const fills = (Array.isArray(h.fills) ? h.fills : []).slice(0, 8);
-    const latestSig = sigs[0];
     const latestDec = decisions[0];
-
-    let researchHtml = `<p class="muted">No research signals for this ticker in today's feed.</p>`;
-    if (latestSig) {
-      researchHtml = `
-        <p><span class="mono muted">${escapeHtml(latestSig.agent_id || "agent")}</span>
-          · <span class="dir ${escapeHtml(latestSig.direction)}">${escapeHtml(latestSig.direction)}</span>
-          · <span class="mono">${Number(latestSig.confidence).toFixed(1)}</span>
-          · <span class="subtle">${fmtTime(latestSig.created_at)}</span></p>
-        <p style="margin-top:0.5rem">${escapeHtml(latestSig.reasoning || "—")}</p>
-        ${minerviniLabel(latestSig.supporting_data)}
-        ${obvChandelierLabel(latestSig.supporting_data)}
-        ${latestSig.supporting_data ? `<pre>${escapeHtml(JSON.stringify(latestSig.supporting_data, null, 2))}</pre>` : ""}`;
-    }
+    const theme = h.sector || sectorOf(h.ticker);
 
     let decisionHtml = `<p class="muted">No decisions for this ticker in today's feed.</p>`;
     if (latestDec) {
@@ -762,10 +1034,10 @@
 
     let fillsHtml = "";
     if (fills.length) {
-      fillsHtml = `<p class="kicker" style="margin-top:1rem">Position fills</p>
+      fillsHtml = `<h4>Position fills</h4>
         <pre>${escapeHtml(JSON.stringify(fills, null, 2))}</pre>`;
     } else if (closed.length) {
-      fillsHtml = `<p class="kicker" style="margin-top:1rem">Related closed sells</p>
+      fillsHtml = `<h4>Recent sells</h4>
         <ul style="margin:0.35rem 0 0;padding-left:1.1rem;color:var(--muted);font-size:0.85rem">
           ${closed.slice(0, 5).map((c) =>
             `<li class="mono">${fmtTime(c.closed_at)} · qty ${c.qty != null ? Number(c.qty).toFixed(4) : "—"} · exit ${fmtUsd(c.exit)} · pnl ${fmtUsd(c.pnl)}</li>`
@@ -775,7 +1047,7 @@
 
     let missionHtml = "";
     if (mission.length) {
-      missionHtml = `<p class="kicker" style="margin-top:1rem">Mission notes</p>
+      missionHtml = `<h4>Mission notes</h4>
         <ul style="margin:0.35rem 0 0;padding-left:1.1rem;color:var(--muted);font-size:0.85rem">
           ${mission.map((e) =>
             `<li><span class="mono">${escapeHtml(e.type || "event")}</span> · ${fmtTime(e.at)} — ${escapeHtml(trunc(e.summary || "", 160))}</li>`
@@ -785,24 +1057,30 @@
 
     openDialogHtml(`
       <p class="kicker">Open book</p>
-      <h3>${escapeHtml(h.ticker)} · <span class="muted">${escapeHtml(h.sector || "—")}</span></h3>
-      <p class="muted">Updated ${fmtTime(h.updated_at)}</p>
+      <h3>${escapeHtml(h.ticker)} <span class="muted">${escapeHtml(theme || "—")}${view && view.weight != null ? ` · ${(view.weight * 100).toFixed(1)}% of book` : ""}</span></h3>
+      <p class="muted">Marked ${fmtTime(h.updated_at)}</p>
       <div class="grid-stats" style="margin-top:1rem">
-        <div class="stat"><p class="label">Qty</p><p class="value mono">${h.qty != null ? Number(h.qty).toFixed(4) : "—"}</p></div>
-        <div class="stat"><p class="label">Avg cost</p><p class="value mono">${fmtUsd(h.avg_cost)}</p></div>
-        <div class="stat"><p class="label">Last</p><p class="value mono">${fmtUsd(h.last)}</p></div>
-        <div class="stat"><p class="label">Market value</p><p class="value mono">${fmtUsd(mv)}</p></div>
-        <div class="stat"><p class="label">Unrealized $</p><p class="value mono ${pnlClass(h.unrealized)}">${fmtUsd(h.unrealized)}</p></div>
-        <div class="stat"><p class="label">Unrealized %</p><p class="value mono ${pnlClass(h.unrealized)}">${pct == null ? "—" : (pct * 100).toFixed(2) + "%"}</p></div>
+        <div class="stat"><p class="label">Value</p><p class="value">${fmtUsd(mv)}</p></div>
+        <div class="stat"><p class="label">P&amp;L on cost</p><p class="value ${pnlTone(h.unrealized)}">${fmtMoneySigned(h.unrealized)} (${fmtArrowPct(pct)})</p></div>
+        <div class="stat"><p class="label">Avg cost</p><p class="value">${fmtUsd(h.avg_cost)}</p></div>
+        <div class="stat"><p class="label">Last</p><p class="value">${fmtUsd(h.last)}</p></div>
+        <div class="stat"><p class="label">Qty</p><p class="value">${h.qty != null ? Number(h.qty).toFixed(6) : "—"}</p></div>
+        <div class="stat"><p class="label">Zone</p><p class="value">${zoneBadgeHtml(zonePointForTicker(h.ticker)?.zone)}</p></div>
       </div>
+      ${agentReadsHtml(h.ticker, focusAgent)}
       ${whyBoughtHtml(h.why_bought)}
-      <p class="kicker" style="margin-top:1rem">Latest research</p>
-      ${researchHtml}
-      <p class="kicker" style="margin-top:1rem">Latest decision</p>
+      <h4>Pressure zone</h4>
+      ${pressureBarsHtml(zonePointForTicker(h.ticker))}
+      ${lifetimeStatsHtml(h.ticker)}
+      <h4>Latest decision</h4>
       ${decisionHtml}
       ${fillsHtml}
       ${missionHtml}
       ${zoneDetailBlock(h.ticker)}`);
+    if (focusAgent) {
+      const el = $("dialogBody").querySelector(".read.focus");
+      if (el) el.scrollIntoView({ block: "center" });
+    }
   }
 
   function openClosedDetail(c) {
@@ -816,14 +1094,14 @@
 
     let extra = "";
     if (latestSig) {
-      extra += `<p class="kicker" style="margin-top:1rem">Latest research (same ticker)</p>
+      extra += `<h4>Latest research (same ticker)</h4>
         <p><span class="mono muted">${escapeHtml(latestSig.agent_id || "agent")}</span>
           · <span class="dir ${escapeHtml(latestSig.direction)}">${escapeHtml(latestSig.direction)}</span>
           · <span class="subtle">${fmtTime(latestSig.created_at)}</span></p>
         <p style="margin-top:0.35rem">${escapeHtml(latestSig.reasoning || "—")}</p>`;
     }
     if (related.length) {
-      extra += `<p class="kicker" style="margin-top:1rem">Related decisions</p>
+      extra += `<h4>Related decisions</h4>
         <ul style="margin:0.35rem 0 0;padding-left:1.1rem;color:var(--muted);font-size:0.85rem">
           ${related.map((d) =>
             `<li><span class="mono">${escapeHtml(d.decision_type)}</span> · ${fmtTime(d.created_at)} — ${escapeHtml(trunc(d.reasoning || "", 140))}</li>`
@@ -831,24 +1109,306 @@
         </ul>`;
     }
     if (c.buy || c.sell) {
-      extra += `<p class="kicker" style="margin-top:1rem">Linked legs</p>
+      extra += `<h4>Linked legs</h4>
         <pre>${escapeHtml(JSON.stringify({ buy: c.buy || null, sell: c.sell || null }, null, 2))}</pre>`;
     }
 
     const review = c.review || null;
     openDialogHtml(`
-      <p class="kicker">Closed book</p>
-      <h3>${escapeHtml(c.ticker)} · <span class="muted">${escapeHtml(c.sector || "—")}</span></h3>
+      <p class="kicker">Closed trade</p>
+      <h3>${escapeHtml(c.ticker)} <span class="muted">${escapeHtml(c.sector || sectorOf(c.ticker) || "—")}</span></h3>
       <p class="muted">Closed ${fmtTime(c.closed_at)} · mode ${escapeHtml(c.mode || "—")}</p>
       <div class="grid-stats" style="margin-top:1rem">
-        <div class="stat"><p class="label">Qty</p><p class="value mono">${c.qty != null ? Number(c.qty).toFixed(4) : "—"}</p></div>
-        <div class="stat"><p class="label">Entry</p><p class="value mono">${fmtUsd(c.entry)}</p></div>
-        <div class="stat"><p class="label">Exit</p><p class="value mono">${fmtUsd(c.exit)}</p></div>
-        <div class="stat"><p class="label">Realized P/L</p><p class="value mono ${pnlClass(c.pnl)}">${fmtUsd(c.pnl)}</p></div>
+        <div class="stat"><p class="label">Qty</p><p class="value">${c.qty != null ? Number(c.qty).toFixed(6) : "—"}</p></div>
+        <div class="stat"><p class="label">Realized P&amp;L</p><p class="value ${pnlTone(c.pnl)}">${fmtMoneySigned(c.pnl)}</p></div>
+        <div class="stat"><p class="label">Entry</p><p class="value">${fmtUsd(c.entry)}</p></div>
+        <div class="stat"><p class="label">Exit</p><p class="value">${fmtUsd(c.exit)}</p></div>
       </div>
       ${reviewBlockHtml(review)}
       ${extra || `<p class="muted" style="margin-top:1rem">No additional reasoning or linked fill payloads in this feed.</p>`}`);
   }
+
+  // ---- Themes ---------------------------------------------------------------
+
+  function themeFacts(theme) {
+    const board = (DATA.sector_board || []).find((r) => r.theme === theme) || {};
+    const names = (DATA.sectors?.[theme] || []).map(tickerKey);
+    const held = holdingsView().filter((r) => r.theme === theme);
+    const heldSet = new Set(held.map((r) => tickerKey(r.h.ticker)));
+    const watch = watchRows().filter((w) => w.theme === theme);
+    const tally = { long: 0, short: 0, neutral: 0 };
+    const flat = new Set(flatAgents().map((f) => f.agent));
+    const tallyLive = { long: 0, short: 0 };
+    const perAgent = {};
+    let inBuy = 0;
+    names.forEach((t) => {
+      votesForTicker(t).forEach((v) => {
+        if (!v.direction) return;
+        tally[v.direction] = (tally[v.direction] || 0) + 1;
+        if (!flat.has(v.agent) && (v.direction === "long" || v.direction === "short")) tallyLive[v.direction] += 1;
+        perAgent[v.agent] = perAgent[v.agent] || { long: 0, short: 0, neutral: 0, n: 0 };
+        perAgent[v.agent][v.direction] = (perAgent[v.agent][v.direction] || 0) + 1;
+        perAgent[v.agent].n += 1;
+      });
+      if (zonePointForTicker(t)?.zone === "buy_zone") inBuy += 1;
+    });
+    const cold = (DATA.cold || []).filter((c) => c.theme === theme);
+    return { board, names, held, heldSet, watch, tally, tallyLive, flat, perAgent, inBuy, cold };
+  }
+
+  function themeTake(theme, f) {
+    const out = [];
+    const w = safeNum(f.board.weight);
+    if (w != null) {
+      out.push(w < 0.02
+        ? `${escapeHtml(capitalize(theme))} is effectively out of the book (${(w * 100).toFixed(1)}%).`
+        : `${escapeHtml(capitalize(theme))} is ${(w * 100).toFixed(1)}% of the book across ${f.held.length} holding${f.held.length === 1 ? "" : "s"}.`);
+    }
+    const best = f.held.slice().sort((a, b) => (Number(b.h.unrealized) || 0) - (Number(a.h.unrealized) || 0))[0];
+    if (best && Number(best.h.unrealized) > 0.005) out.push(`Top open winner: ${escapeHtml(best.h.ticker)} (${fmtMoneySigned(best.h.unrealized)}).`);
+    const lifetime = (DATA.ticker_pnl || []).filter((r) => (r.sector || sectorOf(r.ticker)) === theme);
+    const worst = lifetime.slice().sort((a, b) => (Number(a.realized) || 0) - (Number(b.realized) || 0))[0];
+    const rea = safeNum(f.board.realized);
+    if (worst && Number(worst.realized) < -0.5) {
+      out.push(`Biggest lifetime realized loss: ${escapeHtml(worst.ticker)} (${fmtMoneySigned(worst.realized)})${rea != null && rea < 0 ? ` of the theme's ${fmtMoneySigned(rea)}` : ""}.`);
+    }
+    const r20 = safeNum(f.board.returns?.["20d"]);
+    if (r20 != null) out.push(`20-day tape ${fmtSignedPct(r20)}.`);
+    AGENT_ORDER.forEach((agent) => {
+      const p = f.perAgent[agent];
+      if (!p || f.flat.has(agent) || p.n < 5) return;
+      ["long", "short"].forEach((dir) => {
+        if (p[dir] >= Math.ceil(p.n * 0.7)) out.push(`${AGENT_LABEL[agent]} votes ${dir} on ${p[dir]} of ${p.n} names.`);
+      });
+    });
+    return out.join(" ");
+  }
+
+  function renderSectors() {
+    const host = $("sectorBoard");
+    const split = $("themeSplit");
+    if (!host) return;
+    const themes = themeKeys();
+    if (!themes.length) {
+      host.innerHTML = `<div class="empty">No themes in latest.json — re-export dashboard</div>`;
+      split.innerHTML = "";
+      return;
+    }
+    const byTheme = Object.fromEntries((DATA.sector_board || []).map((r) => [r.theme, r]));
+    split.innerHTML = themes
+      .map((t) => `<span style="width:${((Number(byTheme[t]?.weight) || 0) * 100).toFixed(1)}%;background:${themeColor(t)}"></span>`)
+      .join("");
+    host.innerHTML = themes
+      .map((theme) => {
+        const r = byTheme[theme] || {};
+        const f = themeFacts(theme);
+        const ret = r.returns || {};
+        const tape = ["1d", "5d", "20d"]
+          .map((k) => `<span class="${pnlTone(ret[k])}">${k} ${fmtArrowPct(ret[k])}</span>`)
+          .join("");
+        const bits = [`${f.held.length} held`, f.inBuy ? `${f.inBuy} in buy zone` : "nothing in buy zone"];
+        if (f.cold.length) bits.push(`${f.cold.length} on ice`);
+        return `<button type="button" class="theme-row" data-theme="${escapeHtml(theme)}">
+          <span class="top">
+            <span class="name"><span class="sw" style="background:${themeColor(theme)}" aria-hidden="true"></span>${escapeHtml(theme)}</span>
+            <span class="w">${r.weight != null ? (Number(r.weight) * 100).toFixed(1) + "%" : "—"} <span class="chev" aria-hidden="true">›</span></span>
+          </span>
+          <span class="tape">${tape}</span>
+          <span class="note">${bits.join(" · ")}</span>
+        </button>`;
+      })
+      .join("");
+    host.querySelectorAll(".theme-row").forEach((btn) => {
+      btn.addEventListener("click", () => openThemeDetail(btn.getAttribute("data-theme")));
+    });
+  }
+
+  function openThemeDetail(theme) {
+    const f = themeFacts(theme);
+    const b = f.board;
+    const ret = b.returns || {};
+    const total = f.tally.long + f.tally.short + f.tally.neutral || 1;
+    const liveN = f.names.length * (AGENT_ORDER.length - f.flat.size);
+    const flatNames = [...f.flat].map((a) => AGENT_LABEL[a]);
+    const rot = DATA.rotation?.settings || {};
+    const art = ART[theme];
+    openDialogHtml(`
+      ${art ? `<img class="drawer-art" src="${art}" alt="" />` : ""}
+      <p class="kicker">Theme</p>
+      <h3 style="text-transform:capitalize">${escapeHtml(theme)}</h3>
+      <p class="muted">${f.names.length} active names · ${f.held.length} held${b.weight != null ? ` · ${(Number(b.weight) * 100).toFixed(1)}% of book` : ""}</p>
+      <p class="take">${themeTake(theme, f)}</p>
+      <div class="grid-stats" style="margin-top:1rem">
+        <div class="stat"><p class="label">Book weight</p><p class="value">${b.weight != null ? (Number(b.weight) * 100).toFixed(1) + "%" : "—"}</p></div>
+        <div class="stat"><p class="label">In buy zone</p><p class="value ${f.inBuy ? "gain" : ""}">${f.inBuy} of ${f.names.length}</p></div>
+        <div class="stat"><p class="label">Unrealized</p><p class="value ${pnlTone(b.unrealized)}">${fmtMoneySigned(b.unrealized)}</p></div>
+        <div class="stat"><p class="label">Realized, lifetime</p><p class="value ${pnlTone(b.realized)}">${fmtMoneySigned(b.realized)}</p></div>
+      </div>
+      <h4>Tape (equal-weight)</h4>
+      <div class="grid-stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+        ${["1d", "5d", "20d"].map((k) => `<div class="stat"><p class="label">${k}</p><p class="value ${pnlTone(ret[k])}">${fmtArrowPct(ret[k], 2)}</p></div>`).join("")}
+      </div>
+      <h4>How the agents lean</h4>
+      <div class="lean" aria-hidden="true">
+        <span style="width:${(f.tally.long / total) * 100}%;background:${C.gain}"></span>
+        <span style="width:${(f.tally.neutral / total) * 100}%;background:#3a434d"></span>
+        <span style="width:${(f.tally.short / total) * 100}%;background:${C.loss}"></span>
+      </div>
+      <p class="muted" style="margin:0;font-size:0.85rem">All ${total} votes: ${f.tally.long} long · ${f.tally.neutral} neutral · ${f.tally.short} short.${flatNames.length ? ` Leaving out ${joinAnd(flatNames)}, which gave every name the same call: ${f.tallyLive.long} long · ${f.tallyLive.short} short of ${liveN}.` : ""}</p>
+      <h4>Held (${f.held.length})</h4>
+      ${f.held.length ? f.held.map((r) => `<button type="button" class="list-btn" data-ticker="${escapeHtml(r.h.ticker)}">
+          <span class="tick">${escapeHtml(r.h.ticker)}</span>
+          <span class="muted">${r.weight != null ? (r.weight * 100).toFixed(1) + "% of book" : "—"}</span>
+          <span class="mono ${pnlTone(r.h.unrealized)}">${fmtMoneySigned(r.h.unrealized)}</span>
+          <span class="chev" aria-hidden="true">›</span>
+        </button>`).join("") : `<p class="muted">Nothing held in this theme.</p>`}
+      <h4>Watching (${f.watch.length})</h4>
+      ${f.watch.length ? f.watch.map((w) => `<button type="button" class="list-btn" data-ticker="${escapeHtml(w.ticker)}">
+          <span class="tick">${escapeHtml(w.ticker)}</span>
+          ${dotsHtml(w.ticker)}
+          <span class="muted" style="text-align:right">buy ${w.buy.toFixed(2)} · sell ${w.sell.toFixed(2)}</span>
+          <span class="chev" aria-hidden="true">›</span>
+        </button>`).join("") : `<p class="muted">No other active names.</p>`}
+      ${f.cold.length ? `<h4>On ice</h4>${f.cold.map((c) => `<div class="read"><div class="top"><span class="who mono">${escapeHtml(c.ticker)}</span><span class="muted">until ${escapeHtml(fmtDay(c.checkup_date))}</span></div><p class="why">${escapeHtml(coldReason(c.reason))}</p></div>`).join("")}` : ""}
+      ${rot.cold_days ? `<p class="footnote">A name goes cold for ${rot.cold_days} days when, over its last ${rot.lookback_cycles} cycles, median confidence is under ${rot.min_median_confidence} and under ${Math.round((rot.max_long_fraction || 0) * 100)}% of votes are long.</p>` : ""}`);
+    $("dialogBody").querySelectorAll(".list-btn[data-ticker]").forEach((btn) => {
+      btn.addEventListener("click", () => openTickerDetail(btn.getAttribute("data-ticker")));
+    });
+  }
+
+  /** "awful:median_conf=15.0,long_frac=0.12" -> readable sentence. */
+  function coldReason(reason) {
+    const s = String(reason || "");
+    const conf = /median_conf=([\d.]+)/.exec(s);
+    const lf = /long_frac=([\d.]+)/.exec(s);
+    if (conf || lf) {
+      return `Benched after ${conf ? `median confidence of ${Math.round(Number(conf[1]))}` : "weak votes"}${lf ? ` and only ${Math.round(Number(lf[1]) * 100)}% long votes` : ""}.`;
+    }
+    return s || "Benched by rotation.";
+  }
+
+  // ---- Exits ----------------------------------------------------------------
+
+  function exitReasonOf(c) {
+    return c.review?.exit_reason || null;
+  }
+
+  function renderClosed() {
+    const host = $("closedTable");
+    if (!host) return;
+    // UI-only window: full DATA.closed stays intact for Lifetime / detail helpers.
+    const recent = closedRowsForRecentWindow(DATA.closed || [], () => true);
+    if (!recent.length) {
+      host.innerHTML = `<div class="empty">No closes today or yesterday (ET). Full history is in Lifetime.</div>`;
+      return;
+    }
+    const { today, yesterday } = etTodayYesterday();
+    const html = [
+      { key: "today", label: `Today · ${fmtDay(today)}` },
+      { key: "yesterday", label: `Yesterday · ${fmtDay(yesterday)}` },
+    ]
+      .map((g) => {
+        const items = recent.filter((x) => x.bucket === g.key).map((x) => x.row);
+        if (!items.length) return "";
+        const groups = new Map();
+        items.forEach((c) => {
+          const k = tickerKey(c.ticker);
+          if (!groups.has(k)) groups.set(k, []);
+          groups.get(k).push(c);
+        });
+        const rows = [...groups.entries()]
+          .sort((a, b) => b[1].length - a[1].length)
+          .map(([ticker, fills]) => exitGroupHtml(ticker, fills, g.key))
+          .join("");
+        return `<p class="exit-day">${escapeHtml(g.label)}</p><div class="exit-list">${rows}</div>`;
+      })
+      .join("");
+    host.innerHTML = html;
+    host.querySelectorAll(".exit-row").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const fills = recent
+          .filter((x) => x.bucket === btn.getAttribute("data-bucket") && tickerKey(x.row.ticker) === btn.getAttribute("data-ticker"))
+          .map((x) => x.row);
+        openExitGroup(btn.getAttribute("data-ticker"), fills);
+      });
+    });
+  }
+
+  function summarizeExits(fills) {
+    const sorted = fills.slice().sort((a, b) => String(a.closed_at || "").localeCompare(String(b.closed_at || "")));
+    const pnlKnown = sorted.filter((c) => safeNum(c.pnl) != null);
+    const pnl = pnlKnown.length ? pnlKnown.reduce((a, c) => a + Number(c.pnl), 0) : null;
+    const notional = sorted.reduce((a, c) => a + (marketValue(c.qty, c.exit) || 0), 0);
+    const reasons = [...new Set(sorted.map(exitReasonOf).filter(Boolean))];
+    const amounts = sorted.map((c) => marketValue(c.qty, c.exit)).filter((v) => v != null);
+    const shrinking = amounts.length >= 4 && amounts.every((v, i) => i === 0 || v <= amounts[i - 1] + 1e-9);
+    return { sorted, pnl, notional, reasons, amounts, shrinking };
+  }
+
+  function exitTag(fills, s) {
+    const n = fills.length;
+    const reason = s.reasons.length === 1 ? s.reasons[0] : null;
+    if (n >= 4 && reason) return { cls: "warn", text: `${s.shrinking ? "Drip-selling" : "Repeat sells"} · ${n} sells` };
+    if (reason === "opportunity_rotate") return { cls: "accent", text: `Rotation · ${n} sell${n === 1 ? "" : "s"}` };
+    if (reason === "signal_sell") return { cls: "", text: `Signal exit · ${n} sell${n === 1 ? "" : "s"}` };
+    if (reason) return { cls: "", text: `${reason.replace(/_/g, " ")} · ${n} sell${n === 1 ? "" : "s"}` };
+    return { cls: "", text: `${n} sell${n === 1 ? "" : "s"}` };
+  }
+
+  function exitWhy(fills, s) {
+    const first = s.sorted[0];
+    const last = s.sorted[s.sorted.length - 1];
+    const span = fills.length > 1 ? `from ${fmtClock(first.closed_at)} to ${fmtClock(last.closed_at)}` : `at ${fmtClock(first.closed_at)}`;
+    if (s.shrinking && s.amounts.length >= 4) {
+      return `A smaller slice each time, ${fmtMoneyPlain(s.amounts[0])} down to ${fmtMoneyPlain(s.amounts[s.amounts.length - 1])}, ${span}.`;
+    }
+    const entry = safeNum(first.entry);
+    return `${capitalize(span)}${entry != null ? ` · bought at ${fmtUsd(entry)}` : ""}.`;
+  }
+
+  function exitGroupHtml(ticker, fills, bucket) {
+    const s = summarizeExits(fills);
+    const tag = exitTag(fills, s);
+    return `<button type="button" class="exit-row" data-ticker="${escapeHtml(ticker)}" data-bucket="${escapeHtml(bucket)}">
+      <span class="tick">${escapeHtml(ticker)}</span>
+      <span class="pill ${tag.cls}">${escapeHtml(tag.text)}</span>
+      <span class="why">${escapeHtml(exitWhy(fills, s))}</span>
+      <span class="amt ${pnlTone(s.pnl)}">${s.pnl == null ? "P&amp;L n/a" : fmtMoneySigned(s.pnl)}</span>
+      <span class="amt subtle">${fmtMoneyPlain(s.notional)} sold <span class="chev" aria-hidden="true">›</span></span>
+    </button>`;
+  }
+
+  function openExitGroup(ticker, fills) {
+    const s = summarizeExits(fills);
+    const tag = exitTag(fills, s);
+    const first = s.sorted[0] || {};
+    const held = (DATA.holdings || []).find((h) => tickerKey(h.ticker) === tickerKey(ticker) && !isDust(h));
+    const reasonText = s.reasons.length
+      ? `Exit reason${s.reasons.length === 1 ? "" : "s"}: ${s.reasons.map((r) => r.replace(/_/g, " ")).join(", ")}.`
+      : "No exit reason recorded.";
+    openDialogHtml(`
+      <p class="kicker">Exits</p>
+      <h3>${escapeHtml(ticker)} <span class="muted">${escapeHtml(first.sector || sectorOf(ticker) || "—")} · ${escapeHtml(tag.text)}</span></h3>
+      <p class="take">${escapeHtml(exitWhy(fills, s))} ${escapeHtml(reasonText)}</p>
+      <div class="grid-stats" style="margin-top:1rem">
+        <div class="stat"><p class="label">Realized</p><p class="value ${pnlTone(s.pnl)}">${s.pnl == null ? "—" : fmtMoneySigned(s.pnl)}</p></div>
+        <div class="stat"><p class="label">Sold</p><p class="value">${fmtUsd(s.notional)}</p></div>
+        <div class="stat"><p class="label">Bought at</p><p class="value">${fmtUsd(first.entry)}</p></div>
+        <div class="stat"><p class="label">Still held</p><p class="value">${held ? fmtUsd(marketValue(held.qty, held.last)) : "none"}</p></div>
+      </div>
+      <h4>Fills · click one for its trade review</h4>
+      ${s.sorted.map((c, i) => `<button type="button" class="list-btn" data-fill-idx="${i}">
+          <span class="mono muted">${escapeHtml(fmtClock(c.closed_at))}</span>
+          <span class="mono">${fmtUsd(marketValue(c.qty, c.exit))} @ ${fmtUsd(c.exit)}</span>
+          <span class="mono ${pnlTone(c.pnl)}">${fmtMoneySigned(c.pnl)}</span>
+          <span class="chev" aria-hidden="true">›</span>
+        </button>`).join("")}`);
+    $("dialogBody").querySelectorAll(".list-btn[data-fill-idx]").forEach((btn) => {
+      btn.addEventListener("click", () => openClosedDetail(s.sorted[Number(btn.getAttribute("data-fill-idx"))]));
+    });
+  }
+
+  // ---- Lifetime -------------------------------------------------------------
 
   function drawLifetimeCumChart(series) {
     if (!series || series.length < 2) {
@@ -865,17 +1425,17 @@
     const y = (v) => pad.t + (1 - (v - lo) / span) * (h - pad.t - pad.b);
     const pts = series.map((p, i) => `${x(i).toFixed(1)},${y(Number(p.cum) || 0).toFixed(1)}`).join(" ");
     const end = vals[vals.length - 1];
-    const stroke = end > 0 ? "#8aa58f" : end < 0 ? "#c48980" : "#8b949e";
+    const stroke = end > 0 ? C.gain : end < 0 ? C.loss : C.muted;
     const zeroY = y(0);
     const first = escapeHtml(String(series[0].at || "").slice(0, 10));
     const last = escapeHtml(String(series[series.length - 1].at || "").slice(0, 10));
     return `<div class="zone-chart"><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Cumulative realized PnL">
-      <line x1="${pad.l}" x2="${w - pad.r}" y1="${zeroY}" y2="${zeroY}" stroke="#232a32" stroke-dasharray="3 4"/>
-      <text x="4" y="${y(hi) + 3}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono">${hi.toFixed(2)}</text>
-      <text x="4" y="${y(lo) + 3}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono">${lo.toFixed(2)}</text>
+      <line x1="${pad.l}" x2="${w - pad.r}" y1="${zeroY}" y2="${zeroY}" stroke="#3a4652" stroke-dasharray="3 4"/>
+      <text x="4" y="${y(hi) + 3}" fill="${C.subtle}" font-size="10" font-family="IBM Plex Mono">${hi.toFixed(2)}</text>
+      <text x="4" y="${y(lo) + 3}" fill="${C.subtle}" font-size="10" font-family="IBM Plex Mono">${lo.toFixed(2)}</text>
       <polyline points="${pts}" fill="none" stroke="${stroke}" stroke-width="1.8"/>
-      <text x="${pad.l}" y="${h - 8}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono">${first}</text>
-      <text x="${w - pad.r}" y="${h - 8}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono" text-anchor="end">${last}</text>
+      <text x="${pad.l}" y="${h - 8}" fill="${C.subtle}" font-size="10" font-family="IBM Plex Mono">${first}</text>
+      <text x="${w - pad.r}" y="${h - 8}" fill="${C.subtle}" font-size="10" font-family="IBM Plex Mono" text-anchor="end">${last}</text>
       <text x="${pad.l + 4}" y="12" fill="${stroke}" font-size="10" font-family="IBM Plex Mono">cum realized</text>
     </svg></div>`;
   }
@@ -887,22 +1447,21 @@
       matchesSector(r.sector || sectorOf(r.ticker))
     );
     if (!rows.length) {
-      host.innerHTML = `<div class="empty">No lifetime ticker PnL${filter !== "all" ? " in this sector" : ""}</div>`;
+      host.innerHTML = `<div class="empty">No lifetime ticker PnL${filter !== "all" ? " in this theme" : ""}</div>`;
       return;
     }
     host.innerHTML = `
       <table>
-        <thead><tr><th>Ticker</th><th>Sector</th><th>Realized</th><th>Unrealized</th><th>Total</th><th>Closes</th><th>Last activity</th></tr></thead>
+        <thead><tr><th>Ticker</th><th class="num">Realized</th><th class="num">Unrealized</th><th class="num">Total</th><th class="num">Closes</th><th>Last activity</th></tr></thead>
         <tbody>
           ${rows
             .map(
               (r, i) => `<tr data-life-idx="${i}" aria-label="Open lifetime PnL for ${escapeHtml(r.ticker)}">
-                <td class="mono">${escapeHtml(r.ticker)}</td>
-                <td class="muted">${escapeHtml(r.sector || "—")}</td>
-                <td class="mono ${pnlClass(r.realized)}">${fmtUsd(r.realized)}</td>
-                <td class="mono ${pnlClass(r.unrealized)}">${fmtUsd(r.unrealized)}</td>
-                <td class="mono ${pnlClass(r.total)}">${fmtUsd(r.total)}</td>
-                <td class="mono">${r.close_events != null ? r.close_events : "—"}</td>
+                <td><span class="tick">${escapeHtml(r.ticker)}</span><span class="tick-sub">${escapeHtml(r.sector || sectorOf(r.ticker) || "—")}</span></td>
+                <td class="num mono ${pnlTone(r.realized)}">${fmtMoneySigned(r.realized)}</td>
+                <td class="num mono ${pnlTone(r.unrealized)}">${r.unrealized == null ? "—" : fmtMoneySigned(r.unrealized)}</td>
+                <td class="num mono ${pnlTone(r.total)}">${fmtMoneySigned(r.total)}</td>
+                <td class="num mono">${r.close_events != null ? r.close_events : "—"}</td>
                 <td class="mono subtle">${fmtTime(r.last_activity_at)}</td>
               </tr>`
             )
@@ -923,81 +1482,77 @@
       ? `<p class="muted" style="margin-top:0.75rem">Reviews: ${r.review_count != null ? r.review_count : reviews.length} · last completeness ${escapeHtml(r.last_completeness || (lastReview && lastReview.completeness) || "—")}</p>`
       : (reviews.length ? `<p class="muted" style="margin-top:0.75rem">Reviews: ${reviews.length}</p>` : "");
     openDialogHtml(`
-      <p class="kicker">Lifetime book</p>
-      <h3>${escapeHtml(r.ticker)} · <span class="muted">${escapeHtml(r.sector || "—")}</span></h3>
+      <p class="kicker">Lifetime</p>
+      <h3>${escapeHtml(r.ticker)} <span class="muted">${escapeHtml(r.sector || sectorOf(r.ticker) || "—")}</span></h3>
       <p class="muted">First buy ${fmtTime(r.first_buy_at)} · last activity ${fmtTime(r.last_activity_at)}</p>
       <div class="grid-stats" style="margin-top:1rem">
-        <div class="stat"><p class="label">Realized</p><p class="value mono ${pnlClass(r.realized)}">${fmtUsd(r.realized)}</p></div>
-        <div class="stat"><p class="label">Unrealized</p><p class="value mono ${pnlClass(r.unrealized)}">${fmtUsd(r.unrealized)}</p></div>
-        <div class="stat"><p class="label">Total</p><p class="value mono ${pnlClass(r.total)}">${fmtUsd(r.total)}</p></div>
-        <div class="stat"><p class="label">Closes</p><p class="value mono">${r.close_events != null ? r.close_events : "—"}</p></div>
-        <div class="stat"><p class="label">Buys</p><p class="value mono">${r.buy_events != null ? r.buy_events : "—"}</p></div>
-        <div class="stat"><p class="label">Qty open</p><p class="value mono">${r.qty_open != null ? Number(r.qty_open).toFixed(4) : "—"}</p></div>
-        <div class="stat"><p class="label">Avg cost open</p><p class="value mono">${fmtUsd(r.avg_cost_open)}</p></div>
+        <div class="stat"><p class="label">Realized</p><p class="value ${pnlTone(r.realized)}">${fmtMoneySigned(r.realized)}</p></div>
+        <div class="stat"><p class="label">Unrealized</p><p class="value ${pnlTone(r.unrealized)}">${r.unrealized == null ? "—" : fmtMoneySigned(r.unrealized)}</p></div>
+        <div class="stat"><p class="label">Total</p><p class="value ${pnlTone(r.total)}">${fmtMoneySigned(r.total)}</p></div>
+        <div class="stat"><p class="label">Buys · closes</p><p class="value">${r.buy_events ?? "—"} · ${r.close_events ?? "—"}</p></div>
+        <div class="stat"><p class="label">Qty open</p><p class="value">${r.qty_open != null ? Number(r.qty_open).toFixed(6) : "—"}</p></div>
+        <div class="stat"><p class="label">Avg cost open</p><p class="value">${fmtUsd(r.avg_cost_open)}</p></div>
       </div>
-      <p class="kicker" style="margin-top:1rem">Cumulative realized</p>
+      <h4>Cumulative realized</h4>
       ${drawLifetimeCumChart(series)}
       ${reviewSummary}
       ${reviewBlockHtml(lastReview, { heading: "Latest close review" })}`);
   }
 
-  function renderAgents() {
-    const agents = DATA.agents_today || {};
-    const host = $("agentGrid");
-    host.innerHTML = "";
-    AGENT_ORDER.forEach((aid) => {
-      const block = agents[aid] || { agent_id: aid, count: 0, signals: [], long: 0, short: 0, neutral: 0 };
-      let signals = block.signals || [];
-      if (filter !== "all") {
-        signals = signals.filter((s) => matchesSector(sectorOf(s.ticker)));
-      }
-      const card = document.createElement("article");
-      card.className = "agent-card";
-      card.innerHTML = `
-        <header>
-          <div>
-            <h3>${aid.replace(/_/g, " ")}</h3>
-            <div class="counts">${signals.length} shown · ${block.count || 0} ${researchFallbackDay() ? "on " + escapeHtml(researchFallbackDay()) : "today"} · L${block.long || 0}/S${block.short || 0}/N${block.neutral || 0}</div>
-          </div>
-        </header>`;
-      const list = document.createElement("ul");
-      list.className = "signal-list";
-      if (!signals.length) {
-        list.innerHTML = `<li class="empty" style="padding:1rem">No signals</li>`;
-      } else {
-        signals.slice(0, 12).forEach((s) => {
-          const li = document.createElement("li");
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "signal-item";
-          btn.innerHTML = `
-            <div class="signal-top">
-              <span class="mono">${escapeHtml(s.ticker)}</span>
-              <span>
-                <span class="dir ${escapeHtml(s.direction)}">${escapeHtml(s.direction)}</span>
-                <span class="mono subtle"> ${Number(s.confidence).toFixed(0)}</span>
-              </span>
-            </div>
-            <p class="signal-reason">${escapeHtml(trunc(s.reasoning, 120))}</p>`;
-          btn.addEventListener("click", () => openDetail(s, aid));
-          li.appendChild(btn);
-          list.appendChild(li);
-        });
-      }
-      card.appendChild(list);
-      host.appendChild(card);
-    });
-  }
+  // ---- Research -------------------------------------------------------------
 
-  function flattenSignals() {
-    const agents = DATA.agents_today || {};
-    const out = [];
-    Object.values(agents).forEach((block) => {
-      (block.signals || []).forEach((s) => {
-        out.push({ ...s, agent_id: block.agent_id || s.agent_id });
+  function renderConsensus() {
+    const note = $("consensusNote");
+    const host = $("consensusGrid");
+    const flat = flatAgents();
+    if (flat.length) {
+      const names = joinAnd(flat.map((f) => AGENT_LABEL[f.agent]));
+      const calls = [...new Set(flat.map((f) => f.direction))];
+      const confs = flat.map((f) => f.confidence).join(" and ");
+      const noData = flat.filter((f) => f.noData).map((f) => AGENT_LABEL[f.agent]);
+      note.innerHTML = `<div class="note-warn" role="note">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 21h20L12 3z"/><path d="M12 10v5"/><path d="M12 18h.01"/></svg>
+        <span>${escapeHtml(names)} gave <strong>${escapeHtml(calls.join("/"))} at the same confidence (${escapeHtml(confs)}) on every name</strong>, so ${flat.length === 1 ? "that vote isn't" : "those votes aren't"} telling tickers apart.${noData.length ? ` ${escapeHtml(joinAnd(noData))} found no headlines for any ticker.` : ""}</span>
+      </div>`;
+    } else {
+      note.innerHTML = "";
+    }
+    const held = holdingsView()
+      .filter((r) => !(r.mv != null && r.mv < SMALL_POSITION_USD) && matchesSector(r.theme))
+      .map((r) => ({ ticker: r.h.ticker, held: true }));
+    const watch = watchRows()
+      .filter((w) => matchesSector(w.theme))
+      .slice(0, filter === "all" ? 6 : 10)
+      .map((w) => ({ ticker: w.ticker, held: false }));
+    const rows = held.concat(watch);
+    if (!rows.length) {
+      host.innerHTML = `<div class="empty">No agent signals${filter !== "all" ? " in this theme" : ""}</div>`;
+      return;
+    }
+    const head = `<span></span>${AGENT_ORDER.map((a) => `<span class="colhead">${AGENT_LABEL[a]}</span>`).join("")}<span class="colhead">Votes</span>`;
+    let body = "";
+    rows.forEach((row, i) => {
+      if (i === held.length && held.length && watch.length) body += `<span class="gap" aria-hidden="true"></span>`;
+      const votes = votesForTicker(row.ticker);
+      const L = votes.filter((v) => v.direction === "long").length;
+      const S = votes.filter((v) => v.direction === "short").length;
+      body += `<button type="button" class="rowhead" data-ticker="${escapeHtml(row.ticker)}"><span class="tick">${escapeHtml(row.ticker)}</span><span class="tag${row.held ? " held" : ""}">${row.held ? "held" : "watch"}</span></button>`;
+      votes.forEach((v) => {
+        const f = voteFill(v);
+        const label = v.direction ? `${v.direction === "long" ? "L" : v.direction === "short" ? "S" : "·"} ${v.confidence != null ? Math.round(v.confidence) : ""}` : "—";
+        const style = f.cls === "long" || f.cls === "short" ? ` style="background:${f.bg}"` : "";
+        const aria = `${row.ticker} ${AGENT_LABEL[v.agent]}: ${v.direction || "no call"}${v.confidence != null ? " " + Math.round(v.confidence) : ""}`;
+        body += v.direction
+          ? `<button type="button" class="cell ${f.cls}"${style} data-ticker="${escapeHtml(row.ticker)}" data-agent="${v.agent}" aria-label="${escapeHtml(aria)}">${label}</button>`
+          : `<span class="cell none" aria-label="${escapeHtml(aria)}">—</span>`;
       });
+      body += `<span class="votes ${L > S ? "gain" : S > L ? "loss" : "muted"}">${L} L · ${S} S</span>`;
     });
-    return out;
+    host.innerHTML = `<div class="cgrid">${head}${body}</div>`;
+    host.querySelectorAll(".rowhead").forEach((b) => b.addEventListener("click", () => openTickerDetail(b.getAttribute("data-ticker"))));
+    host.querySelectorAll(".cell[data-agent]").forEach((b) =>
+      b.addEventListener("click", () => openTickerDetail(b.getAttribute("data-ticker"), b.getAttribute("data-agent")))
+    );
   }
 
   function renderResearch() {
@@ -1015,30 +1570,35 @@
       )
       .join("");
 
-    let signals = flattenSignals().filter((s) => matchesSector(sectorOf(s.ticker)));
-    signals = signals.slice(0, 40);
+    let signals = AGENT_ORDER.flatMap((a) => latestSignals(a)).filter((s) => matchesSector(sectorOf(s.ticker)));
+    // Directional calls first, strongest first: the 5-agent neutral wall is in the grid above.
+    signals = signals
+      .slice()
+      .sort((a, b) => (a.direction === "neutral") - (b.direction === "neutral") || Number(b.confidence) - Number(a.confidence))
+      .slice(0, 40);
     if (!signals.length) {
-      $("researchTable").innerHTML = `<div class="empty">No research signals for filter</div>`;
+      $("researchTable").innerHTML = `<div class="empty">No research signals for this filter</div>`;
     } else {
       $("researchTable").innerHTML = `
         <table>
-          <thead><tr><th>Agent</th><th>Ticker</th><th>Dir</th><th>Conf</th><th>Reasoning</th></tr></thead>
+          <thead><tr><th>Agent</th><th>Ticker</th><th>Dir</th><th class="num">Conf</th><th>Reasoning</th></tr></thead>
           <tbody>
             ${signals
               .map(
-                (s) => `<tr class="clickable" data-sid="${escapeHtml(s.signal_id || "")}">
-                  <td class="mono muted">${escapeHtml(s.agent_id)}</td>
-                  <td class="mono">${escapeHtml(s.ticker)}</td>
+                (s, i) => `<tr data-sig-idx="${i}" aria-label="Open ${escapeHtml(s.agent_id)} signal for ${escapeHtml(s.ticker)}">
+                  <td class="muted">${escapeHtml(AGENT_LABEL[s.agent_id] || s.agent_id)}</td>
+                  <td class="tick">${escapeHtml(s.ticker)}</td>
                   <td><span class="dir ${escapeHtml(s.direction)}">${escapeHtml(s.direction)}</span></td>
-                  <td class="mono">${Number(s.confidence).toFixed(0)}</td>
+                  <td class="num mono">${Number(s.confidence).toFixed(0)}</td>
                   <td class="muted">${escapeHtml(trunc(s.reasoning, 100))}</td>
                 </tr>`
               )
               .join("")}
           </tbody>
         </table>`;
-      $("researchTable").querySelectorAll("tr.clickable").forEach((tr, i) => {
-        tr.addEventListener("click", () => openDetail(signals[i], signals[i].agent_id));
+      $("researchTable").querySelectorAll("tr[data-sig-idx]").forEach((tr) => {
+        const s = signals[Number(tr.getAttribute("data-sig-idx"))];
+        bindRowActivation(tr, () => openDetail(s, s.agent_id));
       });
     }
 
@@ -1087,7 +1647,7 @@
           <div class="mono subtle">${fmtTime(e.at)}</div>
           <div>
             <div><span class="mono">${escapeHtml(e.type)}</span> · <span class="muted">${escapeHtml(e.actor)}</span>
-              ${e.ticker ? ` · <span class="mono">${escapeHtml(e.ticker)}</span>` : ""}</div>
+              ${e.ticker ? ` · <span class="tick">${escapeHtml(e.ticker)}</span>` : ""}</div>
             <div class="muted" style="margin-top:0.25rem">${escapeHtml(trunc(e.summary, 180))}</div>
           </div>
         </li>`
@@ -1095,24 +1655,91 @@
       .join("");
   }
 
-  function openWatchDetail(w) {
-    const s = w.signal;
-    let sigHtml = `<p class="muted">No top agent signal today.</p>`;
-    if (s) {
-      sigHtml = `<p><span class="mono muted">${escapeHtml(s.agent_id || "agent")}</span>
-        · <span class="dir ${escapeHtml(s.direction)}">${escapeHtml(s.direction)}</span>
-        · <span class="mono">${Number(s.confidence).toFixed(1)}</span>
-        · <span class="subtle">${fmtTime(s.created_at)}</span></p>
-        <p style="margin-top:0.5rem">${escapeHtml(s.reasoning || "—")}</p>`;
-    }
-    openDialogHtml(`
-      <p class="kicker">Watchlist</p>
-      <h3>${escapeHtml(w.ticker)} · <span class="muted">${escapeHtml(w.sector || "—")}</span></h3>
-      <p class="kicker" style="margin-top:1rem">Top signal</p>
-      ${sigHtml}
-      ${zoneDetailBlock(w.ticker)}`);
+  // ---- Watchlist ------------------------------------------------------------
+
+  /** Active names not held, with pressure and their strongest directional vote; closest to a buy first. */
+  function watchRows() {
+    const held = new Set(holdingsView().map((r) => tickerKey(r.h.ticker)));
+    const cold = new Set((DATA?.cold || []).map((c) => tickerKey(c.ticker)));
+    return (DATA?.watchlist || [])
+      .filter((w) => !held.has(tickerKey(w.ticker)) && !cold.has(tickerKey(w.ticker)))
+      .map((w) => {
+        const pt = zonePointForTicker(w.ticker);
+        const votes = votesForTicker(w.ticker);
+        const best = votes
+          .filter((v) => v.direction === "long" || v.direction === "short")
+          .sort((a, b) => (b.confidence || 0) - (a.confidence || 0))[0] || null;
+        return {
+          w,
+          ticker: w.ticker,
+          theme: w.sector || sectorOf(w.ticker),
+          buy: Number(pt?.buy) || 0,
+          sell: Number(pt?.sell) || 0,
+          zone: pt?.zone || null,
+          best,
+        };
+      })
+      .sort((a, b) => b.buy - a.buy || a.sell - b.sell || a.ticker.localeCompare(b.ticker));
   }
 
+  function openWatchDetail(w, focusAgent) {
+    const theme = w.sector || sectorOf(w.ticker);
+    openDialogHtml(`
+      <p class="kicker">Watchlist</p>
+      <h3>${escapeHtml(w.ticker)} <span class="muted">${escapeHtml(theme || "—")} · not held</span></h3>
+      <h4>Pressure zone</h4>
+      ${pressureBarsHtml(zonePointForTicker(w.ticker))}
+      ${agentReadsHtml(w.ticker, focusAgent)}
+      ${lifetimeStatsHtml(w.ticker)}
+      ${zoneDetailBlock(w.ticker)}`);
+    if (focusAgent) {
+      const el = $("dialogBody").querySelector(".read.focus");
+      if (el) el.scrollIntoView({ block: "center" });
+    }
+  }
+
+  function renderWatch() {
+    const all = watchRows();
+    const rows = all.filter((r) => matchesSector(r.theme));
+    const th = zoneThresholds();
+    const top = all[0];
+    $("watchHint").textContent = top
+      ? top.buy >= th.buy
+        ? `Active names not held, closest to a buy first. ${top.ticker} is in the buy zone (${top.buy.toFixed(2)}).`
+        : `Active names not held, closest to a buy first. Nothing is near one: the top buy pressure is ${top.buy.toFixed(2)} and a buy needs ${th.buy.toFixed(2)}.`
+      : "Active names not held, closest to a buy first.";
+    const cold = DATA.cold || [];
+    $("coldNote").textContent = cold.length
+      ? `On ice: ${cold.map((c) => `${c.ticker}${c.theme ? ` (${c.theme})` : ""} until ${fmtDay(c.checkup_date)}`).join(" · ")}.`
+      : "";
+    if (!rows.length) {
+      $("watchTable").innerHTML = `<div class="empty">Watchlist empty${filter !== "all" ? " for this theme" : ""}</div>`;
+      return;
+    }
+    const scale = Math.max(0.6, th.buy * 1.7);
+    const mark = ((th.buy / scale) * 100).toFixed(1);
+    $("watchTable").innerHTML = `
+      <table>
+        <thead><tr><th>Ticker</th><th>Agent votes</th><th>Buy pressure <span class="muted">(| = ${th.buy.toFixed(2)} buy line)</span></th><th class="num">Sell</th><th>Strongest directional vote</th></tr></thead>
+        <tbody>
+          ${rows
+            .map((r, i) => `<tr data-watch-idx="${i}" aria-label="Open details for ${escapeHtml(r.ticker)}">
+                <td><span class="tick">${escapeHtml(r.ticker)}</span><span class="tick-sub">${escapeHtml(r.theme || "—")}</span><span class="chev" aria-hidden="true">›</span></td>
+                <td>${dotsHtml(r.ticker)}</td>
+                <td><div class="wbar"><div class="track"><div class="fill buy" style="width:${Math.min(100, (r.buy / scale) * 100).toFixed(1)}%"></div><span class="mark" style="left:${mark}%" aria-hidden="true"></span></div><span class="num">${r.buy.toFixed(2)}</span></div></td>
+                <td class="num mono ${r.sell >= th.sell * 0.7 ? "loss" : ""}">${r.sell.toFixed(2)}</td>
+                <td class="${r.best ? (r.best.direction === "long" ? "gain" : "loss") : "subtle"}">${r.best ? `${AGENT_LABEL[r.best.agent]} · ${r.best.direction} ${Math.round(r.best.confidence || 0)}` : "no directional vote"}</td>
+              </tr>`)
+            .join("")}
+        </tbody>
+      </table>`;
+    $("watchTable").querySelectorAll("tr[data-watch-idx]").forEach((tr) => {
+      const idx = Number(tr.getAttribute("data-watch-idx"));
+      bindRowActivation(tr, () => openWatchDetail(rows[idx].w));
+    });
+  }
+
+  // ---- Zones ----------------------------------------------------------------
 
   function renderZones() {
     const host = $("zonesScatter");
@@ -1121,7 +1748,7 @@
     const all = DATA?.zones?.points || [];
     const points = all.filter((p) => matchesSector(p.sector || sectorOf(p.ticker)));
     const counts = { buy_zone: 0, sell_zone: 0, conflicted: 0, quiet: 0 };
-    all.forEach((p) => { counts[p.zone] = (counts[p.zone] || 0) + 1; });
+    points.forEach((p) => { counts[p.zone] = (counts[p.zone] || 0) + 1; });
     if (legend) {
       legend.innerHTML = [
         ["buy_zone", "Buy"],
@@ -1130,57 +1757,60 @@
         ["quiet", "Quiet"],
       ]
         .map(([z, lab]) => `<span class="chip zone-badge ${z}">${lab} ${counts[z] || 0}</span>`)
-        .join("") +
-        `<span class="chip">held ● · watch ○</span>` +
-        (filter !== "all" ? `<span class="chip">filter ${filter}: ${points.length}</span>` : "");
+        .join("");
     }
     if (!points.length) {
-      host.innerHTML = `<div class="empty">No zone points${filter !== "all" ? " for this sector" : ""}</div>`;
+      host.innerHTML = `<div class="empty">No zone points${filter !== "all" ? " for this theme" : ""}</div>`;
       return;
     }
     const w = 720;
-    const h = 480;
-    const pad = { t: 36, r: 28, b: 48, l: 56 };
-    const xMax = zoneNiceMax(points.map((p) => p.sell));
-    const yMax = zoneNiceMax(points.map((p) => p.buy));
-    const xOf = (sell) => pad.l + (Math.min(Math.max(Number(sell) || 0, 0), xMax) / xMax) * (w - pad.l - pad.r);
-    const yOf = (buy) => pad.t + (1 - Math.min(Math.max(Number(buy) || 0, 0), yMax) / yMax) * (h - pad.t - pad.b);
-    // Zone threshold guides (0.35) only when they fall inside the fitted range
-    const guides = [];
-    if (0.35 <= xMax) {
-      const xT = xOf(0.35);
-      guides.push(`<line x1="${xT}" x2="${xT}" y1="${pad.t}" y2="${h - pad.b}" stroke="#232a32" stroke-dasharray="4 5"/>`);
-    }
-    if (0.35 <= yMax) {
-      const yT = yOf(0.35);
-      guides.push(`<line x1="${pad.l}" x2="${w - pad.r}" y1="${yT}" y2="${yT}" stroke="#232a32" stroke-dasharray="4 5"/>`);
-    }
+    const h = 460;
+    const pad = { t: 28, r: 28, b: 44, l: 52 };
+    const th = zoneThresholds();
+    const xMax = Math.max(zoneNiceMax(points.map((p) => p.sell)), th.sell * 1.15);
+    const yMax = Math.max(zoneNiceMax(points.map((p) => p.buy)), th.buy * 1.15);
+    // Square-root axes spread the crowd near zero without hiding the 0.35 lines.
+    const sx = (v) => Math.sqrt(Math.min(Math.max(Number(v) || 0, 0), xMax) / xMax);
+    const sy = (v) => Math.sqrt(Math.min(Math.max(Number(v) || 0, 0), yMax) / yMax);
+    const xOf = (sell) => pad.l + sx(sell) * (w - pad.l - pad.r);
+    const yOf = (buy) => pad.t + (1 - sy(buy)) * (h - pad.t - pad.b);
+    const xT = xOf(th.sell);
+    const yT = yOf(th.buy);
+    const quads = `
+      <rect x="${pad.l}" y="${pad.t}" width="${xT - pad.l}" height="${yT - pad.t}" fill="rgb(134 208 160 / 0.06)"/>
+      <rect x="${xT}" y="${yT}" width="${w - pad.r - xT}" height="${h - pad.b - yT}" fill="rgb(239 154 134 / 0.06)"/>
+      <rect x="${xT}" y="${pad.t}" width="${w - pad.r - xT}" height="${yT - pad.t}" fill="rgb(224 180 110 / 0.05)"/>
+      <line x1="${xT}" x2="${xT}" y1="${pad.t}" y2="${h - pad.b}" stroke="#3a4652" stroke-dasharray="4 5"/>
+      <line x1="${pad.l}" x2="${w - pad.r}" y1="${yT}" y2="${yT}" stroke="#3a4652" stroke-dasharray="4 5"/>`;
     const dots = points
       .map((p, i) => {
         const cx = xOf(p.sell).toFixed(1);
         const cy = yOf(p.buy).toFixed(1);
         const r = p.held ? 6.5 : 5;
-        const fill = p.held ? "#8fb4c4" : "transparent";
-        const stroke = p.zone === "buy_zone" ? "#8aa58f" : p.zone === "sell_zone" ? "#c48980" : p.zone === "conflicted" ? "#c4b08f" : "#5c656e";
-        return `<g class="zones-scatter-point" data-zone-idx="${i}" tabindex="0" role="button" aria-label="${escapeHtml(p.ticker)} buy ${Number(p.buy).toFixed(2)} sell ${Number(p.sell).toFixed(2)}">
-          <circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="1.6"/>
+        const stroke = p.zone === "buy_zone" ? C.gain : p.zone === "sell_zone" ? C.loss : p.zone === "conflicted" ? C.warn : C.subtle;
+        const fill = p.held ? C.accent : "#07090c";
+        const label = p.held ? `<text class="zones-label" x="${Number(cx) + 9}" y="${Number(cy) + 3}">${escapeHtml(p.ticker)}</text>` : "";
+        return `<g class="zones-scatter-point" data-zone-idx="${i}" tabindex="0" role="button" aria-label="${escapeHtml(p.ticker)} buy ${Number(p.buy).toFixed(2)} sell ${Number(p.sell).toFixed(2)}${p.held ? " held" : ""}">
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="1.8"/>
+          ${label}
           <title>${escapeHtml(p.ticker)} · buy ${Number(p.buy).toFixed(3)} · sell ${Number(p.sell).toFixed(3)} · ${escapeHtml(p.zone)}</title>
         </g>`;
       })
       .join("");
+    const tick = (v, axis) => axis === "x"
+      ? `<text x="${xOf(v)}" y="${h - pad.b + 16}" fill="${C.subtle}" font-size="10" font-family="IBM Plex Mono" text-anchor="middle">${v.toFixed(2)}</text>`
+      : `<text x="${pad.l - 8}" y="${yOf(v) + 3}" fill="${C.subtle}" font-size="10" font-family="IBM Plex Mono" text-anchor="end">${v.toFixed(2)}</text>`;
     host.innerHTML = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Buy vs sell pressure scatter">
-      <rect x="${pad.l}" y="${pad.t}" width="${w - pad.l - pad.r}" height="${h - pad.t - pad.b}" fill="#0c1014" stroke="#232a32"/>
-      ${guides.join("")}
-      <text class="zones-quad-label" x="${pad.l + 8}" y="${pad.t + 16}">Buy</text>
+      <rect x="${pad.l}" y="${pad.t}" width="${w - pad.l - pad.r}" height="${h - pad.t - pad.b}" fill="#0c1014" stroke="${C.line}"/>
+      ${quads}
+      <text class="zones-quad-label" x="${pad.l + 8}" y="${pad.t + 16}">Buy zone</text>
       <text class="zones-quad-label" x="${w - pad.r - 8}" y="${pad.t + 16}" text-anchor="end">Conflicted</text>
       <text class="zones-quad-label" x="${pad.l + 8}" y="${h - pad.b - 8}">Quiet</text>
-      <text class="zones-quad-label" x="${w - pad.r - 8}" y="${h - pad.b - 8}" text-anchor="end">Sell</text>
-      <text x="${pad.l}" y="${h - 14}" fill="#5c656e" font-size="11" font-family="IBM Plex Mono">Sell → (fit 0–${xMax.toFixed(2)})</text>
-      <text x="16" y="${pad.t + 4}" fill="#5c656e" font-size="11" font-family="IBM Plex Mono" transform="rotate(-90 16,${pad.t + 4})">Buy ↑ (0–${yMax.toFixed(2)})</text>
-      <text x="${pad.l - 8}" y="${yOf(0) + 3}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono" text-anchor="end">0</text>
-      <text x="${pad.l - 8}" y="${yOf(yMax) + 3}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono" text-anchor="end">${yMax.toFixed(2)}</text>
-      <text x="${xOf(0)}" y="${h - pad.b + 18}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono" text-anchor="middle">0</text>
-      <text x="${xOf(xMax)}" y="${h - pad.b + 18}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono" text-anchor="middle">${xMax.toFixed(2)}</text>
+      <text class="zones-quad-label" x="${w - pad.r - 8}" y="${h - pad.b - 8}" text-anchor="end">Sell zone</text>
+      <text x="${(pad.l + w - pad.r) / 2}" y="${h - 8}" fill="${C.muted}" font-size="11" font-family="IBM Plex Mono" text-anchor="middle">Sell pressure →</text>
+      <text x="14" y="${(pad.t + h - pad.b) / 2}" fill="${C.muted}" font-size="11" font-family="IBM Plex Mono" text-anchor="middle" transform="rotate(-90 14,${(pad.t + h - pad.b) / 2})">Buy pressure →</text>
+      ${tick(0, "x")}${tick(th.sell, "x")}${tick(xMax, "x")}
+      ${tick(0, "y")}${tick(th.buy, "y")}${tick(yMax, "y")}
       ${dots}
     </svg>`;
     host.querySelectorAll("[data-zone-idx]").forEach((g) => {
@@ -1193,39 +1823,6 @@
           activate();
         }
       });
-    });
-  }
-
-  function renderWatch() {
-    const rows = (DATA.watchlist || []).filter((w) => matchesSector(w.sector || sectorOf(w.ticker)));
-    if (!rows.length) {
-      $("watchTable").innerHTML = `<div class="empty">Watchlist empty for filter</div>`;
-      return;
-    }
-    $("watchTable").innerHTML = `
-      <table>
-        <thead><tr><th>Ticker</th><th>Sector</th><th>Top agent</th><th>Dir</th><th>Conf</th><th>Zone</th><th>Note</th></tr></thead>
-        <tbody>
-          ${rows
-            .map((w, i) => {
-              const s = w.signal;
-              const zp = zonePointForTicker(w.ticker);
-              return `<tr data-watch-idx="${i}" aria-label="Open details for ${escapeHtml(w.ticker)}">
-                <td class="mono">${escapeHtml(w.ticker)}</td>
-                <td class="muted">${escapeHtml(w.sector || "—")}</td>
-                <td class="mono muted">${escapeHtml(s?.agent_id || "—")}</td>
-                <td>${s ? `<span class="dir ${escapeHtml(s.direction)}">${escapeHtml(s.direction)}</span>` : "—"}</td>
-                <td class="mono">${s ? Number(s.confidence).toFixed(0) : "—"}</td>
-                <td>${zp ? zoneBadgeHtml(zp.zone) : `<span class="muted">—</span>`}</td>
-                <td class="muted">${escapeHtml(trunc(s?.reasoning || "", 90))}</td>
-              </tr>`;
-            })
-            .join("")}
-        </tbody>
-      </table>`;
-    $("watchTable").querySelectorAll("tr[data-watch-idx]").forEach((tr) => {
-      const idx = Number(tr.getAttribute("data-watch-idx"));
-      bindRowActivation(tr, () => openWatchDetail(rows[idx]));
     });
   }
 
@@ -1269,147 +1866,56 @@
 
   function openDetail(signal, agentId) {
     openDialogHtml(`
-      <p class="kicker">${escapeHtml(agentId || signal.agent_id || "agent")}</p>
-      <h3>${escapeHtml(signal.ticker)} · <span class="dir ${escapeHtml(signal.direction)}">${escapeHtml(signal.direction)}</span>
+      <p class="kicker">${escapeHtml(AGENT_LABEL[agentId || signal.agent_id] || agentId || signal.agent_id || "agent")}</p>
+      <h3>${escapeHtml(signal.ticker)} <span class="dir ${escapeHtml(signal.direction)}">${escapeHtml(signal.direction)}</span>
         <span class="mono"> ${Number(signal.confidence).toFixed(1)}</span></h3>
       <p class="muted">${fmtTime(signal.created_at)}</p>
       <p style="margin-top:1rem">${escapeHtml(signal.reasoning || "")}</p>
       ${minerviniLabel(signal.supporting_data)}
       ${obvChandelierLabel(signal.supporting_data)}
-      <p class="kicker" style="margin-top:1rem">Supporting data</p>
+      <p style="margin-top:1rem"><button type="button" class="btn" id="openTickerFromSignal">All agents on ${escapeHtml(signal.ticker)} ›</button></p>
+      <h4>Supporting data</h4>
       <pre>${escapeHtml(JSON.stringify(signal.supporting_data || {}, null, 2))}</pre>`);
+    $("openTickerFromSignal").addEventListener("click", () => openTickerDetail(signal.ticker, agentId || signal.agent_id));
   }
 
   function closeDetail() {
     const dlg = $("dialog");
+    if (dlg.hidden) return;
     dlg.classList.remove("open");
     dlg.hidden = true;
+    if (lastFocus && typeof lastFocus.focus === "function") lastFocus.focus();
+    lastFocus = null;
   }
 
-
-  function renderSectors() {
-    const host = $("sectorBoard");
-    if (!host) return;
-    const rows = DATA?.sector_board || [];
-    if (!rows.length) {
-      // Fallback: empty themes from sectors map so UI still shows structure
-      const themes = Object.keys(DATA?.sectors || {});
-      if (!themes.length) {
-        host.innerHTML = `<div class="empty">No sector board in latest.json — re-export dashboard</div>`;
-        return;
-      }
-    }
-    const ordered = ["quantum", "space", "robotics"];
-    const byTheme = Object.fromEntries(rows.map((r) => [r.theme, r]));
-    const themes = ordered.filter((t) => byTheme[t] || (DATA?.sectors || {})[t]);
-    // include any extra themes not in ordered
-    for (const t of Object.keys(DATA?.sectors || {})) {
-      if (!themes.includes(t)) themes.push(t);
-    }
-    const fmtPressure = (n) => (n == null || Number.isNaN(Number(n)) ? "—" : Number(n).toFixed(2));
-    const barPct = (n) => Math.max(0, Math.min(100, Math.round(Math.abs(Number(n) || 0) * 100)));
-
-    host.innerHTML = themes
-      .map((theme) => {
-        const r = byTheme[theme] || {
-          theme,
-          tickers_n: (DATA?.sectors?.[theme] || []).length,
-          held_n: 0,
-          weight: 0,
-          unrealized: null,
-          realized: null,
-          buy: 0,
-          sell: 0,
-          net: 0,
-          long: 0,
-          short: 0,
-          neutral: 0,
-          zones: { buy_zone: 0, sell_zone: 0, conflicted: 0, quiet: 0 },
-          returns: { "1d": null, "5d": null, "20d": null },
-          returns_n: { "1d": 0, "5d": 0, "20d": 0 },
-        };
-        const pressed = filter === theme;
-        const netCls = Number(r.net) > 0 ? "gain" : Number(r.net) < 0 ? "loss" : "flat";
-        const z = r.zones || {};
-        return `<button type="button" class="sector-card" data-theme="${escapeHtml(theme)}" aria-pressed="${pressed ? "true" : "false"}">
-  <header>
-    <h3>${escapeHtml(theme)}</h3>
-    <span class="sector-meta">${escapeHtml(r.held_n)}/${escapeHtml(r.tickers_n)} held</span>
-  </header>
-  <div>
-    <p class="sector-subhead">Pressure</p>
-    <div class="pressure-bars">
-      <div class="pressure-row"><span>Buy</span><div class="bar-track"><div class="bar-fill buy" style="width:${barPct(r.buy)}%"></div></div><span class="gain">${fmtPressure(r.buy)}</span></div>
-      <div class="pressure-row"><span>Sell</span><div class="bar-track"><div class="bar-fill sell" style="width:${barPct(r.sell)}%"></div></div><span class="loss">${fmtPressure(r.sell)}</span></div>
-      <div class="pressure-row"><span>Net</span><div class="bar-track"><div class="bar-fill net ${netCls}" style="width:${barPct(r.net)}%"></div></div><span class="${pnlClass(r.net)}">${fmtPressure(r.net)}</span></div>
-    </div>
-  </div>
-  <div>
-    <p class="sector-subhead">Tape (eq-wt)</p>
-    <div class="sector-stats">
-      <div class="stat"><p class="label">1d</p><p class="value mono ${pnlClass((r.returns || {})["1d"])}">${fmtSignedPct((r.returns || {})["1d"])}</p></div>
-      <div class="stat"><p class="label">5d</p><p class="value mono ${pnlClass((r.returns || {})["5d"])}">${fmtSignedPct((r.returns || {})["5d"])}</p></div>
-      <div class="stat"><p class="label">20d</p><p class="value mono ${pnlClass((r.returns || {})["20d"])}">${fmtSignedPct((r.returns || {})["20d"])}</p></div>
-    </div>
-  </div>
-  <div>
-    <p class="sector-subhead">Breadth</p>
-    <div class="sector-stats">
-      <div class="stat"><p class="label">Long</p><p class="value mono gain">${r.long ?? 0}</p></div>
-      <div class="stat"><p class="label">Short</p><p class="value mono loss">${r.short ?? 0}</p></div>
-      <div class="stat"><p class="label">Neutral</p><p class="value mono">${r.neutral ?? 0}</p></div>
-    </div>
-    <div class="sector-zones" style="margin-top:0.5rem">
-      <span class="chip">buy ${z.buy_zone ?? 0}</span>
-      <span class="chip">sell ${z.sell_zone ?? 0}</span>
-      <span class="chip">conflict ${z.conflicted ?? 0}</span>
-      <span class="chip">quiet ${z.quiet ?? 0}</span>
-    </div>
-  </div>
-  <div>
-    <p class="sector-subhead">Book</p>
-    <div class="sector-stats">
-      <div class="stat"><p class="label">Weight</p><p class="value mono">${fmtPct(r.weight)}</p></div>
-      <div class="stat"><p class="label">Realized</p><p class="value mono ${pnlClass(r.realized)}">${fmtUsd(r.realized)}</p></div>
-      <div class="stat"><p class="label">Unrealized</p><p class="value mono ${pnlClass(r.unrealized)}">${fmtUsd(r.unrealized)}</p></div>
-      <div class="stat"><p class="label">Held</p><p class="value mono">${escapeHtml(r.held_n)}/${escapeHtml(r.tickers_n)}</p></div>
-    </div>
-  </div>
-</button>`;
-      })
-      .join("");
-
-    host.querySelectorAll(".sector-card").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const theme = btn.getAttribute("data-theme");
-        setSectorFilter(filter === theme ? "all" : theme);
-      });
-    });
+  function renderFilteredSections() {
+    renderFilters();
+    renderConsensus();
+    renderWatch();
+    renderZones();
+    renderResearch();
+    renderLifetime();
+    renderMission();
   }
 
   function renderAll() {
-    renderFilters();
-    renderHeroBadges();
-    renderSnapshot();
+    renderFreshness();
+    renderToday();
+    renderStats();
     renderHoldings();
-    renderClosed();
-    renderLifetime();
-    renderResearchDayLabels();
-    renderAgents();
-    renderResearch();
-    renderMission();
     renderSectors();
-    renderZones();
-    renderWatch();
+    renderClosed();
+    renderResearchDayLabels();
+    renderFilteredSections();
   }
 
   function wireNav() {
-    const links = document.querySelectorAll("#nav a");
-    const sections = [...document.querySelectorAll("section[id]")];
+    const links = [...document.querySelectorAll("#nav a")];
+    const targets = links.map((a) => document.getElementById(a.getAttribute("href").slice(1))).filter(Boolean);
     const onScroll = () => {
-      let current = sections[0]?.id;
-      for (const s of sections) {
-        if (s.getBoundingClientRect().top <= 120) current = s.id;
+      let current = targets[0]?.id;
+      for (const t of targets) {
+        if (t.getBoundingClientRect().top <= 140) current = t.id;
       }
       links.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === `#${current}`));
     };
@@ -1425,6 +1931,10 @@
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeDetail();
     });
+    $("smallToggle").addEventListener("click", () => {
+      showSmall = !showSmall;
+      renderHoldings();
+    });
     wireNav();
     try {
       const res = await fetch(DATA_URL, { cache: "no-store" });
@@ -1437,7 +1947,6 @@
         zonesHistory = DATA.zones_series || null;
       }
       if (!zonesHistory) zonesHistory = DATA.zones_series || null;
-      setHeroArt();
       renderAll();
     } catch (err) {
       $("loadError").hidden = false;
