@@ -72,34 +72,6 @@ def test_build_payload_agents_shape(tmp_path):
     tracker.close()
 
 
-def test_promoted_bench_name_keeps_its_theme(tmp_path):
-    """ADSK came off the robotics bench when ABB went cold; it must not export as sector=None."""
-    tracker = Tracker(str(tmp_path / "dash_rot.db"))
-    robotics = ["ISRG", "PATH", "TER", "NVDA", "TSLA", "CGNX", "SYM", "ROK", "AVAV", "ADSK"]
-    tracker.set_state(
-        "research_rotation",
-        json.dumps(
-            {
-                "active": {"robotics": robotics},
-                "cold": {"ABB": {"theme": "robotics", "checkup_date": "2026-10-21", "reason": "awful"}},
-                "version": 1,
-            }
-        ),
-    )
-    tracker.reconcile_portfolio(
-        cash=1.0, equity=4.32, positions=[{"ticker": "ADSK", "qty": 0.014118, "avg_cost": 235.06}]
-    )
-    payload = build_dashboard_payload(tracker, include_alpaca=False)
-
-    assert payload["sectors"]["robotics"] == robotics
-    assert "ABB" not in payload["sectors"]["robotics"]
-    adsk = next(h for h in payload["holdings"] if h["ticker"] == "ADSK")
-    assert adsk["sector"] == "robotics"
-    watch = {w["ticker"] for w in payload["watchlist"]}
-    assert "ADSK" not in watch and "ABB" not in watch
-    tracker.close()
-
-
 def test_holdings_enrich_from_alpaca_marks(tmp_path, monkeypatch):
     """Holdings last/unrealized come from Alpaca current_price + unrealized_pl dollars."""
     from quant_system import dashboard_export as de

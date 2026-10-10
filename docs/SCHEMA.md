@@ -21,8 +21,8 @@ Optional: `--no-alpaca`, `--no-history`, `--docs PATH`.
 | `decisions_today` | object | `tickets`, `holds`, `fills`, `order_submitted`, `failed`, `counts` |
 | `auditor_flags_today` | array | Flags with `created_at` on the current ET calendar day |
 | `mission_log` | array | Timeline `{id, at, type, actor, ticker, summary}` |
-| `watchlist` | array | Live active tickers (after rotation) not held + top agent signal |
-| `sectors` | object | Theme → live active ticker list (rotation state; seeded from `config/universe.yaml`) |
+| `watchlist` | array | Universe tickers not held + top agent signal |
+| `sectors` | object | Theme → ticker list from `config/universe.yaml` |
 | `alpaca_snapshot` | object? | Optional public cash/equity/positions only — **never secrets** |
 | `rotation` | object? | **Additive.** `{active: theme→tickers, cold: [...], settings}` from cold/active researcher |
 | `zones` | object? | **Additive.** Today's buy/sell pressure map — see below |

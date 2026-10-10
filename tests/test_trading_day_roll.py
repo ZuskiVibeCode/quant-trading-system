@@ -155,3 +155,12 @@ def test_backtests_turn_the_start_stop_off():
     cfg = _apply_backtest_risk_overrides(load_config())
     assert cfg.risk.max_loss_from_start_pct is None
     assert load_config().risk.max_loss_from_start_pct == pytest.approx(0.10)
+
+
+def test_start_stop_fails_safe_when_the_key_is_missing():
+    """A risk.yaml without max_loss_from_start_pct keeps the 10% stop on; only an explicit null turns it off."""
+    from quant_system.config.loader import RiskConfig
+
+    assert RiskConfig().max_loss_from_start_pct == pytest.approx(0.10)
+    assert RiskConfig.model_validate({"starting_equity": 100.0}).max_loss_from_start_pct == pytest.approx(0.10)
+    assert RiskConfig.model_validate({"max_loss_from_start_pct": None}).max_loss_from_start_pct is None
