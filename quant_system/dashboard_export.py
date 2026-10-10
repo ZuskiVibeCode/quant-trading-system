@@ -78,6 +78,14 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
+DUST_NOTIONAL = 0.01  # USD at cost; smaller positions are leftover rounding, hidden from the dashboard
+
+
+def is_dust(qty: float, avg_cost: float) -> bool:
+    """True for a position too small to show (e.g. qty 0.000001 left after sells)."""
+    return qty <= 0 or abs(qty * avg_cost) < DUST_NOTIONAL
+
+
 def _summarize_supporting(data: Any, max_keys: int = 16) -> dict[str, Any] | str | None:
     if data is None:
         return None
@@ -146,16 +154,46 @@ def _sector_map(themes: dict[str, list[str]]) -> dict[str, str]:
     return m
 
 
-def _query_since(tracker: Tracker, table: str, since: str, limit: int = 2000) -> list[dict[str, Any]]:
+def _query_since(
+    tracker: Tracker,
+    table: str,
+    since: str,
+    limit: int = 2000,
+    until: str | None = None,
+) -> list[dict[str, Any]]:
     json_fields = {
         "signals": ("supporting_data",),
         "decisions": ("payload", "data_snapshot"),
     }.get(table, ())
-    rows = tracker.conn.execute(
-        f"SELECT * FROM {table} WHERE created_at >= ? ORDER BY id DESC LIMIT ?",
-        (since, limit),
-    ).fetchall()
+    if until is None:
+        rows = tracker.conn.execute(
+            f"SELECT * FROM {table} WHERE created_at >= ? ORDER BY id DESC LIMIT ?",
+            (since, limit),
+        ).fetchall()
+    else:
+        rows = tracker.conn.execute(
+            f"SELECT * FROM {table} WHERE created_at >= ? AND created_at < ? ORDER BY id DESC LIMIT ?",
+            (since, until, limit),
+        ).fetchall()
     return [tracker._row_to_dict(r, json_fields=json_fields) for r in rows]
+
+
+def _last_research_day(tracker: Tracker, before: str) -> tuple[str, str, str] | None:
+    """(start_utc_iso, end_utc_iso, local_day) of the latest ET day with signals before *before*."""
+    row = tracker.conn.execute(
+        "SELECT created_at FROM signals WHERE created_at < ? ORDER BY created_at DESC LIMIT 1",
+        (before,),
+    ).fetchone()
+    if row is None:
+        return None
+    raw = str(row["created_at"])
+    try:
+        at = datetime.fromisoformat(raw[:-1] + "+00:00" if raw.endswith("Z") else raw)
+    except ValueError:
+        return None
+    start, end, day = local_day_bounds(at)
+    fmt = "%Y-%m-%dT%H:%M:%S.%fZ"
+    return start.strftime(fmt), end.strftime(fmt), day
 
 
 def _build_closed(tracker: Tracker, sector_of: dict[str, str]) -> list[dict[str, Any]]:
@@ -975,6 +1013,10 @@ def rebuild_zones_history(
     """Scan history/*.json (+ optional today payload) and rebuild zones_history.
 
     Returns `{ days: [{day, points: [compact...]}] }` sorted ascending by day.
+    Days with no zone points (a weekend or holiday export with no research)
+    are left out so they don't take a slot in the recent-days window. A
+    payload carrying an earlier day's research (``meta.research_fallback``)
+    never stands in for that day's own history file.
     """
     by_day: dict[str, list[dict[str, Any]]] = {}
 
@@ -985,19 +1027,26 @@ def rebuild_zones_history(
                 payload = json.loads(path.read_text())
             except (OSError, json.JSONDecodeError):
                 continue
+            if (payload.get("meta") or {}).get("research_fallback"):
+                continue
             agents = payload.get("agents_today") or {}
             if not agents:
                 continue
             held = _held_from_payload(payload)
             points = build_zone_points(agents, held=held, compact=True)
-            by_day[day] = points
+            if points:
+                by_day[day] = points
 
     if today_payload:
-        day = (today_payload.get("meta") or {}).get("day_local")
+        meta = today_payload.get("meta") or {}
+        day = meta.get("research_day_local") or meta.get("day_local")
         agents = today_payload.get("agents_today") or {}
-        if day and agents:
+        fallback = bool(meta.get("research_fallback"))
+        if day and agents and not (fallback and str(day) in by_day):
             held = _held_from_payload(today_payload)
-            by_day[str(day)] = build_zone_points(agents, held=held, compact=True)
+            points = build_zone_points(agents, held=held, compact=True)
+            if points:
+                by_day[str(day)] = points
 
     days = [{"day": d, "points": by_day[d]} for d in sorted(by_day.keys())]
     return {"days": days}
@@ -1199,12 +1248,13 @@ def build_dashboard_payload(
     )
 
     positions = tracker.list_positions()
-    held = {str(p["ticker"]).upper() for p in positions}
     holdings: list[dict[str, Any]] = []
     for p in positions:
         t = str(p["ticker"]).upper()
         qty = float(p["qty"])
         avg = float(p["avg_cost"])
+        if is_dust(qty, avg):
+            continue  # display only; the position itself is untouched
         holdings.append(
             {
                 "ticker": t,
@@ -1216,6 +1266,7 @@ def build_dashboard_payload(
                 "updated_at": p.get("updated_at"),
             }
         )
+    held = {h["ticker"] for h in holdings}
 
     alpaca = _optional_alpaca_snapshot() if include_alpaca else None
     # enrich holdings from alpaca if present
@@ -1262,6 +1313,17 @@ def build_dashboard_payload(
     unrealized = sum(unrealized_values) if unrealized_values else None
 
     signals = _query_since(tracker, "signals", day_start)
+    # Weekend / holiday: no research today, so show the last day that had it
+    research_day = local_day
+    research_fallback = False
+    if not signals:
+        prior = _last_research_day(tracker, day_start)
+        if prior is not None:
+            p_start, p_end, research_day = prior
+            signals = _query_since(tracker, "signals", p_start, until=p_end)
+            research_fallback = bool(signals)
+            if not research_fallback:
+                research_day = local_day
     decisions = _query_since(tracker, "decisions", day_start)
     flags = [
         {
@@ -1288,6 +1350,10 @@ def build_dashboard_payload(
             "day_timezone": "America/New_York",
             "day_local": local_day,
             "day_label": "ET day",
+            # ET day the agents_today / zones / watchlist signals come from;
+            # earlier than day_local when today has none (weekend, holiday).
+            "research_day_local": research_day,
+            "research_fallback": research_fallback,
         },
         "snapshot": {
             "equity": equity,
@@ -1332,7 +1398,7 @@ def build_dashboard_payload(
     payload["zones"] = build_zones_block(
         payload["agents_today"],
         as_of=payload["meta"]["exported_at"],
-        day_local=local_day,
+        day_local=research_day,
         held=held_tickers,
         sector_of=sector_of,
         holdings=holdings,
@@ -1464,7 +1530,8 @@ def export_dashboard(
         )
 
         history_path = None
-        if append_history:
+        # No history file for a day without its own research (weekend, holiday)
+        if append_history and not payload["meta"].get("research_fallback"):
             _, _, day = local_day_bounds()
             history_path = hist_dir / f"{day}.json"
             history_path.write_text(json.dumps(payload, indent=2, default=str) + "\n")
@@ -1496,6 +1563,8 @@ def export_dashboard(
             "equity": payload["snapshot"]["equity"],
             "zones_points": len((payload.get("zones") or {}).get("points") or []),
             "zones_history_days": len(zones_hist.get("days") or []),
+            "research_day": payload["meta"].get("research_day_local"),
+            "research_fallback": bool(payload["meta"].get("research_fallback")),
         }
     finally:
         if own or close_tracker:

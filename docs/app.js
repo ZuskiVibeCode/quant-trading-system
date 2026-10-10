@@ -99,6 +99,17 @@
       .sort((a, b) => String(b.row.closed_at || "").localeCompare(String(a.row.closed_at || "")));
   }
 
+  /** Escape text from the feed (tickers, reasoning, headlines) before it goes into innerHTML. */
+  function escapeHtml(s) {
+    if (s == null) return "";
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   function trunc(s, n = 140) {
     if (!s) return "";
     return s.length > n ? s.slice(0, n - 1) + "…" : s;
@@ -197,7 +208,7 @@
     const list = Array.isArray(tags) ? tags : [];
     if (!list.length) return "";
     return `<div class="badge-row" style="margin-top:0.5rem">${list.map((t) =>
-      `<span class="chip review-tag ${String(t)}">${t}</span>`
+      `<span class="chip review-tag ${escapeHtml(t)}">${escapeHtml(t)}</span>`
     ).join("")}</div>`;
   }
 
@@ -208,10 +219,10 @@
     }
     return `<ul class="review-evidence" style="margin:0.35rem 0 0;padding-left:1.1rem;color:var(--muted);font-size:0.8rem">
       ${list.map((e) => {
-        const idBit = e && e.id != null ? `<span class="mono">#${e.id}</span> · ` : `<span class="mono">—</span> · `;
-        const kind = e && e.kind ? e.kind : "?";
-        const label = e && e.label ? e.label : "";
-        const detail = e && e.detail ? trunc(String(e.detail), 160) : "";
+        const idBit = e && e.id != null ? `<span class="mono">#${escapeHtml(e.id)}</span> · ` : `<span class="mono">—</span> · `;
+        const kind = e && e.kind ? escapeHtml(e.kind) : "?";
+        const label = e && e.label ? escapeHtml(e.label) : "";
+        const detail = e && e.detail ? escapeHtml(trunc(String(e.detail), 160)) : "";
         return `<li><span class="mono subtle">${kind}</span> ${idBit}<strong>${label}</strong> — ${detail}</li>`;
       }).join("")}
     </ul>`;
@@ -226,17 +237,17 @@
         <thead><tr><th>Agent</th><th>Dir</th><th>Conf</th><th>Signal</th></tr></thead>
         <tbody>
           ${rows.map((a) => `<tr>
-            <td class="mono">${a.agent_id || "—"}</td>
-            <td><span class="dir ${a.direction || ""}">${a.direction || "—"}</span></td>
+            <td class="mono">${escapeHtml(a.agent_id || "—")}</td>
+            <td><span class="dir ${escapeHtml(a.direction || "")}">${escapeHtml(a.direction || "—")}</span></td>
             <td class="mono">${a.confidence != null ? Number(a.confidence).toFixed(1) : "—"}</td>
             <td class="mono subtle">${a.signal_id != null ? "#" + a.signal_id : "—"}</td>
           </tr>`).join("")}
         </tbody>
       </table>`;
     }
-    const lead = m.lead_agent ? `lead=${m.lead_agent}` : "lead=—";
+    const lead = m.lead_agent ? `lead=${escapeHtml(m.lead_agent)}` : "lead=—";
     const split = m.disagreement ? "split_book" : "aligned";
-    return `<p class="muted" style="margin-top:0.35rem">${lead} · ${split} · L[${(m.long || []).join(",") || "—"}] S[${(m.short || []).join(",") || "—"}] N[${(m.neutral || []).join(",") || "—"}]</p>${table}`;
+    return `<p class="muted" style="margin-top:0.35rem">${lead} · ${split} · L[${escapeHtml((m.long || []).join(",") || "—")}] S[${escapeHtml((m.short || []).join(",") || "—")}] N[${escapeHtml((m.neutral || []).join(",") || "—")}]</p>${table}`;
   }
 
   function reviewBlockHtml(review, { heading } = {}) {
@@ -245,15 +256,15 @@
     }
     const path = review.path || {};
     const title = heading || "Review";
-    const completeness = review.completeness || "—";
+    const completeness = escapeHtml(review.completeness || "—");
     return `
       <p class="kicker" style="margin-top:1rem">${title}
         <span class="chip review-completeness ${completeness}" style="margin-left:0.5rem">${completeness}</span>
       </p>
-      <p style="margin-top:0.4rem">${review.verdict || "—"}</p>
+      <p style="margin-top:0.4rem">${escapeHtml(review.verdict || "—")}</p>
       ${reviewTagsHtml(review.verdict_tags)}
       <div class="grid-stats" style="margin-top:0.75rem">
-        <div class="stat"><p class="label">Exit reason</p><p class="value mono" style="font-size:0.85rem">${review.exit_reason || "—"}</p></div>
+        <div class="stat"><p class="label">Exit reason</p><p class="value mono" style="font-size:0.85rem">${escapeHtml(review.exit_reason || "—")}</p></div>
         <div class="stat"><p class="label">Hold h</p><p class="value mono">${review.hold_hours != null ? Number(review.hold_hours).toFixed(1) : "—"}</p></div>
         <div class="stat"><p class="label">Ret %</p><p class="value mono ${pnlClass(path.ret_pct)}">${path.ret_pct != null ? Number(path.ret_pct).toFixed(2) + "%" : "—"}</p></div>
         <div class="stat"><p class="label">MFE %</p><p class="value mono">${path.mfe_pct != null ? Number(path.mfe_pct).toFixed(2) + "%" : "—"}</p></div>
@@ -286,8 +297,8 @@
   }
 
   function zoneBadgeHtml(zone) {
-    const z = zone || "quiet";
-    const label = String(z).replace(/_/g, " ");
+    const z = escapeHtml(zone || "quiet");
+    const label = z.replace(/_/g, " ");
     return `<span class="zone-badge ${z}">${label}</span>`;
   }
 
@@ -312,8 +323,8 @@
     const y = (v) => pad.t + (1 - Math.min(Math.max(Number(v) || 0, 0), yMax) / yMax) * (h - pad.t - pad.b);
     const buyPts = series.map((p, i) => `${x(i).toFixed(1)},${y(p.buy).toFixed(1)}`).join(" ");
     const sellPts = series.map((p, i) => `${x(i).toFixed(1)},${y(p.sell).toFixed(1)}`).join(" ");
-    const first = series[0].day.slice(5);
-    const last = series[series.length - 1].day.slice(5);
+    const first = escapeHtml(series[0].day.slice(5));
+    const last = escapeHtml(series[series.length - 1].day.slice(5));
     const thresh =
       0.35 <= yMax
         ? `<line x1="${pad.l}" x2="${w - pad.r}" y1="${y(0.35)}" y2="${y(0.35)}" stroke="#232a32" stroke-dasharray="3 4"/>`
@@ -340,8 +351,8 @@
         ${rows
           .map(
             (a) => `<tr>
-              <td class="mono muted">${a.agent_id}</td>
-              <td><span class="dir ${a.direction}">${a.direction}</span></td>
+              <td class="mono muted">${escapeHtml(a.agent_id)}</td>
+              <td><span class="dir ${escapeHtml(a.direction)}">${escapeHtml(a.direction)}</span></td>
               <td class="mono">${Number(a.confidence).toFixed(1)}</td>
             </tr>`
           )
@@ -377,7 +388,7 @@
     const series = zoneSeriesForTicker(pt.ticker);
     openDialogHtml(`
       <p class="kicker">Zones</p>
-      <h3>${pt.ticker} · <span class="muted">${pt.sector || "—"}</span> ${zoneBadgeHtml(pt.zone)}</h3>
+      <h3>${escapeHtml(pt.ticker)} · <span class="muted">${escapeHtml(pt.sector || "—")}</span> ${zoneBadgeHtml(pt.zone)}</h3>
       <p class="muted">${pt.held ? "Held in open book" : "Watchlist only"}</p>
       <div class="grid-stats" style="margin-top:1rem">
         <div class="stat"><p class="label">Buy pressure</p><p class="value mono gain">${Number(pt.buy).toFixed(3)}</p></div>
@@ -533,8 +544,40 @@
       </svg>`;
   }
 
+  /** Same rule as the export's is_dust: under $0.01 at cost is leftover rounding. */
+  function isDust(h) {
+    const q = safeNum(h.qty);
+    const a = safeNum(h.avg_cost);
+    if (q == null || a == null) return false;
+    return q <= 0 || Math.abs(q * a) < 0.01;
+  }
+
+  /** When today has no research yet (weekend, holiday, pre-open), the export shows the last day that did. */
+  function researchFallbackDay() {
+    const meta = DATA?.meta || {};
+    return meta.research_fallback && meta.research_day_local ? String(meta.research_day_local) : null;
+  }
+
+  function renderResearchDayLabels() {
+    const day = researchFallbackDay();
+    const title = $("agentsTitle");
+    const hint = $("agentsHint");
+    const zonesHint = $("zonesHint");
+    if (title) title.textContent = day ? `Research work · ${day}` : "Today's research work";
+    if (hint) {
+      hint.textContent = day
+        ? `No research yet today (ET), so this shows ${day}, the last day with signals.`
+        : "Per-agent signals for today (ET) — direction, confidence, truncated reasoning.";
+    }
+    if (zonesHint) {
+      zonesHint.textContent =
+        (day ? `Pressure from ${day}, the last day with research. ` : "") +
+        "Universe map of aggregated research pressure. Held = filled markers; watch = open. Click a point for history.";
+    }
+  }
+
   function renderHoldings() {
-    const rows = (DATA.holdings || []).filter((h) => matchesSector(h.sector || sectorOf(h.ticker)));
+    const rows = (DATA.holdings || []).filter((h) => !isDust(h) && matchesSector(h.sector || sectorOf(h.ticker)));
     if (!rows.length) {
       $("holdingsTable").innerHTML = `<div class="empty">No open holdings${filter !== "all" ? " in this sector" : ""}</div>`;
       return;
@@ -545,9 +588,9 @@
         <tbody>
           ${rows
             .map(
-              (h, i) => `<tr data-hold-idx="${i}" aria-label="Open details for ${h.ticker}">
-                <td class="mono">${h.ticker}</td>
-                <td class="muted">${h.sector || "—"}</td>
+              (h, i) => `<tr data-hold-idx="${i}" aria-label="Open details for ${escapeHtml(h.ticker)}">
+                <td class="mono">${escapeHtml(h.ticker)}</td>
+                <td class="muted">${escapeHtml(h.sector || "—")}</td>
                 <td class="mono">${Number(h.qty).toFixed(4)}</td>
                 <td class="mono">${fmtUsd(h.avg_cost)}</td>
                 <td class="mono">${fmtUsd(h.last)}</td>
@@ -582,21 +625,21 @@
     const ordered = [];
     const bodyHtml = groups
       .map((g) => {
-        const head = `<tr class="day-group" aria-hidden="true"><td colspan="8">${g.label}</td></tr>`;
+        const head = `<tr class="day-group" aria-hidden="true"><td colspan="8">${escapeHtml(g.label)}</td></tr>`;
         const rows = g.items
           .map((x) => {
             const i = ordered.length;
             const c = x.row;
             ordered.push(c);
-            return `<tr data-closed-idx="${i}" aria-label="Open closed trade details for ${c.ticker}">
-                <td class="mono">${c.ticker}</td>
-                <td class="muted">${c.sector || "—"}</td>
+            return `<tr data-closed-idx="${i}" aria-label="Open closed trade details for ${escapeHtml(c.ticker)}">
+                <td class="mono">${escapeHtml(c.ticker)}</td>
+                <td class="muted">${escapeHtml(c.sector || "—")}</td>
                 <td class="mono">${c.qty != null ? Number(c.qty).toFixed(4) : "—"}</td>
                 <td class="mono">${fmtUsd(c.entry)}</td>
                 <td class="mono">${fmtUsd(c.exit)}</td>
                 <td class="mono ${pnlClass(c.pnl)}">${fmtUsd(c.pnl)}</td>
                 <td class="mono subtle">${fmtTime(c.closed_at)}</td>
-                <td class="mono muted">${c.mode || "—"}</td>
+                <td class="mono muted">${escapeHtml(c.mode || "—")}</td>
               </tr>`;
           })
           .join("");
@@ -628,16 +671,16 @@
     ].filter(Boolean).join(" · ");
     const reason = backfill
       ? `<p class="muted" style="margin-top:0.35rem">Imported from Alpaca order history; the PM's reasoning wasn't recorded.</p>`
-      : `<p style="margin-top:0.35rem">${b.rationale || "—"}</p>`;
+      : `<p style="margin-top:0.35rem">${escapeHtml(b.rationale || "—")}</p>`;
     const sigTable = sigs.length
       ? `<table class="agent-mix-table">
           <thead><tr><th>Desk</th><th>Dir</th><th>Conf</th><th>Reasoning</th></tr></thead>
           <tbody>
             ${sigs.map((s) => `<tr>
-              <td class="mono muted">${s.agent_id || "—"}</td>
-              <td><span class="dir ${s.direction || ""}">${s.direction || "—"}</span></td>
+              <td class="mono muted">${escapeHtml(s.agent_id || "—")}</td>
+              <td><span class="dir ${escapeHtml(s.direction || "")}">${escapeHtml(s.direction || "—")}</span></td>
               <td class="mono">${s.confidence != null ? Number(s.confidence).toFixed(1) : "—"}</td>
-              <td class="muted">${trunc(s.reasoning_trunc || "", 140)}</td>
+              <td class="muted">${escapeHtml(trunc(s.reasoning_trunc || "", 140))}</td>
             </tr>`).join("")}
           </tbody>
         </table>`
@@ -650,7 +693,7 @@
               <td class="mono subtle">${fmtTime(f.at)}</td>
               <td class="mono">${f.qty != null ? Number(f.qty).toFixed(6) : "—"}</td>
               <td class="mono">${fmtUsd(f.price)}</td>
-              <td class="mono muted">${f.mode || "—"}</td>
+              <td class="mono muted">${escapeHtml(f.mode || "—")}</td>
             </tr>`).join("")}
           </tbody>
         </table>`
@@ -698,29 +741,29 @@
     let researchHtml = `<p class="muted">No research signals for this ticker in today's feed.</p>`;
     if (latestSig) {
       researchHtml = `
-        <p><span class="mono muted">${latestSig.agent_id || "agent"}</span>
-          · <span class="dir ${latestSig.direction}">${latestSig.direction}</span>
+        <p><span class="mono muted">${escapeHtml(latestSig.agent_id || "agent")}</span>
+          · <span class="dir ${escapeHtml(latestSig.direction)}">${escapeHtml(latestSig.direction)}</span>
           · <span class="mono">${Number(latestSig.confidence).toFixed(1)}</span>
           · <span class="subtle">${fmtTime(latestSig.created_at)}</span></p>
-        <p style="margin-top:0.5rem">${latestSig.reasoning || "—"}</p>
+        <p style="margin-top:0.5rem">${escapeHtml(latestSig.reasoning || "—")}</p>
         ${minerviniLabel(latestSig.supporting_data)}
         ${obvChandelierLabel(latestSig.supporting_data)}
-        ${latestSig.supporting_data ? `<pre>${JSON.stringify(latestSig.supporting_data, null, 2)}</pre>` : ""}`;
+        ${latestSig.supporting_data ? `<pre>${escapeHtml(JSON.stringify(latestSig.supporting_data, null, 2))}</pre>` : ""}`;
     }
 
     let decisionHtml = `<p class="muted">No decisions for this ticker in today's feed.</p>`;
     if (latestDec) {
       decisionHtml = `
-        <p><span class="mono">${latestDec.decision_type || "decision"}</span>
-          · <span class="muted">${latestDec.actor || "—"}</span>
+        <p><span class="mono">${escapeHtml(latestDec.decision_type || "decision")}</span>
+          · <span class="muted">${escapeHtml(latestDec.actor || "—")}</span>
           · <span class="subtle">${fmtTime(latestDec.created_at)}</span></p>
-        <p style="margin-top:0.5rem">${latestDec.reasoning || "—"}</p>`;
+        <p style="margin-top:0.5rem">${escapeHtml(latestDec.reasoning || "—")}</p>`;
     }
 
     let fillsHtml = "";
     if (fills.length) {
       fillsHtml = `<p class="kicker" style="margin-top:1rem">Position fills</p>
-        <pre>${JSON.stringify(fills, null, 2)}</pre>`;
+        <pre>${escapeHtml(JSON.stringify(fills, null, 2))}</pre>`;
     } else if (closed.length) {
       fillsHtml = `<p class="kicker" style="margin-top:1rem">Related closed sells</p>
         <ul style="margin:0.35rem 0 0;padding-left:1.1rem;color:var(--muted);font-size:0.85rem">
@@ -735,14 +778,14 @@
       missionHtml = `<p class="kicker" style="margin-top:1rem">Mission notes</p>
         <ul style="margin:0.35rem 0 0;padding-left:1.1rem;color:var(--muted);font-size:0.85rem">
           ${mission.map((e) =>
-            `<li><span class="mono">${e.type || "event"}</span> · ${fmtTime(e.at)} — ${trunc(e.summary || "", 160)}</li>`
+            `<li><span class="mono">${escapeHtml(e.type || "event")}</span> · ${fmtTime(e.at)} — ${escapeHtml(trunc(e.summary || "", 160))}</li>`
           ).join("")}
         </ul>`;
     }
 
     openDialogHtml(`
       <p class="kicker">Open book</p>
-      <h3>${h.ticker} · <span class="muted">${h.sector || "—"}</span></h3>
+      <h3>${escapeHtml(h.ticker)} · <span class="muted">${escapeHtml(h.sector || "—")}</span></h3>
       <p class="muted">Updated ${fmtTime(h.updated_at)}</p>
       <div class="grid-stats" style="margin-top:1rem">
         <div class="stat"><p class="label">Qty</p><p class="value mono">${h.qty != null ? Number(h.qty).toFixed(4) : "—"}</p></div>
@@ -774,29 +817,29 @@
     let extra = "";
     if (latestSig) {
       extra += `<p class="kicker" style="margin-top:1rem">Latest research (same ticker)</p>
-        <p><span class="mono muted">${latestSig.agent_id || "agent"}</span>
-          · <span class="dir ${latestSig.direction}">${latestSig.direction}</span>
+        <p><span class="mono muted">${escapeHtml(latestSig.agent_id || "agent")}</span>
+          · <span class="dir ${escapeHtml(latestSig.direction)}">${escapeHtml(latestSig.direction)}</span>
           · <span class="subtle">${fmtTime(latestSig.created_at)}</span></p>
-        <p style="margin-top:0.35rem">${latestSig.reasoning || "—"}</p>`;
+        <p style="margin-top:0.35rem">${escapeHtml(latestSig.reasoning || "—")}</p>`;
     }
     if (related.length) {
       extra += `<p class="kicker" style="margin-top:1rem">Related decisions</p>
         <ul style="margin:0.35rem 0 0;padding-left:1.1rem;color:var(--muted);font-size:0.85rem">
           ${related.map((d) =>
-            `<li><span class="mono">${d.decision_type}</span> · ${fmtTime(d.created_at)} — ${trunc(d.reasoning || "", 140)}</li>`
+            `<li><span class="mono">${escapeHtml(d.decision_type)}</span> · ${fmtTime(d.created_at)} — ${escapeHtml(trunc(d.reasoning || "", 140))}</li>`
           ).join("")}
         </ul>`;
     }
     if (c.buy || c.sell) {
       extra += `<p class="kicker" style="margin-top:1rem">Linked legs</p>
-        <pre>${JSON.stringify({ buy: c.buy || null, sell: c.sell || null }, null, 2)}</pre>`;
+        <pre>${escapeHtml(JSON.stringify({ buy: c.buy || null, sell: c.sell || null }, null, 2))}</pre>`;
     }
 
     const review = c.review || null;
     openDialogHtml(`
       <p class="kicker">Closed book</p>
-      <h3>${c.ticker} · <span class="muted">${c.sector || "—"}</span></h3>
-      <p class="muted">Closed ${fmtTime(c.closed_at)} · mode ${c.mode || "—"}</p>
+      <h3>${escapeHtml(c.ticker)} · <span class="muted">${escapeHtml(c.sector || "—")}</span></h3>
+      <p class="muted">Closed ${fmtTime(c.closed_at)} · mode ${escapeHtml(c.mode || "—")}</p>
       <div class="grid-stats" style="margin-top:1rem">
         <div class="stat"><p class="label">Qty</p><p class="value mono">${c.qty != null ? Number(c.qty).toFixed(4) : "—"}</p></div>
         <div class="stat"><p class="label">Entry</p><p class="value mono">${fmtUsd(c.entry)}</p></div>
@@ -824,8 +867,8 @@
     const end = vals[vals.length - 1];
     const stroke = end > 0 ? "#8aa58f" : end < 0 ? "#c48980" : "#8b949e";
     const zeroY = y(0);
-    const first = String(series[0].at || "").slice(0, 10);
-    const last = String(series[series.length - 1].at || "").slice(0, 10);
+    const first = escapeHtml(String(series[0].at || "").slice(0, 10));
+    const last = escapeHtml(String(series[series.length - 1].at || "").slice(0, 10));
     return `<div class="zone-chart"><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Cumulative realized PnL">
       <line x1="${pad.l}" x2="${w - pad.r}" y1="${zeroY}" y2="${zeroY}" stroke="#232a32" stroke-dasharray="3 4"/>
       <text x="4" y="${y(hi) + 3}" fill="#5c656e" font-size="10" font-family="IBM Plex Mono">${hi.toFixed(2)}</text>
@@ -853,9 +896,9 @@
         <tbody>
           ${rows
             .map(
-              (r, i) => `<tr data-life-idx="${i}" aria-label="Open lifetime PnL for ${r.ticker}">
-                <td class="mono">${r.ticker}</td>
-                <td class="muted">${r.sector || "—"}</td>
+              (r, i) => `<tr data-life-idx="${i}" aria-label="Open lifetime PnL for ${escapeHtml(r.ticker)}">
+                <td class="mono">${escapeHtml(r.ticker)}</td>
+                <td class="muted">${escapeHtml(r.sector || "—")}</td>
                 <td class="mono ${pnlClass(r.realized)}">${fmtUsd(r.realized)}</td>
                 <td class="mono ${pnlClass(r.unrealized)}">${fmtUsd(r.unrealized)}</td>
                 <td class="mono ${pnlClass(r.total)}">${fmtUsd(r.total)}</td>
@@ -877,11 +920,11 @@
     const reviews = reviewsForTicker(r.ticker);
     const lastReview = reviews[0] || null;
     const reviewSummary = r.last_verdict
-      ? `<p class="muted" style="margin-top:0.75rem">Reviews: ${r.review_count != null ? r.review_count : reviews.length} · last completeness ${r.last_completeness || (lastReview && lastReview.completeness) || "—"}</p>`
+      ? `<p class="muted" style="margin-top:0.75rem">Reviews: ${r.review_count != null ? r.review_count : reviews.length} · last completeness ${escapeHtml(r.last_completeness || (lastReview && lastReview.completeness) || "—")}</p>`
       : (reviews.length ? `<p class="muted" style="margin-top:0.75rem">Reviews: ${reviews.length}</p>` : "");
     openDialogHtml(`
       <p class="kicker">Lifetime book</p>
-      <h3>${r.ticker} · <span class="muted">${r.sector || "—"}</span></h3>
+      <h3>${escapeHtml(r.ticker)} · <span class="muted">${escapeHtml(r.sector || "—")}</span></h3>
       <p class="muted">First buy ${fmtTime(r.first_buy_at)} · last activity ${fmtTime(r.last_activity_at)}</p>
       <div class="grid-stats" style="margin-top:1rem">
         <div class="stat"><p class="label">Realized</p><p class="value mono ${pnlClass(r.realized)}">${fmtUsd(r.realized)}</p></div>
@@ -914,7 +957,7 @@
         <header>
           <div>
             <h3>${aid.replace(/_/g, " ")}</h3>
-            <div class="counts">${signals.length} shown · ${block.count || 0} today · L${block.long || 0}/S${block.short || 0}/N${block.neutral || 0}</div>
+            <div class="counts">${signals.length} shown · ${block.count || 0} ${researchFallbackDay() ? "on " + escapeHtml(researchFallbackDay()) : "today"} · L${block.long || 0}/S${block.short || 0}/N${block.neutral || 0}</div>
           </div>
         </header>`;
       const list = document.createElement("ul");
@@ -929,13 +972,13 @@
           btn.className = "signal-item";
           btn.innerHTML = `
             <div class="signal-top">
-              <span class="mono">${s.ticker}</span>
+              <span class="mono">${escapeHtml(s.ticker)}</span>
               <span>
-                <span class="dir ${s.direction}">${s.direction}</span>
+                <span class="dir ${escapeHtml(s.direction)}">${escapeHtml(s.direction)}</span>
                 <span class="mono subtle"> ${Number(s.confidence).toFixed(0)}</span>
               </span>
             </div>
-            <p class="signal-reason">${trunc(s.reasoning, 120)}</p>`;
+            <p class="signal-reason">${escapeHtml(trunc(s.reasoning, 120))}</p>`;
           btn.addEventListener("click", () => openDetail(s, aid));
           li.appendChild(btn);
           list.appendChild(li);
@@ -983,12 +1026,12 @@
           <tbody>
             ${signals
               .map(
-                (s) => `<tr class="clickable" data-sid="${s.signal_id || ""}">
-                  <td class="mono muted">${s.agent_id}</td>
-                  <td class="mono">${s.ticker}</td>
-                  <td><span class="dir ${s.direction}">${s.direction}</span></td>
+                (s) => `<tr class="clickable" data-sid="${escapeHtml(s.signal_id || "")}">
+                  <td class="mono muted">${escapeHtml(s.agent_id)}</td>
+                  <td class="mono">${escapeHtml(s.ticker)}</td>
+                  <td><span class="dir ${escapeHtml(s.direction)}">${escapeHtml(s.direction)}</span></td>
                   <td class="mono">${Number(s.confidence).toFixed(0)}</td>
-                  <td class="muted">${trunc(s.reasoning, 100)}</td>
+                  <td class="muted">${escapeHtml(trunc(s.reasoning, 100))}</td>
                 </tr>`
               )
               .join("")}
@@ -1015,9 +1058,9 @@
               .slice(0, 30)
               .map(
                 (f) => `<tr>
-                  <td class="mono ${f.severity === "warning" || f.severity === "critical" ? "loss" : ""}">${f.severity}</td>
-                  <td class="mono muted">${f.flag_type}</td>
-                  <td>${trunc(f.message, 120)}</td>
+                  <td class="mono ${f.severity === "warning" || f.severity === "critical" ? "loss" : ""}">${escapeHtml(f.severity)}</td>
+                  <td class="mono muted">${escapeHtml(f.flag_type)}</td>
+                  <td>${escapeHtml(trunc(f.message, 120))}</td>
                   <td class="mono subtle">${fmtTime(f.created_at)}</td>
                 </tr>`
               )
@@ -1043,9 +1086,9 @@
         (e) => `<li>
           <div class="mono subtle">${fmtTime(e.at)}</div>
           <div>
-            <div><span class="mono">${e.type}</span> · <span class="muted">${e.actor}</span>
-              ${e.ticker ? ` · <span class="mono">${e.ticker}</span>` : ""}</div>
-            <div class="muted" style="margin-top:0.25rem">${trunc(e.summary, 180)}</div>
+            <div><span class="mono">${escapeHtml(e.type)}</span> · <span class="muted">${escapeHtml(e.actor)}</span>
+              ${e.ticker ? ` · <span class="mono">${escapeHtml(e.ticker)}</span>` : ""}</div>
+            <div class="muted" style="margin-top:0.25rem">${escapeHtml(trunc(e.summary, 180))}</div>
           </div>
         </li>`
       )
@@ -1056,15 +1099,15 @@
     const s = w.signal;
     let sigHtml = `<p class="muted">No top agent signal today.</p>`;
     if (s) {
-      sigHtml = `<p><span class="mono muted">${s.agent_id || "agent"}</span>
-        · <span class="dir ${s.direction}">${s.direction}</span>
+      sigHtml = `<p><span class="mono muted">${escapeHtml(s.agent_id || "agent")}</span>
+        · <span class="dir ${escapeHtml(s.direction)}">${escapeHtml(s.direction)}</span>
         · <span class="mono">${Number(s.confidence).toFixed(1)}</span>
         · <span class="subtle">${fmtTime(s.created_at)}</span></p>
-        <p style="margin-top:0.5rem">${s.reasoning || "—"}</p>`;
+        <p style="margin-top:0.5rem">${escapeHtml(s.reasoning || "—")}</p>`;
     }
     openDialogHtml(`
       <p class="kicker">Watchlist</p>
-      <h3>${w.ticker} · <span class="muted">${w.sector || "—"}</span></h3>
+      <h3>${escapeHtml(w.ticker)} · <span class="muted">${escapeHtml(w.sector || "—")}</span></h3>
       <p class="kicker" style="margin-top:1rem">Top signal</p>
       ${sigHtml}
       ${zoneDetailBlock(w.ticker)}`);
@@ -1119,9 +1162,9 @@
         const r = p.held ? 6.5 : 5;
         const fill = p.held ? "#8fb4c4" : "transparent";
         const stroke = p.zone === "buy_zone" ? "#8aa58f" : p.zone === "sell_zone" ? "#c48980" : p.zone === "conflicted" ? "#c4b08f" : "#5c656e";
-        return `<g class="zones-scatter-point" data-zone-idx="${i}" tabindex="0" role="button" aria-label="${p.ticker} buy ${Number(p.buy).toFixed(2)} sell ${Number(p.sell).toFixed(2)}">
+        return `<g class="zones-scatter-point" data-zone-idx="${i}" tabindex="0" role="button" aria-label="${escapeHtml(p.ticker)} buy ${Number(p.buy).toFixed(2)} sell ${Number(p.sell).toFixed(2)}">
           <circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="1.6"/>
-          <title>${p.ticker} · buy ${Number(p.buy).toFixed(3)} · sell ${Number(p.sell).toFixed(3)} · ${p.zone}</title>
+          <title>${escapeHtml(p.ticker)} · buy ${Number(p.buy).toFixed(3)} · sell ${Number(p.sell).toFixed(3)} · ${escapeHtml(p.zone)}</title>
         </g>`;
       })
       .join("");
@@ -1167,14 +1210,14 @@
             .map((w, i) => {
               const s = w.signal;
               const zp = zonePointForTicker(w.ticker);
-              return `<tr data-watch-idx="${i}" aria-label="Open details for ${w.ticker}">
-                <td class="mono">${w.ticker}</td>
-                <td class="muted">${w.sector || "—"}</td>
-                <td class="mono muted">${s?.agent_id || "—"}</td>
-                <td>${s ? `<span class="dir ${s.direction}">${s.direction}</span>` : "—"}</td>
+              return `<tr data-watch-idx="${i}" aria-label="Open details for ${escapeHtml(w.ticker)}">
+                <td class="mono">${escapeHtml(w.ticker)}</td>
+                <td class="muted">${escapeHtml(w.sector || "—")}</td>
+                <td class="mono muted">${escapeHtml(s?.agent_id || "—")}</td>
+                <td>${s ? `<span class="dir ${escapeHtml(s.direction)}">${escapeHtml(s.direction)}</span>` : "—"}</td>
                 <td class="mono">${s ? Number(s.confidence).toFixed(0) : "—"}</td>
                 <td>${zp ? zoneBadgeHtml(zp.zone) : `<span class="muted">—</span>`}</td>
-                <td class="muted">${trunc(s?.reasoning || "", 90)}</td>
+                <td class="muted">${escapeHtml(trunc(s?.reasoning || "", 90))}</td>
               </tr>`;
             })
             .join("")}
@@ -1226,15 +1269,15 @@
 
   function openDetail(signal, agentId) {
     openDialogHtml(`
-      <p class="kicker">${agentId || signal.agent_id || "agent"}</p>
-      <h3>${signal.ticker} · <span class="dir ${signal.direction}">${signal.direction}</span>
+      <p class="kicker">${escapeHtml(agentId || signal.agent_id || "agent")}</p>
+      <h3>${escapeHtml(signal.ticker)} · <span class="dir ${escapeHtml(signal.direction)}">${escapeHtml(signal.direction)}</span>
         <span class="mono"> ${Number(signal.confidence).toFixed(1)}</span></h3>
       <p class="muted">${fmtTime(signal.created_at)}</p>
-      <p style="margin-top:1rem">${signal.reasoning || ""}</p>
+      <p style="margin-top:1rem">${escapeHtml(signal.reasoning || "")}</p>
       ${minerviniLabel(signal.supporting_data)}
       ${obvChandelierLabel(signal.supporting_data)}
       <p class="kicker" style="margin-top:1rem">Supporting data</p>
-      <pre>${JSON.stringify(signal.supporting_data || {}, null, 2)}</pre>`);
+      <pre>${escapeHtml(JSON.stringify(signal.supporting_data || {}, null, 2))}</pre>`);
   }
 
   function closeDetail() {
@@ -1288,10 +1331,10 @@
         const pressed = filter === theme;
         const netCls = Number(r.net) > 0 ? "gain" : Number(r.net) < 0 ? "loss" : "flat";
         const z = r.zones || {};
-        return `<button type="button" class="sector-card" data-theme="${theme}" aria-pressed="${pressed ? "true" : "false"}">
+        return `<button type="button" class="sector-card" data-theme="${escapeHtml(theme)}" aria-pressed="${pressed ? "true" : "false"}">
   <header>
-    <h3>${theme}</h3>
-    <span class="sector-meta">${r.held_n}/${r.tickers_n} held</span>
+    <h3>${escapeHtml(theme)}</h3>
+    <span class="sector-meta">${escapeHtml(r.held_n)}/${escapeHtml(r.tickers_n)} held</span>
   </header>
   <div>
     <p class="sector-subhead">Pressure</p>
@@ -1329,7 +1372,7 @@
       <div class="stat"><p class="label">Weight</p><p class="value mono">${fmtPct(r.weight)}</p></div>
       <div class="stat"><p class="label">Realized</p><p class="value mono ${pnlClass(r.realized)}">${fmtUsd(r.realized)}</p></div>
       <div class="stat"><p class="label">Unrealized</p><p class="value mono ${pnlClass(r.unrealized)}">${fmtUsd(r.unrealized)}</p></div>
-      <div class="stat"><p class="label">Held</p><p class="value mono">${r.held_n}/${r.tickers_n}</p></div>
+      <div class="stat"><p class="label">Held</p><p class="value mono">${escapeHtml(r.held_n)}/${escapeHtml(r.tickers_n)}</p></div>
     </div>
   </div>
 </button>`;
@@ -1351,6 +1394,7 @@
     renderHoldings();
     renderClosed();
     renderLifetime();
+    renderResearchDayLabels();
     renderAgents();
     renderResearch();
     renderMission();
