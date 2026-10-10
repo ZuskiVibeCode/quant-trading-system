@@ -90,6 +90,24 @@ class PortfolioManager:
             self.tracker.insert_hold(hold)
             return [hold]
 
+        stop = self.risk.max_loss_from_start_pct
+        start_eq = self.risk.starting_equity
+        if stop is not None and start_eq and (equity - start_eq) / start_eq <= -stop:
+            loss = (start_eq - equity) / start_eq
+            self.tracker.halt(f"Max loss from start breached: {loss:.2%} >= {stop:.0%}")
+            self.tracker.insert_audit_flag(
+                flag_type="max_loss_from_start",
+                severity="critical",
+                message=f"Equity {equity:.2f} is {loss:.2%} below the {start_eq:.2f} start; trading halted",
+            )
+            hold = HoldDecision(
+                rationale=f"Loss-from-start halt: {loss:.2%}",
+                signal_ids=[sid for sid, _ in signals],
+                data_snapshot={"loss_from_start": loss, "equity": equity},
+            )
+            self.tracker.insert_hold(hold)
+            return [hold]
+
         if drawdown >= self.risk.max_drawdown_pct:
             self.tracker.halt(
                 f"Max drawdown breached: {drawdown:.2%} >= {self.risk.max_drawdown_pct:.0%}"

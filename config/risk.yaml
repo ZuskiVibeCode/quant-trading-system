@@ -5,6 +5,7 @@ paper_mode: true
 max_position_pct: 0.20          # 20% of equity per position
 max_daily_loss_pct: 0.10        # 10% daily loss -> halt day
 max_drawdown_pct: 0.15          # 15% drawdown -> halt + alert
+max_loss_from_start_pct: 0.10   # 10% below starting_equity -> halt + alert (live only)
 
 # Agent weighting policy (OOS only; no in-sample reweight)
 initial_weight: equal

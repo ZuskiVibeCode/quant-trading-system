@@ -8,7 +8,7 @@ Designed to run under **Grok Bot** (CLI + SQLite) — not LangGraph/CrewAI/Teleg
 ## Hard constraints (enforced in code)
 
 - **Paper only:** Alpaca when `ALPACA_API_KEY` + `ALPACA_SECRET_KEY` present and `ALPACA_PAPER=true`; otherwise dry-run simulation
-- Max position **20%** equity; max daily loss **10%** (day halt); max drawdown **15%** (halt + audit alert)
+- Max position **20%** equity; max daily loss **10%** vs the prior close (day halt, lifts next ET day); max loss from start **10%** and max drawdown **15%** (halt + audit alert)
 - No withdraw / transfer / account-settings mutations
 - Kill switch: `python -m quant_system halt` / `resume`
 - Every decision logged with reasoning, timestamp, data snapshot (Tracker SQLite)

@@ -99,3 +99,59 @@ def test_reconcile_daily_pnl_is_against_prior_close(tracker):
     tracker.reconcile_portfolio(cash=0.22, equity=97.40, positions=[])
     snap = tracker.latest_snapshot()
     assert snap["daily_pnl"] == pytest.approx(0.55)
+
+
+# --- loss-from-start stop: keeps the 10%-below-$100 protection the stuck day start gave by accident ---
+
+
+def _pm_at(tracker: Tracker, equity: float, *, day_start: float):
+    from quant_system.config.loader import load_config
+    from quant_system.execution.portfolio_manager import PortfolioManager
+    from quant_system.market_data.yfinance_provider import MockMarketData
+
+    tracker.set_state("cash", f"{equity:.6f}")
+    tracker.set_state("day_start_equity", f"{day_start:.6f}")
+    cfg = load_config()
+    assert cfg.risk.max_loss_from_start_pct == pytest.approx(0.10)
+    return PortfolioManager(tracker, MockMarketData(prices={"IONQ": 10.0, "SPY": 100.0}), cfg)
+
+
+def _one_signal(tracker: Tracker):
+    from quant_system.models.signal import Direction, Signal
+
+    sig = Signal(agent_id="momentum", ticker="IONQ", direction=Direction.LONG, confidence=90.0,
+                 reasoning="test", supporting_data={})
+    return [(tracker.insert_signal(sig), sig)]
+
+
+def test_loss_from_start_halts_on_a_quiet_day(tracker):
+    """Down 10.1% from $100 but only 0.1% on the day: the daily limit passes, the start stop halts."""
+    pm = _pm_at(tracker, 89.9, day_start=90.0)
+    out = pm.weigh_and_decide(_one_signal(tracker))
+
+    assert tracker.is_halted() is True
+    assert tracker.is_day_halted() is False
+    assert tracker.get_state("halt_reason").startswith("Max loss from start")
+    assert out and "Loss-from-start halt" in out[0].rationale
+
+
+def test_loss_from_start_halt_survives_the_next_day(tracker):
+    pm = _pm_at(tracker, 89.9, day_start=90.0)
+    pm.weigh_and_decide(_one_signal(tracker))
+    tracker.roll_trading_day(now=OCT12_OPEN_ET)
+    assert tracker.is_halted() is True
+
+
+def test_no_halt_inside_the_limit(tracker):
+    pm = _pm_at(tracker, 90.44, day_start=92.0)  # Sep 16 low
+    pm.weigh_and_decide(_one_signal(tracker))
+    assert tracker.is_halted() is False
+
+
+def test_backtests_turn_the_start_stop_off():
+    from quant_system.backtest.harness import _apply_backtest_risk_overrides
+    from quant_system.config.loader import load_config
+
+    cfg = _apply_backtest_risk_overrides(load_config())
+    assert cfg.risk.max_loss_from_start_pct is None
+    assert load_config().risk.max_loss_from_start_pct == pytest.approx(0.10)
