@@ -12,9 +12,9 @@ Optional: `--no-alpaca`, `--no-history`, `--docs PATH`.
 
 | Key | Type | Notes |
 |-----|------|-------|
-| `meta` | object | `exported_at`, `account`, `starting_equity`, `paper` (always `true`), `day_start_utc` (ET local midnight as UTC ISO), `day_timezone` (`America/New_York`), `day_local` (YYYY-MM-DD), `day_label` (`ET day`) |
+| `meta` | object | `exported_at`, `account`, `starting_equity`, `paper` (always `true`), `day_start_utc` (ET local midnight as UTC ISO), `day_timezone` (`America/New_York`), `day_local` (YYYY-MM-DD), `day_label` (`ET day`), `research_day_local`, `research_fallback` — see Research day below |
 | `snapshot` | object | `equity`, `cash`, `peak_equity`, `daily_pnl`, `unrealized` (sum of available holding dollar marks, or `null`), `drawdown`, `halted`, `day_halted`, `halt_reason` |
-| `holdings` | array | `{ticker, qty, avg_cost, last?, sector, unrealized?, updated_at?, why_bought?}` — `why_bought` is additive, see below |
+| `holdings` | array | `{ticker, qty, avg_cost, last?, sector, unrealized?, updated_at?, why_bought?}` — `why_bought` is additive, see below. Dust positions (`qty × avg_cost` under $0.01) are left out |
 | `closed` | array | From sell fills when trackable; may be `[]` |
 | `equity_curve` | array | `{t, equity, cash, daily_pnl, drawdown, peak_equity}` from `portfolio_snapshots` |
 | `agents_today` | object | Per `agent_id`: `{agent_id, count, long, short, neutral, signals[]}` |
@@ -142,6 +142,20 @@ closed-lot `pnl` for theme tickers (0.0 when no closes; null pnls ignored);
 When history is enabled (default), the same payload is also written to:
 
 `docs/data/history/YYYY-MM-DD.json` (America/New_York local calendar date).
+
+No history file is written for an export with `meta.research_fallback: true`.
+
+## Research day
+
+`agents_today`, `zones`, `sector_board` pressure and `watchlist` signals come from
+`meta.research_day_local`. Normally that is `day_local`. When today (ET) has no
+signals yet (weekend, holiday, or an export before the first research run), the
+export uses the latest earlier ET day that has signals and sets
+`research_fallback: true`. `decisions_today`, `mission_log` and auditor flags stay
+on `day_local`.
+
+`zones_history.json` is keyed by research day. Days with no zone points are left
+out, and a fallback payload never replaces a day's own history file.
 
 ## Security
 

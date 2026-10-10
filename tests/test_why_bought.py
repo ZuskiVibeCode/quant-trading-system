@@ -188,7 +188,7 @@ def test_viewer_renders_why_bought():
     assert "${whyBoughtHtml(h.why_bought)}" in src  # wired into the holding detail view
     funcs = "\n".join(
         _js_function(src, n)
-        for n in ("fmtUsd", "fmtTime", "trunc", "whyBoughtBuyHtml", "whyBoughtHtml")
+        for n in ("escapeHtml", "fmtUsd", "fmtTime", "trunc", "whyBoughtBuyHtml", "whyBoughtHtml")
     )
     wb = {
         "opened_at": "2026-10-06T14:01:00Z",
