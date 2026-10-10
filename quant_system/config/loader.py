@@ -16,6 +16,9 @@ class RiskConfig(BaseModel):
     max_position_pct: float = 0.20
     max_daily_loss_pct: float = 0.10
     max_drawdown_pct: float = 0.15
+    # Full halt when equity is this far below starting_equity. Defaults on, so a missing
+    # key keeps the stop; None turns it off (backtests pass None explicitly).
+    max_loss_from_start_pct: float | None = 0.10
     initial_weight: str = "equal"
     weight_floor: float = 0.05
     weight_cap: float = 0.40

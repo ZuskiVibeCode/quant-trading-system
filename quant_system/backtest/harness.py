@@ -347,15 +347,14 @@ def _apply_backtest_risk_overrides(
     min_abs_score: float | None = None,
 ) -> AppConfig:
     """Return a copy of cfg with optional risk knobs (never mutates live YAML)."""
-    risk_updates: dict[str, float] = {}
+    # The live loss-from-start stop is account policy, not part of a strategy test.
+    risk_updates: dict[str, float | None] = {"max_loss_from_start_pct": None}
     if min_confidence_to_trade is not None:
         risk_updates["min_confidence_to_trade"] = float(min_confidence_to_trade)
     if min_confidence_to_sell is not None:
         risk_updates["min_confidence_to_sell"] = float(min_confidence_to_sell)
     if min_abs_score is not None:
         risk_updates["min_abs_score"] = float(min_abs_score)
-    if not risk_updates:
-        return cfg
     new_risk = cfg.risk.model_copy(update=risk_updates)
     return cfg.model_copy(update={"risk": new_risk})
 

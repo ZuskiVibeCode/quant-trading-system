@@ -35,6 +35,8 @@ def env(tmp_path):
     cfg.risk.starting_equity = 100.0
     # Isolate cumulative-cash planning from opportunity-cost rotate
     cfg.risk.opportunity_rotate_enabled = False
+    # The $52 scenario below is about cash planning, not the loss-from-start stop
+    cfg.risk.max_loss_from_start_pct = None
     yield tracker, md, cfg
     tracker.close()
 

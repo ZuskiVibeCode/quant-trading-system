@@ -6,6 +6,7 @@ import json
 import sqlite3
 from datetime import datetime, timezone
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from quant_system.models.signal import Signal
 from quant_system.models.ticket import HoldDecision, TradeTicket, TicketStatus
@@ -14,6 +15,10 @@ from quant_system.tracker.db import connect, init_db, default_db_path
 
 def _now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
+
+# Trading-day boundary for daily P&L and the day-loss halt (same day as the dashboard).
+TRADING_DAY_TZ = ZoneInfo("America/New_York")
 
 
 class Tracker:
@@ -405,6 +410,7 @@ class Tracker:
             )
             written += 1
         peak = max(float(self.get_state("peak_equity", "0") or 0), float(equity))
+        self.roll_trading_day()
         day_start = float(self.get_state("day_start_equity", str(equity)) or equity)
         self.snapshot_portfolio(
             equity=float(equity),
@@ -495,8 +501,8 @@ class Tracker:
         return self.get_state("day_halted", "false").lower() == "true"
 
     def halt(self, reason: str, day_only: bool = False) -> None:
-        if day_only:
-            self.set_state("day_halted", "true")
+        # A full halt supersedes a day halt, so the next day's roll cannot lift it.
+        self.set_state("day_halted", "true" if day_only else "false")
         self.set_state("halted", "true")
         self.set_state("halt_reason", reason)
         self.log_decision(
@@ -516,6 +522,41 @@ class Tracker:
             reasoning=reason,
             payload={},
         )
+
+    def roll_trading_day(self, *, now: datetime | None = None) -> bool:
+        """Start a new trading day on the first call after ET midnight.
+
+        Sets ``day_start_equity`` to the prior close (the last snapshot before
+        today) and lifts a day-loss halt. A full halt is left alone. Returns
+        True when it rolled, False when today was already rolled.
+        """
+        ts = now or datetime.now(timezone.utc)
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        local = ts.astimezone(TRADING_DAY_TZ)
+        day = local.strftime("%Y-%m-%d")
+        if self.get_state("day_start_date", "") == day:
+            return False
+        start_utc = local.replace(hour=0, minute=0, second=0, microsecond=0).astimezone(timezone.utc)
+        row = self._conn.execute(
+            "SELECT equity FROM portfolio_snapshots WHERE created_at < ? ORDER BY id DESC LIMIT 1",
+            (start_utc.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),),
+        ).fetchone()
+        if row and row["equity"] is not None:
+            base = float(row["equity"])
+        else:
+            base = float(self.get_state("equity", self.get_state("day_start_equity", "100")) or 100)
+        self.set_state("day_start_equity", f"{base:.6f}")
+        self.set_state("day_start_date", day)
+        self.log_decision(
+            decision_type="day_roll",
+            actor="tracker",
+            reasoning=f"New trading day {day}: day_start_equity={base:.2f} (prior close)",
+            payload={"day": day, "day_start_equity": base},
+        )
+        if self.is_day_halted():
+            self.resume(f"new trading day {day}")
+        return True
 
     def orders_blocked(self) -> tuple[bool, str]:
         if self.is_halted():
