@@ -1,7 +1,7 @@
 # Grok Bot: How It Works, and How to Write a Bot Team Spec
 
 Audience: Claude, writing an instruction spec for a Grok Bot team build-out for Sabastian.
-Workflow: Claude drafts the spec and commits it to the repo. Chief of Staff reads it from GitHub, checks it against the live project, and hands each bot block to dr eggbot. dr eggbot creates the bots.
+Workflow: Claude drafts the spec and commits it to the repo. Orbit Control reads it from GitHub, checks it against the live project, and hands each bot block to dr eggbot. dr eggbot creates the bots.
 
 ---
 
@@ -17,7 +17,7 @@ One bot can be set as the user's **primary bot** (the main one they talk to). Ot
 
 ### Current team
 - **Grok Bot**: the primary bot, a general assistant.
-- **Chief of Staff**: manages the other bots, pulls the user in for decisions, and owns the quant project (details in section 9).
+- **Orbit Control** (formerly Chief of Staff): manages the other bots, pulls the user in for decisions, and owns the quant project (details in section 9). It reviews, tests and merges PRs and runs the paper cycles. Inbox: orbitcontrol@mail.grokbot.com.
 - **dr eggbot**: designs and creates new bots.
 
 ---
@@ -44,7 +44,7 @@ Connectors are integrations with services like GitHub, Vercel, Google, Slack, an
 
 Current state (as of Oct 5, 2026):
 - **Vercel:** two accounts are connected ("default" and "sabby5"). On sabby5, user-level calls work, but team-scoped calls (like listing projects) return 403, and signing in again didn't fix it. Treat the connector as barely usable. Deploys go through the Vercel REST API with a `VERCEL_TOKEN` instead.
-- **GitHub connector:** installed but not signed in. Code work goes through the `gh` command-line tool on the shared computer instead. Chief of Staff uses Sabastian's ZuskiVibeCode login, and coding bots use a separate bot GitHub account (section 9). Because the connector isn't signed in, routines triggered by GitHub events may not be available, so plan on scheduled polling (section 10).
+- **GitHub connector:** installed but not signed in. Code work goes through the `gh` command-line tool on the shared computer instead. Orbit Control uses Sabastian's ZuskiVibeCode login, and coding bots use a separate bot GitHub account (section 9). Because the connector isn't signed in, routines triggered by GitHub events may not be available, so plan on scheduled polling (section 10).
 - **Origin:** connected, but not used for this repo.
 - **Finance:** installed but not signed in.
 
@@ -103,11 +103,11 @@ Routines run while the user is away. Each routine belongs to one bot, and the bo
 
 ## 9. How coding actually works on this account
 
-**Cursor cloud agents are not included in Sabastian's plan.** dr eggbot's default coding template sends repo work to cloud agents, so **the spec must override that.** Coding bots work like Chief of Staff:
+**Cursor cloud agents are not included in Sabastian's plan.** dr eggbot's default coding template sends repo work to cloud agents, so **the spec must override that.** Coding bots work like Orbit Control:
 
 - They work in a local git checkout on the shared computer.
 - **Two GitHub identities:**
-  - **ZuskiVibeCode** (Sabastian's account) is the shared default `gh` login on the computer, over https. Only Chief of Staff uses it: to approve and merge PRs, and for the `docs/data/**` routine pushes.
+  - **ZuskiVibeCode** (Sabastian's account) is the shared default `gh` login on the computer, over https. Only Orbit Control uses it: to approve and merge PRs, and for the `docs/data/**` routine pushes.
   - **A dedicated bot GitHub account** is used by every coding bot to push branches and open PRs. It's a collaborator on the repo with **write access only, never admin**. Its token is a fine-grained token scoped to this repo, stored in its own environment variable (for example `BOT_GH_TOKEN`), and passed as `GH_TOKEN` only in that bot's own commands (for example `GH_TOKEN="$BOT_GH_TOKEN" gh pr create ...`). Coding bots never use the default ZuskiVibeCode login.
 - Several bots may share the one bot account, so each PR names its author bot in the branch prefix and the PR body (section 10).
 - They edit code, run tests (`pytest`), commit, and push to their own branch. They never push to main.
@@ -117,44 +117,44 @@ Routines run while the user is away. Each routine belongs to one bot, and the bo
 - A paper-trading-only quant stack (Alpaca paper), with about 114 commits since Sep 20, 2026.
 - The local checkout is at `/workspace/quant-trading-system`.
 - The dashboard is the Vercel project `orbit-quant-ledger` (team sabby5), deployed at orbit-quant-ledger.vercel.app as a static site built from `docs/`.
-- Chief of Staff runs three routines: a morning digest, an afternoon digest, and an hourly cycle on weekdays at :45 past the hour, from 9:45 AM to 3:45 PM ET. These run the paper-trading cycle, commit only `docs/data/**`, push straight to main, and redeploy.
+- Orbit Control runs three routines: a morning digest, an afternoon digest, and an hourly cycle on weekdays at :45 past the hour, from 9:45 AM to 3:45 PM ET. These run the paper-trading cycle, commit only `docs/data/**`, push straight to main, and redeploy.
 - There's no CI yet. The repo has no `.github/workflows`.
 - Guardrails: paper trading only, `.env` is never committed, and any change to risk policy needs Sabastian's approval.
 
 ### Prerequisites (Sabastian only)
 1. **Create the bot GitHub account** and invite it to `ZuskiVibeCode/quant-trading-system` as a collaborator with **write** access (not admin).
 2. **Create a fine-grained token** on the bot account, scoped to this repo only, and save it through a secure prompt as `BOT_GH_TOKEN`. Never paste it into chat or commit it.
-3. **Add the `workflow` scope to ZuskiVibeCode.** The default `gh` login only has `repo` scope, and GitHub rejects pushes that change `.github/workflows/*` without `workflow`. Sabastian runs `gh auth refresh -s workflow` and finishes the browser or device-code step. Chief of Staff then adds the pytest GitHub Actions workflow through a PR he merges himself, so the new process gets tested on its own first change.
+3. **Add the `workflow` scope to ZuskiVibeCode.** The default `gh` login only has `repo` scope, and GitHub rejects pushes that change `.github/workflows/*` without `workflow`. Sabastian runs `gh auth refresh -s workflow` and finishes the browser or device-code step. Orbit Control then adds the pytest GitHub Actions workflow through a PR it merges itself, so the new process gets tested on its own first change.
 4. **Turn on branch protection** for main as described in section 10, with ZuskiVibeCode on the bypass list.
 
 ---
 
 ## 10. New PR workflow (decided with Sabastian on Oct 5, 2026)
 
-Until now, Chief of Staff pushed directly to main. With more coding bots, **code changes go through pull requests, and Chief of Staff reviews and merges them.**
+Until now, Orbit Control pushed directly to main. With more coding bots, **code changes go through pull requests, and Orbit Control reviews and merges them.**
 
 Rules:
 1. **Branch from the latest main.** Each bot works in its own checkout or worktree, on a branch named `<botname>/<short-task>`.
 2. **Name the author.** Several bots may share the one bot GitHub account, so the PR body starts with `Author bot: <botname>`.
 3. **Sync before review.** The bot rebases or merges in the latest main right before asking for review, and again if main moves before merge.
 4. **Tests pass first.** `pytest` must pass locally before review. Once the CI workflow exists (see the prerequisite in section 9), it must also pass on the up-to-date branch.
-5. **One merge at a time.** Chief of Staff merges one PR at a time, only when it's up to date with main and tests pass.
-6. **No overwriting approved work.** If a PR conflicts with something just merged, it goes back to the author bot to rebuild on the new main. Chief of Staff never resolves a conflict by discarding approved code.
-7. **Clear ownership.** Chief of Staff assigns tasks and file areas so two bots aren't editing the same files at the same time.
-8. **Exception for data routines.** Chief of Staff's routines keep pushing `docs/data/**` straight to main as ZuskiVibeCode, which is on the bypass list. All code changes go through PRs.
-9. **Risk policy is protected.** Any PR that changes risk policy needs Sabastian's explicit approval before merge, not just Chief of Staff's.
-10. **Authors never merge.** Only Chief of Staff approves and merges, as ZuskiVibeCode. Coding bots open PRs as the bot account, which can't approve its own PRs, so GitHub enforces this.
+5. **One merge at a time.** Orbit Control merges one PR at a time, only when it's up to date with main and tests pass.
+6. **No overwriting approved work.** If a PR conflicts with something just merged, it goes back to the author bot to rebuild on the new main. Orbit Control never resolves a conflict by discarding approved code.
+7. **Clear ownership.** Orbit Control assigns tasks and file areas so two bots aren't editing the same files at the same time.
+8. **Exception for data routines.** Orbit Control's routines keep pushing `docs/data/**` straight to main as ZuskiVibeCode, which is on the bypass list. All code changes go through PRs.
+9. **Risk policy is protected.** Any PR that changes risk policy needs Sabastian's explicit approval before merge, not just Orbit Control's.
+10. **Authors never merge.** Only Orbit Control approves and merges, as ZuskiVibeCode. Coding bots open PRs as the bot account, which can't approve its own PRs, so GitHub enforces this.
 
 ### Branch protection on main (ON)
 - Require a pull request before merging.
 - Require **1 approving review**.
 - Require the **pytest status check** to pass, once CI exists, with branches up to date before merging.
 - **Bypass list: ZuskiVibeCode only**, so the `docs/data/**` routines can keep pushing directly. The bot account is **not** on the bypass list.
-- Chief of Staff approves and merges as ZuskiVibeCode. Coding bots, using the bot account, can't push to main or merge without that approval.
+- Orbit Control approves and merges as ZuskiVibeCode. Coding bots, using the bot account, can't push to main or merge without that approval.
 
 Be aware that the bypass applies to anything pushed as ZuskiVibeCode, not just `docs/data/**`, since GitHub can't scope protection by path. That's why coding bots must never use the default `gh` login.
 
-### PR review routine (Chief of Staff)
+### PR review routine (Orbit Control)
 This is a scheduled poll, not a GitHub-event trigger. It runs on weekdays at an odd minute (for example :17 past the hour), runs `gh pr list --state open` as ZuskiVibeCode, and reviews any PR with new commits since its last review. It stays quiet when there's nothing new.
 
 ---
@@ -210,11 +210,11 @@ Commit the spec to the repo as `docs/bot-team-spec.md`. Lead with a short team o
   coding_setup:          # only when coding: true
     checkout: /workspace/quant-trading-system-<botname>
     auth: bot GitHub account via GH_TOKEN="$BOT_GH_TOKEN" in this bot's commands only (never the default ZuskiVibeCode login)
-    workflow: branch <botname>/<task> from latest main, sync before review, open PR with 'Author bot: <botname>', Chief of Staff reviews and merges
+    workflow: branch <botname>/<task> from latest main, sync before review, open PR with 'Author bot: <botname>', Orbit Control reviews and merges
     tests: pytest must pass before requesting review
     no_cloud_agents: true
   hands_off_to: <which bot gets what, and how (direct message, PR, file)>
-  reports_to: <usually Chief of Staff; say how often and in what format>
+  reports_to: <usually Orbit Control; say how often and in what format>
   needs_user_ok_for: <list of actions>
   connectors_needed: <list; installed separately with user approval>
   section: <sidebar section, optional>
@@ -225,7 +225,7 @@ Commit the spec to the repo as `docs/bot-team-spec.md`. Lead with a short team o
     coding workflow if any, and handoff rules. No filler or "I can also help with...".>
 ```
 
-Also include a **Chief of Staff changes** section. Chief of Staff already exists, so it isn't recreated. It just updates its own routines and instructions:
+Also include an **Orbit Control changes** section. Orbit Control already exists, so it isn't recreated. It just updates its own routines and instructions:
 - Add the PR review routine: a weekday scheduled poll at an odd minute (for example :17) using `gh pr list --state open`.
 - Keep its data routines as they are, pushing `docs/data/**` directly.
 - Add the pytest GitHub Actions workflow through a self-merged PR, once Sabastian adds the `workflow` scope.
@@ -249,9 +249,9 @@ Also include a **Chief of Staff changes** section. Chief of Staff already exists
 ## 13. End-to-end flow
 
 1. Claude writes `docs/bot-team-spec.md` and commits it on a branch or opens a PR.
-2. Chief of Staff reads it from GitHub, checks it against the live repo and current routines, fixes or flags issues, and gets Sabastian's OK.
-3. Chief of Staff sends dr eggbot one bot block at a time (or the full list).
+2. Orbit Control reads it from GitHub, checks it against the live repo and current routines, fixes or flags issues, and gets Sabastian's OK.
+3. Orbit Control sends dr eggbot one bot block at a time (or the full list).
 4. dr eggbot creates each bot and checks its live profile.
 5. Each new bot creates its own routines from its block.
 6. Sabastian completes the section 9 prerequisites: creates the bot GitHub account, invites it with write access, saves its fine-grained token as `BOT_GH_TOKEN`, runs `gh auth refresh -s workflow`, and turns on branch protection. He also approves any connectors still needed.
-7. Chief of Staff starts assigning work. Code arrives as PRs that Chief of Staff reviews and merges.
+7. Orbit Control starts assigning work. Code arrives as PRs that Orbit Control reviews and merges.
