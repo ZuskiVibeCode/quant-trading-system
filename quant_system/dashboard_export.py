@@ -375,6 +375,106 @@ def build_ticker_pnl(
     return rows
 
 
+WHY_BOUGHT_MAX_BUYS = 10  # opening buy + most recent; keeps history files and the deploy small
+
+
+def build_why_bought(tracker: Tracker, held: set[str]) -> dict[str, dict[str, Any]]:
+    """Buy tickets behind each open position, keyed by ticker.
+
+    Walks fills in the same chronological lot ladder as ``_build_closed``. A
+    lot opens on the first buy from flat and resets when a sell flattens it, so
+    only buys in the current open lot are reported. Fills are grouped by their
+    buy ticket. Desk signals come only from the ticket's own ``signal_ids``
+    (never guessed from a time window); backfilled buys carry none.
+
+    Each block: ``{opened_at, buy_count, omitted, buys: [...]}`` with buys in
+    chronological order. Over ``WHY_BOUGHT_MAX_BUYS`` tickets, the opening buy
+    and the most recent ones are kept and ``omitted`` counts the rest.
+    """
+    from quant_system.research.trade_review import (
+        _parse_signal_ids,
+        parse_score_from_rationale,
+        signals_near_entry,
+    )
+
+    want = {t.upper() for t in held}
+    if not want:
+        return {}
+    fills = tracker.conn.execute(
+        """
+        SELECT * FROM fills
+        ORDER BY created_at ASC, id ASC
+        """
+    ).fetchall()
+
+    # Per-ticker open lot: qty, opened_at, buys keyed by ticket id (insertion = chronological)
+    lots: dict[str, dict[str, Any]] = {}
+    for f in fills:
+        ticker = str(f["ticker"]).upper()
+        if ticker not in want:
+            continue
+        side = str(f["side"]).lower()
+        qty = float(f["qty"])
+        lot = lots.setdefault(ticker, {"qty": 0.0, "opened_at": None, "buys": {}})
+        if side == "buy":
+            if lot["qty"] <= 1e-12:
+                lot.update(qty=0.0, opened_at=f["created_at"], buys={})
+            lot["qty"] += qty
+            tid = f["ticket_id"]
+            entry = lot["buys"].setdefault(tid, {"ticket_id": tid, "fills": []})
+            entry["fills"].append(
+                {
+                    "fill_id": f["id"],
+                    "at": f["created_at"],
+                    "qty": qty,
+                    "price": float(f["price"]),
+                    "mode": f["mode"],
+                }
+            )
+            continue
+        if side != "sell":
+            continue
+        lot["qty"] -= qty
+        if lot["qty"] <= 1e-12:
+            lot.update(qty=0.0, opened_at=None, buys={})
+
+    out: dict[str, dict[str, Any]] = {}
+    for ticker, lot in lots.items():
+        buys = list(lot["buys"].values())
+        if not buys:
+            continue
+        kept = buys
+        if len(buys) > WHY_BOUGHT_MAX_BUYS:
+            kept = [buys[0]] + buys[-(WHY_BOUGHT_MAX_BUYS - 1):]
+        rows: list[dict[str, Any]] = []
+        for b in kept:
+            ticket = tracker.get_ticket(int(b["ticket_id"])) if b["ticket_id"] is not None else None
+            rationale = (ticket or {}).get("rationale")
+            signal_ids = _parse_signal_ids((ticket or {}).get("signal_ids"))
+            signals = (
+                signals_near_entry(tracker, ticker, None, signal_ids=signal_ids)
+                if signal_ids
+                else []
+            )
+            rows.append(
+                {
+                    "ticket_id": b["ticket_id"],
+                    "created_at": (ticket or {}).get("created_at") or b["fills"][0]["at"],
+                    "rationale": rationale,
+                    "score": parse_score_from_rationale(rationale),
+                    "signals": signals,
+                    "fills": b["fills"],
+                }
+            )
+        out[ticker] = {
+            "opened_at": lot["opened_at"],
+            "buy_count": len(buys),
+            "omitted": len(buys) - len(kept),
+            "buys": rows,
+        }
+    return out
+
+
 def _agents_today(signals: list[dict[str, Any]]) -> dict[str, Any]:
     by_agent: dict[str, list[dict[str, Any]]] = {a: [] for a in DEFAULT_AGENT_IDS}
     for s in signals:
@@ -1143,6 +1243,14 @@ def build_dashboard_payload(
                     h["last"] = float(a["market_value"]) / float(h["qty"])
                 except (TypeError, ValueError, ZeroDivisionError):
                     pass
+
+    # Additive "why we bought it": PM buy tickets, their desk signals and fills
+    try:
+        why = build_why_bought(tracker, held)
+    except Exception:  # noqa: BLE001 — additive; never block export
+        why = {}
+    for h in holdings:
+        h["why_bought"] = why.get(h["ticker"])
 
     # Sum only dollar marks that were actually supplied by the broker. If no
     # holding has an unrealized mark, preserve that absence as JSON null.

@@ -617,6 +617,73 @@
     });
   }
 
+  function whyBoughtBuyHtml(b) {
+    const sigs = Array.isArray(b.signals) ? b.signals : [];
+    const fills = Array.isArray(b.fills) ? b.fills : [];
+    const backfill = fills.length > 0 && fills.every((f) => String(f.mode || "").includes("backfill"));
+    const score = b.score || {};
+    const scoreBits = [
+      score.weighted_score != null ? `score ${Number(score.weighted_score).toFixed(3)}` : "",
+      score.blended_conf != null ? `conf ${Number(score.blended_conf).toFixed(1)}` : "",
+    ].filter(Boolean).join(" · ");
+    const reason = backfill
+      ? `<p class="muted" style="margin-top:0.35rem">Imported from Alpaca order history; the PM's reasoning wasn't recorded.</p>`
+      : `<p style="margin-top:0.35rem">${b.rationale || "—"}</p>`;
+    const sigTable = sigs.length
+      ? `<table class="agent-mix-table">
+          <thead><tr><th>Desk</th><th>Dir</th><th>Conf</th><th>Reasoning</th></tr></thead>
+          <tbody>
+            ${sigs.map((s) => `<tr>
+              <td class="mono muted">${s.agent_id || "—"}</td>
+              <td><span class="dir ${s.direction || ""}">${s.direction || "—"}</span></td>
+              <td class="mono">${s.confidence != null ? Number(s.confidence).toFixed(1) : "—"}</td>
+              <td class="muted">${trunc(s.reasoning_trunc || "", 140)}</td>
+            </tr>`).join("")}
+          </tbody>
+        </table>`
+      : `<p class="muted" style="margin-top:0.35rem">No desk signals linked to this ticket.</p>`;
+    const fillTable = fills.length
+      ? `<table class="agent-mix-table">
+          <thead><tr><th>Filled</th><th>Qty</th><th>Price</th><th>Mode</th></tr></thead>
+          <tbody>
+            ${fills.map((f) => `<tr>
+              <td class="mono subtle">${fmtTime(f.at)}</td>
+              <td class="mono">${f.qty != null ? Number(f.qty).toFixed(6) : "—"}</td>
+              <td class="mono">${fmtUsd(f.price)}</td>
+              <td class="mono muted">${f.mode || "—"}</td>
+            </tr>`).join("")}
+          </tbody>
+        </table>`
+      : "";
+    return `<div class="why-buy">
+        <p><span class="mono">Ticket #${b.ticket_id != null ? b.ticket_id : "—"}</span>
+          · <span class="subtle">${fmtTime(b.created_at)}</span>
+          ${scoreBits ? `· <span class="mono muted">${scoreBits}</span>` : ""}</p>
+        ${reason}
+        ${sigTable}
+        ${fillTable}
+      </div>`;
+  }
+
+  function whyBoughtHtml(wb) {
+    const head = `<p class="kicker" style="margin-top:1rem">Why we bought it</p>`;
+    const buys = wb && Array.isArray(wb.buys) ? wb.buys : [];
+    if (!buys.length) {
+      return `${head}<p class="muted">No buy records for this position in the feed.</p>`;
+    }
+    const count = wb.buy_count != null ? wb.buy_count : buys.length;
+    const omitted = Number(wb.omitted) || 0;
+    const html = buys.map((b, i) => {
+      const gap = omitted && i === 1
+        ? `<p class="muted why-gap">${omitted} more buy${omitted === 1 ? "" : "s"} between these not shown</p>`
+        : "";
+      return gap + whyBoughtBuyHtml(b);
+    }).join("");
+    return `${head}
+      <p class="muted">Position opened ${fmtTime(wb.opened_at)} · ${count} buy ticket${count === 1 ? "" : "s"}</p>
+      ${html}`;
+  }
+
   function openHoldingDetail(h) {
     const mv = marketValue(h.qty, h.last);
     const pct = unrealizedPct(h.unrealized, h.qty, h.avg_cost);
@@ -685,6 +752,7 @@
         <div class="stat"><p class="label">Unrealized $</p><p class="value mono ${pnlClass(h.unrealized)}">${fmtUsd(h.unrealized)}</p></div>
         <div class="stat"><p class="label">Unrealized %</p><p class="value mono ${pnlClass(h.unrealized)}">${pct == null ? "—" : (pct * 100).toFixed(2) + "%"}</p></div>
       </div>
+      ${whyBoughtHtml(h.why_bought)}
       <p class="kicker" style="margin-top:1rem">Latest research</p>
       ${researchHtml}
       <p class="kicker" style="margin-top:1rem">Latest decision</p>

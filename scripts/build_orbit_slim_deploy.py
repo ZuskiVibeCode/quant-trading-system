@@ -50,6 +50,29 @@ def slim_buy_sell(bs):
         out["signals"] = [slim_signal(s, 280) for s in bs["signals"]]
     return out
 
+def slim_why_bought(wb):
+    """Holding's buy tickets; trim rationale and desk reasoning, keep fills whole."""
+    if not isinstance(wb, dict):
+        return wb
+    out = {k: wb.get(k) for k in ["opened_at", "buy_count", "omitted"] if k in wb}
+    buys = []
+    for b in wb.get("buys") or []:
+        if not isinstance(b, dict):
+            continue
+        nb = {k: b.get(k) for k in ["ticket_id", "created_at", "score", "fills"] if k in b}
+        nb["rationale"] = trunc(b.get("rationale"), 400)
+        nb["signals"] = [
+            {
+                **{k: s.get(k) for k in ["agent_id", "direction", "confidence", "signal_id", "created_at"] if k in s},
+                "reasoning_trunc": trunc(s.get("reasoning_trunc") or "", 140),
+            }
+            for s in (b.get("signals") or [])
+            if isinstance(s, dict)
+        ]
+        buys.append(nb)
+    out["buys"] = buys
+    return out
+
 def slim_decision(row, reason_n=160):
     if not isinstance(row, dict):
         return row
@@ -152,6 +175,8 @@ def slim_latest(d: dict) -> dict:
         nh = {k: h.get(k) for k in ["ticker", "qty", "avg_cost", "last", "sector", "unrealized", "updated_at", "opened_at", "fills"] if k in h}
         if "buy" in h:
             nh["buy"] = slim_buy_sell(h["buy"])
+        if "why_bought" in h:
+            nh["why_bought"] = slim_why_bought(h["why_bought"])
         out["holdings"].append(nh)
     for c in d.get("closed") or []:
         nc = {k: c.get(k) for k in ["ticker", "qty", "entry", "exit", "pnl", "sector", "closed_at", "opened_at", "mode", "fill_id", "ticket_id"] if k in c}
