@@ -154,6 +154,36 @@ def _sector_map(themes: dict[str, list[str]]) -> dict[str, str]:
     return m
 
 
+def _live_themes(tracker: Tracker, cfg: Any) -> tuple[dict[str, list[str]], dict[str, str]]:
+    """Theme lists as the rotation runs them today, plus a ticker -> theme map.
+
+    Rotation promotes bench names into the active set (e.g. ADSK in for a cold
+    ABB), so the config's seed lists alone leave promoted names without a theme.
+    The map covers seed active, bench, live active and cold names.
+    """
+    seed = {
+        k: [t.upper() for t in (v.active if hasattr(v, "active") else v)]
+        for k, v in cfg.universe.themes.items()
+    }
+    sector_of: dict[str, str] = {}
+    for theme, members in cfg.universe.themes.items():
+        for t in list(getattr(members, "active", members)) + list(getattr(members, "bench", [])):
+            sector_of[str(t).upper()] = theme
+    try:
+        from quant_system.research.rotation import load_rotation_state
+
+        state = load_rotation_state(tracker, cfg.universe)
+    except Exception:  # noqa: BLE001 — fall back to the config seed lists
+        return seed, sector_of
+    live = {th: [str(t).upper() for t in names] for th, names in (state.get("active") or {}).items()}
+    for ticker, meta in (state.get("cold") or {}).items():
+        theme = (meta or {}).get("theme")
+        if theme:
+            sector_of[str(ticker).upper()] = theme
+    sector_of.update(_sector_map(live))
+    return (live or seed), sector_of
+
+
 def _query_since(
     tracker: Tracker,
     table: str,
@@ -1229,11 +1259,7 @@ def build_dashboard_payload(
     account: str = "paper",
 ) -> dict[str, Any]:
     cfg = load_config()
-    themes = {
-        k: [t.upper() for t in (v.active if hasattr(v, "active") else v)]
-        for k, v in cfg.universe.themes.items()
-    }
-    sector_of = _sector_map(themes)
+    themes, sector_of = _live_themes(tracker, cfg)
     day_start_utc_dt, _, local_day = local_day_bounds()
     day_start = day_start_utc_dt.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
@@ -1375,7 +1401,7 @@ def build_dashboard_payload(
         "decisions_today": _decisions_today(decisions),
         "auditor_flags_today": flags,
         "mission_log": _mission_log(decisions),
-        "watchlist": _watchlist(cfg.universe.tickers, held, sector_of, signals),
+        "watchlist": _watchlist([t for names in themes.values() for t in names], held, sector_of, signals),
         "sectors": themes,
     }
     if alpaca is not None:
