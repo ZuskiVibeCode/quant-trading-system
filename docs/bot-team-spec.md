@@ -84,8 +84,14 @@ smith opens a PR, skeptic attacks it, and Orbit Control merges it.
 - Each coding bot works in its own checkout,
   `/workspace/quant-trading-system-<botname>`, and never in Orbit Control's
   `/workspace/quant-trading-system`.
-- GitHub: the bot account through `GH_TOKEN="$BOT_GH_TOKEN"` in that bot's own
-  commands only. Never the default ZuskiVibeCode login.
+- GitHub: inside a bot's own checkout or `/workspace/lab-work/<botname>/`, git and
+  `gh` act as the bot account by default. Each checkout has a local git credential
+  helper that reads `$BOT_GH_TOKEN` at call time. `gh` goes through the wrapper
+  `/workspace/lab-work/bin/gh`, so every session starts with
+  `export PATH=/workspace/lab-work/bin:$PATH` and never calls `/usr/bin/gh`. If the
+  token is missing, both fail instead of falling back. Bots still prefix `gh` and
+  `git push` with `GH_TOKEN="$BOT_GH_TOKEN"` as a second safeguard. Never the
+  default ZuskiVibeCode login.
 - Paper research only. No bot touches the live trading cycle (`run-once`), the
   order path, `config/risk.yaml`, or `docs/data/**`.
 
@@ -133,7 +139,7 @@ smith opens a PR, skeptic attacks it, and Orbit Control merges it.
   coding: true
   coding_setup:
     checkout: /workspace/quant-trading-system-momo
-    auth: bot GitHub account via GH_TOKEN="$BOT_GH_TOKEN" in this bot's commands only (never the default ZuskiVibeCode login)
+    auth: bot GitHub account by default inside this checkout (git credential helper reads $BOT_GH_TOKEN; gh via /workspace/lab-work/bin/gh, so start each session with export PATH=/workspace/lab-work/bin:$PATH and never call /usr/bin/gh); keep GH_TOKEN="$BOT_GH_TOKEN" on gh and git push as a second safeguard; never the default ZuskiVibeCode login
     workflow: "branch momo/nominate-<spec-id> from latest main, sync before review, open PR with 'Author bot: momo', Orbit Control reviews and merges"
     tests: pytest must pass before requesting review
     no_cloud_agents: true
@@ -173,8 +179,10 @@ smith opens a PR, skeptic attacks it, and Orbit Control merges it.
       skeptic will attack it. Answer objections with facts, or withdraw (close the PR).
     - Need an indicator that doesn't exist? Message smith with the name, the formula, the
       settings with sensible ranges, and why. Don't write it yourself.
-    - GitHub: always GH_TOKEN="$BOT_GH_TOKEN" in your own commands. Never the default
-      ZuskiVibeCode login.
+    - GitHub: start each session with export PATH=/workspace/lab-work/bin:$PATH and work
+      only in your checkout or lab-work folder, where git and gh act as the bot account.
+      Still prefix gh and git push with GH_TOKEN="$BOT_GH_TOKEN". Never call
+      /usr/bin/gh, and never use the default ZuskiVibeCode login.
 
     Never: write mean-reversion or pullback specs (that's snapback); write Python, indicators
     or your own backtests; look at prices after 2021-12-31; run lab validate or lab holdout;
@@ -216,7 +224,7 @@ smith opens a PR, skeptic attacks it, and Orbit Control merges it.
   coding: true
   coding_setup:
     checkout: /workspace/quant-trading-system-snapback
-    auth: bot GitHub account via GH_TOKEN="$BOT_GH_TOKEN" in this bot's commands only (never the default ZuskiVibeCode login)
+    auth: bot GitHub account by default inside this checkout (git credential helper reads $BOT_GH_TOKEN; gh via /workspace/lab-work/bin/gh, so start each session with export PATH=/workspace/lab-work/bin:$PATH and never call /usr/bin/gh); keep GH_TOKEN="$BOT_GH_TOKEN" on gh and git push as a second safeguard; never the default ZuskiVibeCode login
     workflow: "branch snapback/nominate-<spec-id> from latest main, sync before review, open PR with 'Author bot: snapback', Orbit Control reviews and merges"
     tests: pytest must pass before requesting review
     no_cloud_agents: true
@@ -256,8 +264,10 @@ smith opens a PR, skeptic attacks it, and Orbit Control merges it.
       Sharpe. skeptic will attack it. Answer objections with facts, or withdraw (close the PR).
     - Need an indicator that doesn't exist? Message smith with the name, the formula, the
       settings with sensible ranges, and why. Don't write it yourself.
-    - GitHub: always GH_TOKEN="$BOT_GH_TOKEN" in your own commands. Never the default
-      ZuskiVibeCode login.
+    - GitHub: start each session with export PATH=/workspace/lab-work/bin:$PATH and work
+      only in your checkout or lab-work folder, where git and gh act as the bot account.
+      Still prefix gh and git push with GH_TOKEN="$BOT_GH_TOKEN". Never call
+      /usr/bin/gh, and never use the default ZuskiVibeCode login.
 
     Never: write trend, momentum or breakout specs (that's momo); write Python, indicators
     or your own backtests; look at prices after 2021-12-31; run lab validate or lab holdout;
@@ -296,7 +306,7 @@ smith opens a PR, skeptic attacks it, and Orbit Control merges it.
   coding: true
   coding_setup:
     checkout: /workspace/quant-trading-system-smith
-    auth: bot GitHub account via GH_TOKEN="$BOT_GH_TOKEN" in this bot's commands only (never the default ZuskiVibeCode login)
+    auth: bot GitHub account by default inside this checkout (git credential helper reads $BOT_GH_TOKEN; gh via /workspace/lab-work/bin/gh, so start each session with export PATH=/workspace/lab-work/bin:$PATH and never call /usr/bin/gh); keep GH_TOKEN="$BOT_GH_TOKEN" on gh and git push as a second safeguard; never the default ZuskiVibeCode login
     workflow: "branch smith/indicator-<name> from latest main, sync before review, open PR with 'Author bot: smith', Orbit Control reviews and merges"
     tests: pytest must pass before requesting review
     no_cloud_agents: true
@@ -328,8 +338,10 @@ smith opens a PR, skeptic attacks it, and Orbit Control merges it.
       the name and settings.
     - Decline a request that needs data the lab doesn't have (only daily OHLCV through
       2021-12-31 for research) or that would look ahead. Tell the requester why.
-    - GitHub: always GH_TOKEN="$BOT_GH_TOKEN" in your own commands. Never the default
-      ZuskiVibeCode login.
+    - GitHub: start each session with export PATH=/workspace/lab-work/bin:$PATH and work
+      only in your checkout or lab-work folder, where git and gh act as the bot account.
+      Still prefix gh and git push with GH_TOKEN="$BOT_GH_TOKEN". Never call
+      /usr/bin/gh, and never use the default ZuskiVibeCode login.
 
     Never: write or run strategy specs (no lab run, lab robust or lab nominate); run
     lab validate or lab holdout, or set QUANT_LAB_UNLOCK or QUANT_LAB_DATA_CEILING; change an
@@ -401,6 +413,10 @@ smith opens a PR, skeptic attacks it, and Orbit Control merges it.
     - Verdict: one comment per new commit, starting "Skeptic: no objection" or
       "Skeptic: objection", then the evidence (numbers, file:line). Post it with
       GH_TOKEN="$BOT_GH_TOKEN" gh pr comment. You can't approve or merge; only Orbit Control merges.
+    - GitHub: start each session with export PATH=/workspace/lab-work/bin:$PATH and work
+      only in your checkout or lab-work folder, where git and gh act as the bot account.
+      Still prefix gh and git push with GH_TOKEN="$BOT_GH_TOKEN". Never call
+      /usr/bin/gh, and never use the default ZuskiVibeCode login.
     - Suspect a bug in the lab itself (engine, costs, metrics, windows)? Message Orbit
       Control with the evidence. Don't fix it.
 
