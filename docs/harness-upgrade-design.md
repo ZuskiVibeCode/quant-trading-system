@@ -299,7 +299,7 @@ discovery to its two single runs:
 | `lab holdout <packet>` | Validation machine, `QUANT_LAB_UNLOCK=holdout` | The single 2025-to-ceiling run, for specs whose validation record passed |
 
 - **Packets travel by PR.** The nominating bot opens a PR adding its packet to
-  `lab_nominations/`, and Chief of Staff reviews it. The frozen count is then
+  `lab_nominations/`, and Orbit Control reviews it. The frozen count is then
   reviewed and kept in git history, and the validation machine gets packets
   with `git pull`. A packet holds discovery numbers only, which bots can see anyway.
 - **The validation machine trusts only the frozen trial stats.** Everything
@@ -317,8 +317,8 @@ discovery to its two single runs:
 - **Machine guard.** `validate` and `holdout` refuse before anything else unless
   the data ceiling is past 2021-12-31 **and** `QUANT_LAB_UNLOCK` names the
   window. Grok's machine keeps the 2021-12-31 ceiling and never sets the
-  unlock, so they can't run there by accident. Confirmed by Sabastian and Chief
-  of Staff, Oct 6, 2026.
+  unlock, so they can't run there by accident. Confirmed by Sabastian and Orbit
+  Control, Oct 6, 2026.
 - **Order of checks in `lab validate`:** machine guard, then clean checkout
   (`quant_system/` and `config/` match the commit), then the window rules (unlock, one run per hash),
   then trial-count order, then the discovery recheck, then the run. Everything
@@ -387,7 +387,7 @@ Each PR: own branch, `pytest` passing, tests with synthetic bars (no network).
 ## Decided (Sabastian, Oct 5, 2026)
 
 - **PR workflow:** Claude Code pushes `claude/<task>` branches and opens PRs for
-  Chief of Staff to review and merge. It never pushes to main.
+  Orbit Control to review and merge. It never pushes to main.
 - **Validation and holdout** run in Claude Code on Sabastian's machine, not on
   Grok's machine or in GitHub Actions (the bot account can read Action logs).
   Python 3.12 is now installed there; Alpaca paper keys in a local `.env` are

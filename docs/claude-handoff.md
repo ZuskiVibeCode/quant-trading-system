@@ -14,7 +14,7 @@ test data.
 ## When to use the Grok Bot guide
 
 `docs/grok-bot-guide-for-claude.md` explains how Sabastian's Grok Bots work: one
-shared Linux machine, Chief of Staff (owns this project, reviews and merges PRs),
+shared Linux machine, Orbit Control (owns this project, reviews and merges PRs),
 dr eggbot (creates bots), and the PR workflow. Read it at these points:
 
 1. **Now, before designing the harness.** Grok Bots will be the ones running it,
@@ -22,16 +22,16 @@ dr eggbot (creates bots), and the PR workflow. Read it at these points:
    working in its own checkout, data cached once, and no validation or holdout
    data stored on that machine.
 2. **Before any commit or PR.** Code changes follow sections 9-10: branch per
-   task, PR instead of pushing to main, Chief of Staff reviews and merges, tests
+   task, PR instead of pushing to main, Orbit Control reviews and merges, tests
    pass first. Open question for Sabastian: you are working on his machine with
    his git login (ZuskiVibeCode, which is on the branch-protection bypass list),
-   not as a bot. Ask him whether to open PRs from a branch for Chief of Staff to
+   not as a bot. Ask him whether to open PRs from a branch for Orbit Control to
    review, or something else, before pushing anything.
 3. **Before writing `docs/bot-team-spec.md`.** Section 12 is the required format
    (one YAML block per bot) and section 13 is the end-to-end flow. Only start this
    when Sabastian says go.
 
-Also: Chief of Staff's routines push `docs/data/**` to main hourly on weekdays
+Also: Orbit Control's routines push `docs/data/**` to main hourly on weekdays
 (9:45 AM-3:45 PM ET), so `git pull` before starting work and again before any PR.
 
 ## Decisions so far

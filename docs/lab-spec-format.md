@@ -97,7 +97,7 @@ local edits (`git_dirty: false`). Thresholds are in `config/lab.yaml`
 A survivor is nominated with `lab nominate my.yaml --bot <your-bot-name>`
 from a clean checkout. It reruns the robustness checks itself, and if they pass
 completely it writes `lab_nominations/<id>-<hash>.json`. Open a PR with that
-file for Chief of Staff. The packet freezes the current discovery trial count,
+file for Orbit Control. The packet freezes the current discovery trial count,
 which the deflated Sharpe uses. Validation and holdout run on another machine,
 and their scores never come back here. Editing the spec after nomination
 changes its hash, so the packet no longer matches.
