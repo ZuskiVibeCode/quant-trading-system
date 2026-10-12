@@ -1,6 +1,6 @@
 {
-  "exported_at": "2026-10-12T14:17:15.145679Z",
-  "count": 182,
+  "exported_at": "2026-10-12T15:11:36.447868Z",
+  "count": 183,
   "reviews": [
     {
       "ticker": "RGTI",
@@ -29309,6 +29309,167 @@
       ],
       "mode": "alpaca",
       "sector": "robotics"
+    },
+    {
+      "ticker": "MSFT",
+      "qty": 0.004814,
+      "entry": 507.6413617729157,
+      "exit": 540.42,
+      "pnl": 0.15779636442518374,
+      "pnl_pct": 6.457,
+      "opened_at": "2026-09-21T14:18:10.157550Z",
+      "closed_at": "2026-10-12T15:10:45.884875Z",
+      "hold_hours": 504.877,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.004814 MSFT @~540.32; opportunity rotate to fund ISRG (buy_score=0.474 donor_score=0.307)",
+      "entry_ticket_id": 333,
+      "exit_ticket_id": 354,
+      "entry_fill_id": 216,
+      "exit_fill_id": 237,
+      "entry_score": {
+        "weighted_score": 0.525,
+        "blended_conf": 65.5
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 87.1568117363785,
+          "reasoning_trunc": "MA20 > MA50 (short-term uptrend); MA50 > MA200 (intermediate uptrend); RSI constructive (62.4); MACD histogram positive; 20d RS vs SPY: +3.93%; RVOL 0.58x vs 2\u2026",
+          "signal_id": 17453,
+          "created_at": "2026-10-08T18:28:43.678970Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "long",
+          "confidence": 92.0,
+          "reasoning_trunc": "Quality: Solid revenue growth (17.7%); Strong earnings growth (31.7%); High profit margin (40.3%); Strong operating margin (45.1%) | Valuation/EV: elevated P/E\u2026",
+          "signal_id": 17454,
+          "created_at": "2026-10-08T18:28:43.868567Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "long",
+          "confidence": 83.58000000000001,
+          "reasoning_trunc": "price near MA20 (z=1.24); positive 20d momentum +6.3%; 60d trend up +32.5%; cross-sectional mom rank top (80%); low vol regime",
+          "signal_id": 17455,
+          "created_at": "2026-10-08T18:28:43.877485Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "neutral",
+          "confidence": 20.0,
+          "reasoning_trunc": "No recent headlines available for this ticker; emitting neutral with no manipulation flag (insufficient data, not risk).",
+          "signal_id": 17456,
+          "created_at": "2026-10-08T18:28:44.045643Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (quantum); VIX contained (15.9); Dollar firm (+3.5% 20d) \u2014 risk headwind; Rates headwind (\u2026",
+          "signal_id": 17457,
+          "created_at": "2026-10-08T18:28:44.050413Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "fundamental",
+          "statistical_ml"
+        ],
+        "short": [],
+        "neutral": [
+          "sentiment",
+          "macro"
+        ],
+        "disagreement": false,
+        "lead_agent": "fundamental",
+        "lead_confidence": 92.0
+      },
+      "path": {
+        "mfe_pct": 6.79,
+        "mae_pct": -3.2348,
+        "ret_pct": 6.457
+      },
+      "verdict": "Made money: Realized PnL=0.1578. Entered aligned; lead agent fundamental was long@92.0 (see fundamental signal #17454 long @ conf=92.0). Entry weighted_score=0.525. Exit was an opportunity-rotate trim to fund another name. Held 504.9h.",
+      "verdict_tags": [
+        "winner",
+        "aligned",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 216,
+          "label": "entry fill",
+          "detail": "buy qty=0.004814 @ 507.6413617729157"
+        },
+        {
+          "kind": "fill",
+          "id": 237,
+          "label": "exit fill",
+          "detail": "sell @ 540.42"
+        },
+        {
+          "kind": "ticket",
+          "id": 333,
+          "label": "entry ticket",
+          "detail": "BUY 0.009545 MSFT @~523.35; weighted_score=0.525; blended_conf=65.5; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 354,
+          "label": "exit ticket",
+          "detail": "SELL 0.004814 MSFT @~540.32; opportunity rotate to fund ISRG (buy_score=0.474 donor_score=0.307)"
+        },
+        {
+          "kind": "signal",
+          "id": 17453,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=87.2"
+        },
+        {
+          "kind": "signal",
+          "id": 17454,
+          "label": "fundamental @ entry",
+          "detail": "long @ conf=92.0"
+        },
+        {
+          "kind": "signal",
+          "id": 17455,
+          "label": "statistical_ml @ entry",
+          "detail": "long @ conf=83.6"
+        },
+        {
+          "kind": "signal",
+          "id": 17456,
+          "label": "sentiment @ entry",
+          "detail": "neutral @ conf=20.0"
+        },
+        {
+          "kind": "signal",
+          "id": 17457,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.525; blended_conf=65.5"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=6.79; mae_pct=-3.2348; ret_pct=6.457"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "quantum"
     }
   ]
 }
