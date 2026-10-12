@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-10-12T15:11:36.447868Z",
+  "exported_at": "2026-10-12T16:07:56.840932Z",
   "count": 183,
   "reviews": [
     {
@@ -29227,7 +29227,7 @@
         "lead_confidence": 88.7
       },
       "path": {
-        "mfe_pct": 7.7392,
+        "mfe_pct": 7.8803,
         "mae_pct": -8.3815,
         "ret_pct": 7.4867
       },
@@ -29304,7 +29304,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=7.7392; mae_pct=-8.3815; ret_pct=7.4867"
+          "detail": "source=daily_bars; mfe_pct=7.8803; mae_pct=-8.3815; ret_pct=7.4867"
         }
       ],
       "mode": "alpaca",
@@ -29388,7 +29388,7 @@
         "lead_confidence": 92.0
       },
       "path": {
-        "mfe_pct": 6.79,
+        "mfe_pct": 6.9141,
         "mae_pct": -3.2348,
         "ret_pct": 6.457
       },
@@ -29465,7 +29465,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=6.79; mae_pct=-3.2348; ret_pct=6.457"
+          "detail": "source=daily_bars; mfe_pct=6.9141; mae_pct=-3.2348; ret_pct=6.457"
         }
       ],
       "mode": "alpaca",
