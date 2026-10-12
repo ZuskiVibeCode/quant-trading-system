@@ -1,6 +1,6 @@
 {
-  "exported_at": "2026-10-12T13:52:18.252661Z",
-  "count": 181,
+  "exported_at": "2026-10-12T14:17:15.145679Z",
+  "count": 182,
   "reviews": [
     {
       "ticker": "RGTI",
@@ -28906,7 +28906,7 @@
       },
       "path": {
         "mfe_pct": 1.5017,
-        "mae_pct": -1.8974,
+        "mae_pct": -2.4441,
         "ret_pct": -1.249
       },
       "verdict": "Lost money: Realized PnL=-0.0127. Entered aligned; lead agent fundamental was long@92.0 (see fundamental signal #18614 long @ conf=92.0). Entry weighted_score=0.43. Exit was an opportunity-rotate trim to fund another name. Held 89.9h.",
@@ -28982,7 +28982,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=1.5017; mae_pct=-1.8974; ret_pct=-1.249"
+          "detail": "source=daily_bars; mfe_pct=1.5017; mae_pct=-2.4441; ret_pct=-1.249"
         }
       ],
       "mode": "alpaca",
@@ -29067,7 +29067,7 @@
       },
       "path": {
         "mfe_pct": 1.5017,
-        "mae_pct": -1.8974,
+        "mae_pct": -2.4441,
         "ret_pct": -1.249
       },
       "verdict": "Lost money: Realized PnL=-0.0127. Entered aligned; lead agent fundamental was long@92.0 (see fundamental signal #18614 long @ conf=92.0). Entry weighted_score=0.43. Exit was an opportunity-rotate trim to fund another name. Held 89.9h.",
@@ -29143,7 +29143,168 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=1.5017; mae_pct=-1.8974; ret_pct=-1.249"
+          "detail": "source=daily_bars; mfe_pct=1.5017; mae_pct=-2.4441; ret_pct=-1.249"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "robotics"
+    },
+    {
+      "ticker": "ISRG",
+      "qty": 0.009781,
+      "entry": 396.8192799686978,
+      "exit": 426.528,
+      "pnl": 0.290580990626167,
+      "pnl_pct": 7.4867,
+      "opened_at": "2026-09-11T13:40:59.643821Z",
+      "closed_at": "2026-10-12T14:16:48.010013Z",
+      "hold_hours": 744.597,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.009781 ISRG @~426.55; opportunity rotate to fund NVDA (buy_score=0.452 donor_score=0.296)",
+      "entry_ticket_id": 327,
+      "exit_ticket_id": 352,
+      "entry_fill_id": 210,
+      "exit_fill_id": 235,
+      "entry_score": {
+        "weighted_score": 0.471,
+        "blended_conf": 60.1
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 69.30629582839401,
+          "reasoning_trunc": "MA20 > MA50 (short-term uptrend); MA50 < MA200 (intermediate downtrend); RSI constructive (57.3); MACD histogram positive; 20d RS vs SPY: +13.18%; RVOL 0.11x v\u2026",
+          "signal_id": 14806,
+          "created_at": "2026-10-06T14:56:33.060612Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "long",
+          "confidence": 88.7,
+          "reasoning_trunc": "Quality: Solid revenue growth (18.5%); Strong earnings growth (26.5%); High profit margin (28.4%); Strong operating margin (33.6%) | Valuation/EV: rich P/E 46.\u2026",
+          "signal_id": 14807,
+          "created_at": "2026-10-06T14:56:33.342334Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "long",
+          "confidence": 77.64000000000001,
+          "reasoning_trunc": "price near MA20 (z=0.68); strong 20d momentum +15.3%; cross-sectional mom rank top (85%); low vol regime",
+          "signal_id": 14808,
+          "created_at": "2026-10-06T14:56:33.347649Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "neutral",
+          "confidence": 20.0,
+          "reasoning_trunc": "No recent headlines available for this ticker; emitting neutral with no manipulation flag (insufficient data, not risk).",
+          "signal_id": 14809,
+          "created_at": "2026-10-06T14:56:33.627868Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (robotics); VIX contained (15.4); Dollar firm (+3.3% 20d) \u2014 risk headwind; Rates headwind\u2026",
+          "signal_id": 14810,
+          "created_at": "2026-10-06T14:56:33.631057Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "fundamental",
+          "statistical_ml"
+        ],
+        "short": [],
+        "neutral": [
+          "sentiment",
+          "macro"
+        ],
+        "disagreement": false,
+        "lead_agent": "fundamental",
+        "lead_confidence": 88.7
+      },
+      "path": {
+        "mfe_pct": 7.7392,
+        "mae_pct": -8.3815,
+        "ret_pct": 7.4867
+      },
+      "verdict": "Made money: Realized PnL=0.2906. Entered aligned; lead agent fundamental was long@88.7 (see fundamental signal #14807 long @ conf=88.7). Entry weighted_score=0.471. Exit was an opportunity-rotate trim to fund another name. Held 744.6h.",
+      "verdict_tags": [
+        "winner",
+        "aligned",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 210,
+          "label": "entry fill",
+          "detail": "buy qty=0.009781 @ 396.8192799686978"
+        },
+        {
+          "kind": "fill",
+          "id": 235,
+          "label": "exit fill",
+          "detail": "sell @ 426.528"
+        },
+        {
+          "kind": "ticket",
+          "id": 327,
+          "label": "entry ticket",
+          "detail": "BUY 0.004791 ISRG @~403.71; weighted_score=0.471; blended_conf=60.1; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 352,
+          "label": "exit ticket",
+          "detail": "SELL 0.009781 ISRG @~426.55; opportunity rotate to fund NVDA (buy_score=0.452 donor_score=0.296)"
+        },
+        {
+          "kind": "signal",
+          "id": 14806,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=69.3"
+        },
+        {
+          "kind": "signal",
+          "id": 14807,
+          "label": "fundamental @ entry",
+          "detail": "long @ conf=88.7"
+        },
+        {
+          "kind": "signal",
+          "id": 14808,
+          "label": "statistical_ml @ entry",
+          "detail": "long @ conf=77.6"
+        },
+        {
+          "kind": "signal",
+          "id": 14809,
+          "label": "sentiment @ entry",
+          "detail": "neutral @ conf=20.0"
+        },
+        {
+          "kind": "signal",
+          "id": 14810,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.471; blended_conf=60.1"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=7.7392; mae_pct=-8.3815; ret_pct=7.4867"
         }
       ],
       "mode": "alpaca",
