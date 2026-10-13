@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lab Journal — Mission Ledger</title>
+  <meta name="description" content="What the strategy-lab bots worked on each day: ideas tried, how they were tested, indicators merged and skeptic's verdicts. Discovery results only." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="./index.html">
+        <svg class="orbit-mark" width="28" height="28" viewBox="0 0 40 40" aria-hidden="true">
+          <circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="1.4" opacity="0.4"/>
+          <circle cx="20" cy="20" r="11" fill="none" stroke="currentColor" stroke-width="1.4" opacity="0.6"/>
+          <circle cx="20" cy="20" r="3.4" fill="currentColor"/>
+          <ellipse cx="20" cy="20" rx="18" ry="7" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.5" transform="rotate(-28 20 20)"/>
+        </svg>
+        <span class="brand-name">Mission Ledger</span>
+        <span class="pill accent">Paper</span>
+      </a>
+      <nav class="nav" aria-label="Pages">
+        <a href="./index.html">Ledger</a>
+        <a href="./lab.html" class="active" aria-current="page">Lab journal</a>
+      </nav>
+      <div class="freshness" id="exportedAt">Loading…</div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div id="loadError" class="error-banner" hidden></div>
+
+    <section class="lab-head">
+      <div class="lab-head-copy">
+        <p class="eyebrow">Strategy lab · journal</p>
+        <h1 class="lab-day" id="dayTitle">Lab journal</h1>
+        <p class="summary" id="daySummary"></p>
+        <p class="footnote">
+          Discovery results only (2016–2021). Validation and holdout runs happen on Sabastian's
+          laptop, and their results never appear here.
+        </p>
+      </div>
+      <div class="card day-picker" aria-label="Choose a day">
+        <div class="day-step">
+          <button type="button" class="btn" id="prevDay" aria-label="Previous day with activity">←</button>
+          <input type="date" id="dayInput" aria-label="Pick any day" />
+          <button type="button" class="btn" id="nextDay" aria-label="Next day with activity">→</button>
+          <button type="button" class="btn" id="todayBtn">Today</button>
+        </div>
+        <p class="kicker">Days with activity</p>
+        <div class="day-list" id="dayList"></div>
+      </div>
+    </section>
+
+    <section class="stat-strip lab-stats" id="labStats" aria-label="Day totals"></section>
+
+    <div id="dayBody"></div>
+
+    <footer class="footer">
+      Paper research only · Data from <code>./data/lab/</code> (one file per day, written by
+      <code>python -m quant_system export-lab-journal</code>) · Schema: <a href="./SCHEMA.md">SCHEMA.md</a>
+    </footer>
+  </main>
+
+  <script src="./lab.js" defer></script>
+</body>
+</html>

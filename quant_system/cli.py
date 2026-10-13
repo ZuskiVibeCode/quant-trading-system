@@ -1,4 +1,4 @@
-"""CLI: python -m quant_system run-once | halt | resume | status | digest | cancel-open-orders | reconcile | backfill-fills | export-dashboard | backtest-themes | lab"""
+"""CLI: python -m quant_system run-once | halt | resume | status | digest | cancel-open-orders | reconcile | backfill-fills | export-dashboard | export-lab-journal | backtest-themes | lab"""
 
 from __future__ import annotations
 
@@ -226,6 +226,32 @@ def cmd_export_dashboard(args: argparse.Namespace) -> int:
         tracker.close()
         return 1
 
+
+
+def cmd_export_lab_journal(args: argparse.Namespace) -> int:
+    """Write docs/data/lab/<day>.json + index.json: what the lab bots did each day (discovery only)."""
+    from pathlib import Path
+
+    from quant_system.lab.settings import lab_data_dir
+    from quant_system.lab_journal import default_lab_work, export_lab_journal, fetch_pull_requests
+
+    root = Path(__file__).resolve().parents[1]
+    out = Path(args.out) if args.out else root / "docs" / "data" / "lab"
+    if args.no_github:
+        prs = None
+    elif args.prs_json:
+        prs = json.loads(Path(args.prs_json).read_text(encoding="utf-8"))
+    else:
+        prs = fetch_pull_requests(gh=args.gh, repo=args.repo)
+    result = export_lab_journal(
+        out,
+        data_dir=Path(args.lab_data) if args.lab_data else lab_data_dir(),
+        lab_work=Path(args.lab_work) if args.lab_work else default_lab_work(),
+        prs=prs,
+        days=None if args.all else args.days,
+    )
+    print(json.dumps(result, indent=2))
+    return 0
 
 
 def cmd_backtest_themes(args: argparse.Namespace) -> int:
@@ -489,6 +515,25 @@ def build_parser() -> argparse.ArgumentParser:
         help="Do not append docs/data/history/YYYY-MM-DD.json",
     )
     ed.set_defaults(func=cmd_export_dashboard)
+
+    lj = sub.add_parser(
+        "export-lab-journal",
+        help="Export the lab bots' daily journal to docs/data/lab/ (discovery results only)",
+    )
+    lj.add_argument("--out", default=None, help="Output directory (default: <repo>/docs/data/lab)")
+    lj.add_argument("--lab-data", default=None, help="Lab data dir with trials/ and robust/ (default: QUANT_LAB_DATA_DIR)")
+    lj.add_argument(
+        "--lab-work", default=None, help="Bots' work folders (default: QUANT_LAB_WORK_DIR or /workspace/lab-work)"
+    )
+    lj.add_argument("--days", type=int, default=7, help="Rebuild this many ET days back from today (default 7)")
+    lj.add_argument("--all", action="store_true", help="Rebuild every day with activity")
+    lj.add_argument("--gh", default="gh", help="gh binary for reading PRs (default: gh)")
+    lj.add_argument("--repo", default=None, help="owner/repo for gh (default: this checkout's remote)")
+    lj.add_argument("--prs-json", default=None, help="Read PRs from a saved `gh pr list --json` file instead")
+    lj.add_argument(
+        "--no-github", action="store_true", help="Skip GitHub; days keep the PR lists they already had"
+    )
+    lj.set_defaults(func=cmd_export_lab_journal)
 
     bt = sub.add_parser(
         "backtest-themes",
