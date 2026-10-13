@@ -44,11 +44,18 @@ INDICATOR_DIR = "quant_system/lab/indicators/"
 NOMINATION_DIR = "lab_nominations/"
 MAX_NOTES_PER_IDEA = 6
 MAX_NOTE_CHARS = 300
+MAX_SESSION_NOTES = 12
+MAX_SESSION_NOTE_CHARS = 500
 MAX_PR_TEXT = 600
 MAX_GROUP_NAMES = 8
 # Free text mentioning these never reaches the journal (bots never see those scores).
 _LOCKED_TEXT = re.compile(r"validat|holdout", re.IGNORECASE)
 _DAY_IN_TEXT = re.compile(r"\b(20\d\d-\d\d-\d\d)\b")
+_DAY_AT_START = re.compile(r"^\s*(20\d\d-\d\d-\d\d)\b")
+_WEEKDAY_TAG = re.compile(r"^\s*\((mon|tue|wed|thu|fri|sat|sun)[a-z]*\.?\)", re.IGNORECASE)
+_BULLET = re.compile(r"^(?:[-*•]|\d+[.)])\s+")
+_SPEC_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
+_HEX = re.compile(r"^[0-9a-f]{8,16}$")
 _AUTHOR_BOT = re.compile(r"^\s*author bot:\s*([a-z0-9_-]+)", re.IGNORECASE | re.MULTILINE)
 _PR_JSON_FIELDS = "number,title,body,headRefName,state,createdAt,mergedAt,closedAt,url,comments,files"
 
@@ -441,33 +448,85 @@ def _robust_reports(paths: Iterable[Path]) -> list[dict[str, Any]]:
     return out
 
 
-def load_lab_work(lab_work: Path, bots: Iterable[str] = INVENTORS) -> tuple[dict[str, list[dict[str, Any]]], list[dict[str, Any]]]:
-    """(notes lines per bot, robust reports saved there) from ``/workspace/lab-work/<bot>/``.
+def _session_label(heading: str) -> str | None:
+    """"## 2026-10-13 (Tue) afternoon session: 10 specs" -> "afternoon session: 10 specs"."""
+    text = _DAY_IN_TEXT.sub("", heading.lstrip("#").strip(), count=1)
+    text = _WEEKDAY_TAG.sub("", text).strip(" -—:·,")
+    return _trunc(text, 120) if text and not _LOCKED_TEXT.search(text) else None
 
-    Each note line keeps the last ISO date seen above it (a dated heading), if any.
+
+def _note_item(text: str, day: str | None, session: str | None, kind: str) -> dict[str, Any]:
+    """One note. A spec row ("id | hash | sharpe | verdict | lesson") shows just its lesson."""
+    item = {"text": text, "raw": text, "day": day, "session": session, "kind": kind, "ref": None, "ref_hash": None}
+    if "|" in text:
+        fields = [f.strip() for f in text.strip().strip("|").split("|")]
+        if len(fields) >= 2 and _SPEC_ID.match(fields[0]):
+            item["ref"] = fields[0]
+            if _HEX.match(fields[1]):
+                item["ref_hash"] = fields[1]
+            item["text"] = fields[-1] or text
+    return item
+
+
+def parse_notes(text: str) -> list[dict[str, Any]]:
+    """A bot's notes.md as items, each with the day and session of the heading above it.
+
+    Bullets and table rows are one item each (indented lines continue them);
+    consecutive plain lines join into one paragraph item. Items that mention
+    validation or holdout are dropped whole.
     """
+    items: list[dict[str, Any]] = []
+    day = session = None
+    cur: list[str] = []
+    kind = "para"
+
+    def flush() -> None:
+        nonlocal cur
+        if cur:
+            joined = " ".join(cur)
+            first = joined.strip("| ").split("|")[0].strip().lower()
+            if not _LOCKED_TEXT.search(joined) and not (kind == "item" and "|" in joined and first == "id"):
+                found = None if day else _DAY_AT_START.match(joined)
+                items.append(_note_item(joined, day or (found.group(1) if found else None), session, kind))
+        cur = []
+
+    for raw in text.splitlines():
+        stripped = raw.strip()
+        if not stripped:
+            flush()
+            continue
+        if stripped.startswith("#"):
+            flush()
+            found = _DAY_IN_TEXT.search(stripped)
+            if found:
+                day, session = found.group(1), _session_label(stripped)
+            continue
+        if set(stripped) <= set("|-: "):
+            flush()
+            continue
+        if _BULLET.match(stripped) or stripped.startswith("|"):
+            flush()
+            cur, kind = [_BULLET.sub("", stripped)], "item"
+            continue
+        if cur and (raw[:1].isspace() or kind == "para"):
+            cur.append(stripped)
+            continue
+        flush()
+        cur, kind = [stripped], "para"
+    flush()
+    return items
+
+
+def load_lab_work(lab_work: Path, bots: Iterable[str] = INVENTORS) -> tuple[dict[str, list[dict[str, Any]]], list[dict[str, Any]]]:
+    """(notes items per bot, robust reports saved there) from ``/workspace/lab-work/<bot>/``."""
     notes: dict[str, list[dict[str, Any]]] = {}
     reports: list[dict[str, Any]] = []
     for bot in bots:
         folder = lab_work / bot
         if not folder.is_dir():
             continue
-        lines = []
         path = folder / "notes.md"
-        if path.is_file():
-            section_day = None
-            for raw in path.read_text(encoding="utf-8", errors="replace").splitlines():
-                text = raw.strip()
-                if not text:
-                    continue
-                found = _DAY_IN_TEXT.search(text)
-                if text.startswith("#"):
-                    section_day = found.group(1) if found else section_day
-                    continue
-                if _LOCKED_TEXT.search(text) or set(text) <= set("|-: "):
-                    continue
-                lines.append({"text": text.lstrip("-*• ").strip(), "day": found.group(1) if found else section_day})
-        notes[bot] = lines
+        notes[bot] = parse_notes(path.read_text(encoding="utf-8", errors="replace")) if path.is_file() else []
         reports.extend(_robust_reports(sorted(folder.rglob("*.json"))))
     return notes, reports
 
@@ -485,17 +544,37 @@ def fetch_pull_requests(gh: str = "gh", limit: int = 200, repo: str | None = Non
     return data if isinstance(data, list) else None
 
 
-def _match_notes(lines: list[dict[str, Any]], spec_id: str | None, spec_hash: str, day: str) -> list[str]:
-    """Note lines naming this spec (by hash, hash prefix, or id); same-day lines first."""
-    id_pat = re.compile(rf"(?<![\w-]){re.escape(spec_id)}(?![\w-])") if spec_id else None
-    hits = []
-    for ln in lines:
-        text = ln["text"]
-        if spec_hash[:8] in text or (id_pat and id_pat.search(text)):
-            hits.append(ln)
-    same_day = [ln for ln in hits if ln["day"] == day]
-    chosen = same_day or [ln for ln in hits if ln["day"] is None or ln["day"] <= day]
-    return [_trunc(ln["text"], MAX_NOTE_CHARS) for ln in chosen[-MAX_NOTES_PER_IDEA:]]
+def _names_spec(item: Mapping[str, Any], spec_id: str | None, spec_hash: str) -> bool:
+    if item["ref"] is not None:  # a spec row names its spec in its own fields
+        rh = item["ref_hash"]
+        return item["ref"] == spec_id or bool(rh and spec_hash.startswith(rh))
+    if item["kind"] != "item":  # paragraphs are session notes, never one idea's
+        return False
+    id_hit = bool(spec_id) and re.search(rf"(?<![\w-]){re.escape(spec_id)}(?![\w-])", item["raw"])
+    return spec_hash[:8] in item["raw"] or bool(id_hit)
+
+
+def match_notes(items: list[dict[str, Any]], spec_id: str | None, spec_hash: str, day: str) -> tuple[list[str], set[int]]:
+    """(note texts, item positions) naming this spec; that day's section first, else earlier ones."""
+    hits = [i for i, it in enumerate(items) if _names_spec(it, spec_id, spec_hash)]
+    same_day = [i for i in hits if items[i]["day"] == day]
+    chosen = (same_day or [i for i in hits if items[i]["day"] is None or items[i]["day"] <= day])[-MAX_NOTES_PER_IDEA:]
+    return [_trunc(items[i]["text"], MAX_NOTE_CHARS) for i in chosen], set(chosen)
+
+
+def session_notes(items: list[dict[str, Any]], day: str, used: set[int]) -> list[dict[str, Any]]:
+    """That day's notes not attached to an idea, grouped by session heading."""
+    groups: list[dict[str, Any]] = []
+    count = 0
+    for i, it in enumerate(items):
+        if it["day"] != day or i in used or count >= MAX_SESSION_NOTES:
+            continue
+        if not groups or groups[-1]["session"] != it["session"]:
+            groups.append({"session": it["session"], "notes": []})
+        text = f"{it['ref']}: {it['text']}" if it["ref"] else it["text"]
+        groups[-1]["notes"].append(_trunc(text, MAX_SESSION_NOTE_CHARS))
+        count += 1
+    return groups
 
 
 # ---------------------------------------------------------------- GitHub
@@ -703,12 +782,14 @@ def build_days(
                 if base:
                     trial_by_day[day][h].append(base[-1])
 
-    all_days = set(trial_by_day) | set(gh_days)
+    note_days = {it["day"] for items in notes.values() for it in items if it["day"]}
+    all_days = set(trial_by_day) | set(gh_days) | note_days
     out: dict[str, dict[str, Any]] = {}
     for day in sorted(all_days):
         if wanted is not None and day not in wanted:
             continue
         ideas = []
+        used: dict[str, set[int]] = defaultdict(set)
         for h, recs in trial_by_day.get(day, {}).items():
             rec = recs[-1]
             bot = str(rec.get("author_bot"))
@@ -720,7 +801,9 @@ def build_days(
                 note = clean_text(spec.get("notes"), MAX_NOTE_CHARS)
                 if note:
                     idea_notes.append(note)
-            idea_notes += _match_notes(notes.get(bot, []), spec_id, h, day)
+            matched, positions = match_notes(notes.get(bot, []), spec_id, h, day)
+            idea_notes += matched
+            used[bot] |= positions
             idea = {
                 "spec_id": spec_id,
                 "spec_hash": h,
@@ -775,6 +858,9 @@ def build_days(
             "indicators": gh["indicators"],
             "skeptic": gh["skeptic"],
             "nominations": gh["nominations"],
+            "session_notes": {
+                bot: groups for bot in INVENTORS if (groups := session_notes(notes.get(bot, []), day, used[bot]))
+            },
             "last_activity_at": max((s for s in stamps if s), default=None),
             "github": prs is not None,
         }
@@ -861,7 +947,8 @@ def export_lab_journal(
             entry["summary"]["skeptic_verdicts"] = len(entry["skeptic"])
             entry["summary"]["nominations"] = len(entry["nominations"])
             entry["github"] = bool(old.get("github"))
-        if not (entry["ideas"] or entry["indicators"] or entry["skeptic"] or entry["nominations"]):
+        if not (entry["ideas"] or entry["indicators"] or entry["skeptic"] or entry["nominations"]
+                or entry["session_notes"]):
             continue
         if mentions_locked_window(entry):
             refused.append(day)
