@@ -190,3 +190,65 @@ trade_reviews: [{
 
 Never invent motives. Thin/backfill lots keep `completeness=thin` and evidence
 lists what is absent.
+
+## Lab journal (`docs/data/lab/`, page `lab.html`)
+
+What the strategy-lab bots did each America/New_York day. Written by
+`python -m quant_system export-lab-journal` on the shared machine (Orbit
+Control's data routine). It rebuilds the last 7 days by default, or every day
+with `--all`, and rewrites a file only when its content changed.
+
+Sources:
+- the trial log and robust reports under `QUANT_LAB_DATA_DIR`
+- `/workspace/lab-work/<bot>/`: `notes.md`, plus any saved `lab robust` JSON
+  (override the folder with `QUANT_LAB_WORK_DIR` or `--lab-work`)
+- `gh pr list`: indicator PRs, nomination PRs, and comments starting `Skeptic:`
+
+**Discovery only.** The exporter reads only records whose window is
+`discovery`. It drops every free-text line (notes, descriptions, PR text) that
+mentions validation or holdout, hides PR titles that do, and refuses to
+write a day whose file would still mention either one (it's listed under
+`refused` in the command's output). Validation and holdout results stay on
+Sabastian's machine.
+
+One file per day with activity, `<YYYY-MM-DD>.json` (compact JSON). A day with
+no activity gets no file, and the page shows an empty state for it. If GitHub
+can't be read, a day keeps the PR lists it already had and is marked
+`github: false`.
+
+```
+{ schema: 1, date, window: {name: "discovery", start, end},
+  summary: {ideas, new_ideas, beat_benchmarks, robust_runs, passed_robust,
+            nominations, indicators_merged, skeptic_verdicts, discovery_trials_to_date},
+  bots: {momo|snapback: {ideas, new, beat_benchmarks, robust, passed_robust}},
+  ideas: [{
+    spec_id, spec_hash, bot,
+    category,              # null for now; idea family (breakout, pullback/mean-reversion, pattern, volume, ...)
+    description,           # the spec's own description
+    what_it_does: {buy, sell, order, size, universe, indicators: [{alias, fn, label, settings, about}],
+                   settings: [{name, value, min, max}]},   # rules in plain English
+    new_today, first_seen, runs_today, robust_variants_today,
+    run: {at, start, end, sharpe, cagr, max_drawdown, trade_count, turnover,
+          benchmarks: {SPY|equal_weight: {sharpe, cagr, max_drawdown}},
+          beats_benchmarks, missed: ["SPY Sharpe", "equal-weight CAGR", ...],
+          universe_names, dirty_checkout?},
+    robust: null | {at, day, passed, complete, base_passed, failed: [...], skipped: [...],
+                    checks: [{name, status, detail}]},   # nudges, sectors, cap_buckets, selloffs, single_stock
+    nomination: null | {pr, url, state, opened_day, skeptic: {verdict, at}},
+    notes: [...],          # spec notes + matching notes.md lines (same-day section first)
+    stage                  # missed | beat_benchmarks | failed_robust | passed_robust | nominated
+  }],
+  indicators: [{pr, title, url, merged_at, bot, summary, skeptic,
+                indicators: [{name, about, settings: [{name, default, min, max}]}]}],
+  skeptic: [{pr, title, url, kind, verdict, evidence, at}],   # verdict: no objection | objection | comment
+  nominations: [{pr, title, url, bot, state, opened_at, files, skeptic}],
+  last_activity_at, github }
+```
+
+`index.json`: `{schema, generated_at, timezone, first_day, last_day,
+total_bytes, days: [{date, ...summary, bots, bytes}]}`.
+
+The folder is kept out of `docs/data/history/`. `scripts/build_orbit_slim_deploy.py`
+copies the newest days into the Vercel deploy until they reach 2.5 MB
+(`LAB_DEPLOY_BUDGET`) and rewrites the deployed index to match (`trimmed` =
+days left out). Older days stay in the repo.

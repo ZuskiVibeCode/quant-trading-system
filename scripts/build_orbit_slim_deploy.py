@@ -4,6 +4,10 @@ from __future__ import annotations
 import argparse, json, shutil
 from pathlib import Path
 
+# Lab journal days shipped to Vercel, newest first, until this many bytes.
+# Older days stay in the repo (docs/data/lab/); the deployed index lists only what shipped.
+LAB_DEPLOY_BUDGET = 2_500_000
+
 def trunc(s, n=250):
     if not isinstance(s, str):
         return s
@@ -214,6 +218,38 @@ def slim_latest(d: dict) -> dict:
         out["watchlist"].append(nw)
     return out
 
+def copy_lab_journal(docs: Path, out: Path, budget: int = LAB_DEPLOY_BUDGET) -> dict:
+    """Copy docs/data/lab/ newest day first while under ``budget`` bytes; rewrite its index."""
+    src = docs / "data" / "lab"
+    dst = out / "data" / "lab"
+    shutil.rmtree(dst, ignore_errors=True)
+    index_path = src / "index.json"
+    if not index_path.exists():
+        return {"days": 0, "bytes": 0}
+    index = json.loads(index_path.read_text(encoding="utf-8"))
+    rows = sorted(index.get("days") or [], key=lambda r: r.get("date") or "", reverse=True)
+    dst.mkdir(parents=True, exist_ok=True)
+    kept, used = [], 0
+    for row in rows:
+        f = src / f"{row.get('date')}.json"
+        if not f.is_file():
+            continue
+        size = f.stat().st_size
+        if used + size > budget:
+            break
+        shutil.copy2(f, dst / f.name)
+        used += size
+        kept.append(row)
+    kept.reverse()
+    index["days"] = kept
+    index["first_day"] = kept[0]["date"] if kept else None
+    index["last_day"] = kept[-1]["date"] if kept else None
+    index["total_bytes"] = used
+    if len(kept) < len(rows):
+        index["trimmed"] = len(rows) - len(kept)
+    (dst / "index.json").write_text(json.dumps(index, separators=(",", ":")), encoding="utf-8")
+    return {"days": len(kept), "bytes": used, "trimmed": len(rows) - len(kept)}
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--docs", type=Path, default=Path("docs"))
@@ -233,11 +269,12 @@ def main():
     schema = docs / "SCHEMA.md"
     if schema.exists():
         shutil.copy2(schema, out / "SCHEMA.md")
-    for name in ["index.html", "styles.css", "app.js", "vercel.json"]:
+    for name in ["index.html", "styles.css", "app.js", "vercel.json", "lab.html", "lab.js"]:
         shutil.copy2(docs / name, out / name)
+    lab = copy_lab_journal(docs, out)
     for img in (docs / "art").glob("*.jpg"):
         shutil.copy2(img, out / "art" / img.name)
-    print(f"wrote {out} latest.json={len(raw)} bytes")
+    print(f"wrote {out} latest.json={len(raw)} bytes lab_days={lab['days']} lab_bytes={lab['bytes']}")
 
 if __name__ == "__main__":
     main()
