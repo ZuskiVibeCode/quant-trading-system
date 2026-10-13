@@ -91,3 +91,42 @@ def test_rejects_without_prior_uptrend():
     for col in ("Open", "High", "Low", "Close"):
         flat_start.iloc[:61, flat_start.columns.get_loc(col)] = bars[col].iloc[60] * np.linspace(0.9, 1.0, 61)
     assert CH(flat_start).iloc[b] == 0.0
+
+
+STAGE = REGISTRY["cup_handle_stage"]
+
+
+def test_stage_walks_through_every_stage():
+    bars, b = _pattern()  # left rim bar 60 (confirmed at 65), cup low ~110, right rim 160, handle 161-170
+    st = STAGE(bars).to_numpy()
+    assert set(np.unique(st)) == {0.0, 1.0, 2.0, 3.0, 4.0, 5.0}
+    assert (st[:65] == 0).all()           # uptrend, left rim not yet confirmed
+    assert (st[65:80] == 1).all()          # rim set, cup still shallow
+    assert (st[100:140] == 2).all()        # 12-33% drawdown, rounded bottom
+    assert (st[153:160] == 3).all()        # back within rim_tolerance, right rim unconfirmed
+    assert (st[166:b] == 4).all()          # handle after the confirmed right-rim pivot
+    assert st[b] == 5 and (st[b + 1 : b + 5] == 0).all()  # pattern complete after breakout
+    assert lookahead_violations(STAGE, bars, cutoffs=[70, 120, 155, 168, b, b + 3]) == []
+
+
+def test_stage_5_matches_cup_handle():
+    for kw in ({}, {"v_shape": True}, {"breakout_vol": 1.0}, {"handle_drop": 0.14}):
+        bars, _ = _pattern(**kw)
+        for settings in ({}, {"require_falling_volume": 1}, {"min_bottom_share": 0.0}):
+            assert ((STAGE(bars, **settings) == 5) == (CH(bars, **settings) == 1)).all()
+
+
+def test_stage_v_shape_and_failed_handle():
+    bars, b = _pattern(v_shape=True)
+    st = STAGE(bars).to_numpy()
+    assert st.max() <= 2 and (st[140:b + 1] == 1).all()  # never a valid cup or handle
+    bars, b = _pattern(handle_drop=0.14)  # handle too deep: never reaches 4 or 5 (cup itself stays 3)
+    st = STAGE(bars).to_numpy()
+    assert st[153:b + 1].max() == 3
+
+
+def test_stage_dies_on_too_deep_cup():
+    bars, b = _pattern(cup_depth=0.45, handle_drop=0.05)
+    st = STAGE(bars).to_numpy()
+    assert st[120:160].max() == 0  # the only candidate drew down past 33%
+    assert st[160:b + 1].max() == 1  # the old right rim is merely a new left-rim candidate

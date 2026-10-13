@@ -29,8 +29,7 @@ def _confirmed_swing_highs(high: np.ndarray, low: np.ndarray, width: int, promin
     return np.asarray(out, dtype=int)
 
 
-@indicator(
-    "cup_handle",
+_CUP_PARAMS: dict[str, tuple[int | float, int | float, int | float]] = dict(
     pivot_bars=(5, 2, 20),
     pivot_prominence=(0.03, 0.0, 0.5),
     uptrend_bars=(120, 10, 400),
@@ -51,6 +50,9 @@ def _confirmed_swing_highs(high: np.ndarray, low: np.ndarray, width: int, promin
     volume_bars=(50, 5, 400),
     breakout_volume_mult=(1.4, 1.0, 10.0),
 )
+
+
+@indicator("cup_handle", **_CUP_PARAMS)
 def cup_handle(
     bars: pd.DataFrame,
     pivot_bars: int,
@@ -151,4 +153,105 @@ def cup_handle(
                 break
         if hit:
             out[t] = 1.0
+    return pd.Series(out, index=bars.index)
+
+
+@indicator("cup_handle_stage", **_CUP_PARAMS)
+def cup_handle_stage(bars: pd.DataFrame, **p: float) -> pd.Series:
+    """Cup-and-handle progress, 0-5: the most advanced live candidate's stage on each bar.
+
+    0 none; 1 prior uptrend into a confirmed left-rim pivot; 2 cup drawn down
+    [min_cup_depth, max_cup_depth] with a rounded (not V) bottom so far; 3 price back
+    within rim_tolerance of the left rim with a valid cup (right rim not yet a
+    confirmed pivot); 4 handle in progress after a confirmed right-rim pivot, within
+    the handle depth / cup-fraction / upper-cup / length (and optional volume) limits;
+    5 the breakout bar, exactly where ``cup_handle`` fires. Same settings as cup_handle.
+    A candidate dies when its drawdown exceeds max_cup_depth, price runs above the
+    left rim by more than rim_tolerance, it outlives max_cup_bars + max_handle_bars,
+    or a breakout has already fired after its left rim.
+    """
+    pb = int(p["pivot_bars"])
+    high = bars["High"].to_numpy(dtype=float)
+    low = bars["Low"].to_numpy(dtype=float)
+    close = bars["Close"].to_numpy(dtype=float)
+    vol = np.nan_to_num(bars["Volume"].to_numpy(dtype=float))
+    n = len(bars)
+    out = np.zeros(n)
+    pivots = _confirmed_swing_highs(high, low, pb, p["pivot_prominence"])
+    cvol = np.concatenate([[0.0], np.cumsum(vol)])
+    min_cup, max_cup = int(p["min_cup_bars"]), int(p["max_cup_bars"])
+    max_h = int(p["max_handle_bars"])
+    tol = p["rim_tolerance"]
+    fired = cup_handle(bars, **p).to_numpy()
+    fired_before = np.concatenate([[0.0], np.cumsum(fired)])  # fires on bars 0 .. i-1
+
+    def mean_vol(a: int, b: int) -> float:  # bars a..b-1
+        return (cvol[b] - cvol[a]) / max(b - a, 1)
+
+    def cup_ok(left: int, r: int) -> tuple[bool, float]:
+        """Cup checks on bars left+1 .. r-1 with right rim r; returns (ok, cup low)."""
+        span = r - left
+        if not min_cup <= span <= max_cup:
+            return False, np.nan
+        cup = low[left + 1 : r]
+        k = int(np.argmin(cup))
+        cup_low, rim = cup[k], high[left]
+        depth = (rim - cup_low) / rim
+        if not p["min_cup_depth"] <= depth <= p["max_cup_depth"]:
+            return False, cup_low
+        if not 1.0 / 3.0 <= (k + 1) / span <= 2.0 / 3.0:
+            return False, cup_low
+        if np.mean(cup <= cup_low + p["bottom_band"] * (rim - cup_low)) < p["min_bottom_share"]:
+            return False, cup_low
+        return abs(high[r] / rim - 1.0) <= tol, cup_low
+
+    for t in range(n):
+        best = 0
+        lefts = pivots[(pivots + pb <= t) & (pivots >= t - max_cup - max_h)]
+        for left in lefts[::-1]:
+            rim = high[left]
+            if fired_before[t] - fired_before[left + 1] > 0:
+                continue  # this rim already produced a breakout: pattern complete
+            start = max(0, left - int(p["uptrend_bars"]))
+            if rim / low[start : left + 1].min() - 1.0 < p["min_uptrend"]:
+                continue
+            seg = low[left + 1 : t + 1]
+            k = int(np.argmin(seg))
+            cup_low = seg[k]
+            depth = (rim - cup_low) / rim
+            if depth > p["max_cup_depth"] or high[left + 1 : t + 1].max() > rim * (1.0 + tol):
+                continue
+            stage = 1
+            drop = rim - cup_low
+            rounded = np.mean(seg <= cup_low + p["bottom_band"] * drop) >= p["min_bottom_share"]
+            if depth >= p["min_cup_depth"] and rounded and t - left <= max_cup:
+                stage = 2
+            j = left + 1 + k  # cup-low bar
+            if stage == 2 and t > j:
+                r_try = j + 1 + int(np.argmax(high[j + 1 : t + 1]))
+                if r_try - left >= min_cup and cup_ok(left, r_try)[0]:
+                    stage = 3
+            # Handle in progress after a confirmed right-rim pivot.
+            rights = pivots[(pivots > j) & (pivots + pb <= t) & (pivots >= t - max_h) & (pivots < t)]
+            for r in rights[::-1]:
+                ok, c_low = cup_ok(left, r)
+                if not ok:
+                    continue
+                hh = high[r : t + 1].max()
+                hl = low[r + 1 : t + 1].min()
+                d = rim - c_low
+                if (
+                    close[r + 1 : t + 1].max() <= high[r:t].max()  # no breakout yet
+                    and (hh - hl) / hh <= p["max_handle_depth"]
+                    and hh - hl <= p["max_handle_cup_frac"] * d
+                    and hl >= c_low + p["handle_min_position"] * d
+                    and (not p["require_falling_volume"] or mean_vol(r + 1, t + 1) < mean_vol(left + 1, r))
+                ):
+                    stage = 4
+                    break
+            best = max(best, stage)
+            if best == 4:
+                break
+        out[t] = best
+    out[fired == 1.0] = 5.0
     return pd.Series(out, index=bars.index)
