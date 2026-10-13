@@ -8,6 +8,7 @@ and add a unit test of its math. The generic lookahead test in
 
 from quant_system.lab.indicators import core  # noqa: F401  (registers the starter set)
 from quant_system.lab.indicators import volume  # noqa: F401  (volume studies)
+from quant_system.lab.indicators import patterns  # noqa: F401  (chart patterns)
 from quant_system.lab.indicators.registry import (
     BAR_COLUMNS,
     REGISTRY,
