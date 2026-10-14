@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-10-14T18:47:49.181441Z",
+  "exported_at": "2026-10-14T19:25:12.867570Z",
   "count": 185,
   "reviews": [
     {
@@ -29550,7 +29550,7 @@
       },
       "path": {
         "mfe_pct": 7.924,
-        "mae_pct": -2.3465,
+        "mae_pct": -2.5992,
         "ret_pct": 0.1023
       },
       "verdict": "Made money: Realized PnL=0.0024. Entered aligned; lead agent fundamental was long@92.0 (see fundamental signal #19634 long @ conf=92.0). Entry weighted_score=0.452. Exit was an opportunity-rotate trim to fund another name. Held 480.0h.",
@@ -29626,7 +29626,7 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=7.924; mae_pct=-2.3465; ret_pct=0.1023"
+          "detail": "source=daily_bars; mfe_pct=7.924; mae_pct=-2.5992; ret_pct=0.1023"
         }
       ],
       "mode": "alpaca",
