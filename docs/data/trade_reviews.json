@@ -1,6 +1,6 @@
 {
-  "exported_at": "2026-10-14T18:29:14.761527Z",
-  "count": 184,
+  "exported_at": "2026-10-14T18:47:49.181441Z",
+  "count": 185,
   "reviews": [
     {
       "ticker": "RGTI",
@@ -29550,7 +29550,7 @@
       },
       "path": {
         "mfe_pct": 7.924,
-        "mae_pct": -2.2804,
+        "mae_pct": -2.3465,
         "ret_pct": 0.1023
       },
       "verdict": "Made money: Realized PnL=0.0024. Entered aligned; lead agent fundamental was long@92.0 (see fundamental signal #19634 long @ conf=92.0). Entry weighted_score=0.452. Exit was an opportunity-rotate trim to fund another name. Held 480.0h.",
@@ -29626,7 +29626,168 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=7.924; mae_pct=-2.2804; ret_pct=0.1023"
+          "detail": "source=daily_bars; mfe_pct=7.924; mae_pct=-2.3465; ret_pct=0.1023"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "robotics"
+    },
+    {
+      "ticker": "ADSK",
+      "qty": 0.004337,
+      "entry": 235.0599987250319,
+      "exit": 230.534,
+      "pnl": -0.0196292564704634,
+      "pnl_pct": -1.9255,
+      "opened_at": "2026-10-08T19:59:51.537442Z",
+      "closed_at": "2026-10-14T18:47:08.606028Z",
+      "hold_hours": 142.788,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.004337 ADSK @~230.59; opportunity rotate to fund NVDA (buy_score=0.447 donor_score=0.184)",
+      "entry_ticket_id": 342,
+      "exit_ticket_id": 358,
+      "entry_fill_id": 225,
+      "exit_fill_id": 241,
+      "entry_score": {
+        "weighted_score": 0.43,
+        "blended_conf": 62.4
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 62.0738718751515,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 > MA200 (intermediate uptrend); RSI constructive (60.2); MACD histogram positive; 20d RS vs SPY: +9.12%; RVOL 0.21x vs\u2026",
+          "signal_id": 18613,
+          "created_at": "2026-10-09T16:08:59.611699Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "long",
+          "confidence": 92.0,
+          "reasoning_trunc": "Quality: Solid revenue growth (16.1%); Strong earnings growth (59.6%); High profit margin (21.1%); Strong operating margin (29.2%) | Valuation/EV: elevated P/E\u2026",
+          "signal_id": 18614,
+          "created_at": "2026-10-09T16:08:59.858438Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "long",
+          "confidence": 60.900000000000006,
+          "reasoning_trunc": "overbought vs MA20 (z=1.69); residual_to_MA20=+7.6%; strong 20d momentum +11.1%; cross-sectional mom rank top (85%); vol regime=normal",
+          "signal_id": 18615,
+          "created_at": "2026-10-09T16:08:59.866581Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "neutral",
+          "confidence": 20.0,
+          "reasoning_trunc": "No recent headlines available for this ticker; emitting neutral with no manipulation flag (insufficient data, not risk).",
+          "signal_id": 18616,
+          "created_at": "2026-10-09T16:08:59.994512Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 77.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (robotics); VIX low (14.9) \u2014 complacent / risk-on; Dollar firm (+3.5% 20d) \u2014 risk headwind\u2026",
+          "signal_id": 18617,
+          "created_at": "2026-10-09T16:08:59.999431Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "fundamental",
+          "statistical_ml"
+        ],
+        "short": [],
+        "neutral": [
+          "sentiment",
+          "macro"
+        ],
+        "disagreement": false,
+        "lead_agent": "fundamental",
+        "lead_confidence": 92.0
+      },
+      "path": {
+        "mfe_pct": 1.5017,
+        "mae_pct": -2.7525,
+        "ret_pct": -1.9255
+      },
+      "verdict": "Lost money: Realized PnL=-0.0196. Entered aligned; lead agent fundamental was long@92.0 (see fundamental signal #18614 long @ conf=92.0). Entry weighted_score=0.43. Exit was an opportunity-rotate trim to fund another name. Held 142.8h.",
+      "verdict_tags": [
+        "loser",
+        "aligned",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 225,
+          "label": "entry fill",
+          "detail": "buy qty=0.004337 @ 235.0599987250319"
+        },
+        {
+          "kind": "fill",
+          "id": 241,
+          "label": "exit fill",
+          "detail": "sell @ 230.534"
+        },
+        {
+          "kind": "ticket",
+          "id": 342,
+          "label": "entry ticket",
+          "detail": "BUY 0.004663 ADSK @~236.02; weighted_score=0.430; blended_conf=62.4; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 358,
+          "label": "exit ticket",
+          "detail": "SELL 0.004337 ADSK @~230.59; opportunity rotate to fund NVDA (buy_score=0.447 donor_score=0.184)"
+        },
+        {
+          "kind": "signal",
+          "id": 18613,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=62.1"
+        },
+        {
+          "kind": "signal",
+          "id": 18614,
+          "label": "fundamental @ entry",
+          "detail": "long @ conf=92.0"
+        },
+        {
+          "kind": "signal",
+          "id": 18615,
+          "label": "statistical_ml @ entry",
+          "detail": "long @ conf=60.9"
+        },
+        {
+          "kind": "signal",
+          "id": 18616,
+          "label": "sentiment @ entry",
+          "detail": "neutral @ conf=20.0"
+        },
+        {
+          "kind": "signal",
+          "id": 18617,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=77.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.43; blended_conf=62.4"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=1.5017; mae_pct=-2.7525; ret_pct=-1.9255"
         }
       ],
       "mode": "alpaca",
