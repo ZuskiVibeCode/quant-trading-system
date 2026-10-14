@@ -235,15 +235,25 @@ can't be read, a day keeps the PR lists it already had and is marked
     robust: null | {at, day, passed, complete, base_passed, failed: [...], skipped: [...],
                     checks: [{name, status, detail}]},   # nudges, sectors, cap_buckets, selloffs, single_stock
     nomination: null | {pr, url, state, opened_day, skeptic: {verdict, at}},
-    notes: [...],          # spec notes + matching notes.md lines (same-day section first)
+    notes: [...],          # spec notes + notes.md items about this spec (that day's section first)
     stage                  # missed | beat_benchmarks | failed_robust | passed_robust | nominated
   }],
   indicators: [{pr, title, url, merged_at, bot, summary, skeptic,
                 indicators: [{name, about, settings: [{name, default, min, max}]}]}],
   skeptic: [{pr, title, url, kind, verdict, evidence, at}],   # verdict: no objection | objection | comment
   nominations: [{pr, title, url, bot, state, opened_at, files, skeptic}],
+  session_notes: {momo|snapback: [{session, notes: [...]}]},   # that day's notes not about one idea
   last_activity_at, github }
 ```
+
+How `notes.md` is read: a dated heading (`## 2026-10-13 (Tue) afternoon session: ...`)
+sets the day and the session label for everything under it. A bullet or table row
+`id | hash | sharpe (CAGR, DD) | verdict | lesson` belongs to the spec in its first
+field, matched by id or hash only, so a lesson that mentions another spec stays with
+its own. The page shows just the lesson. Other bullets attach to an idea when they
+name its id or hash. Plain paragraphs ("Lessons: ...", "Next session: ...") and
+bullets that match no idea run that day go to `session_notes`, grouped by
+session.
 
 `index.json`: `{schema, generated_at, timezone, first_day, last_day,
 total_bytes, days: [{date, ...summary, bots, bytes}]}`.

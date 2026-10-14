@@ -18,6 +18,7 @@ from scripts.build_orbit_slim_deploy import copy_lab_journal
 from tests.test_lab_robust import NAMES, SPEC, _bars, _settings
 
 DAY = "2026-10-13"
+PREV = "2026-10-12"
 STAMP = "2026-10-13T15:00:00+00:00"  # 11 AM ET
 TODAY = date(2026, 10, 13)
 BREAKOUT = {
@@ -87,11 +88,19 @@ def _lab_work(root: Path) -> Path:
     work = root / "lab-work"
     (work / "snapback").mkdir(parents=True, exist_ok=True)
     (work / "momo").mkdir(parents=True, exist_ok=True)
-    (work / "snapback" / "notes.md").write_text(
-        "# 2026-10-12\n- rsi-dip: older note from yesterday\n"
-        "# 2026-10-13\n- rsi-dip: Sharpe 0.92, nudges fragile; try a trend filter\n"
+    (work / "snapback" / "notes.md").write_text(  # the format Orbit Control reported on Oct 13
+        "# snapback notes\n"
+        "## 2026-10-12 (Mon) afternoon session\n"
+        "- rsi-dip | abcd1234abcd1234 | 0.80 (CAGR 7%, DD 22%) | fail | Older note from yesterday.\n"
+        "## 2026-10-13 (Tue) afternoon session: 10 specs\n"
+        "- rsi-dip | abcd1234abcd1234 | 0.92 (CAGR 8.7%, DD 20%) | fail | Nudges fragile; try a trend filter.\n"
+        "- rs-pullback-quiet | 0000000000000000 | 0.50 (CAGR 4%, DD 13%) | fail | Refinement of rsi-dip: cut DD.\n"
         "- rsi-dip: validation Sharpe 9.87 (must never show)\n"
-        "- rsi-dip-wide: a different spec\n",
+        "- rsi-dip-wide: a different spec\n"
+        "Lessons: the quiet filter cuts drawdown\n"
+        "but costs exposure.\n"
+        "\n"
+        "Next session: use the quiet filter as a rank input. No nominations today.\n",
         encoding="utf-8",
     )
     (work / "momo" / "notes.md").write_text("| id | lesson |\n|---|---|\n| breakout-vol | volume filter too loose |\n",
@@ -133,8 +142,8 @@ def test_rules_read_as_plain_english():
 
 def test_export_writes_one_small_file_for_the_day(lab_data, tmp_path):
     res, out = _export(lab_data, tmp_path)
-    assert res["written"] == [DAY]
-    assert sorted(p.name for p in out.iterdir()) == [f"{DAY}.json", "index.json"]
+    assert res["written"] == [PREV, DAY]  # Oct 12 has session notes only
+    assert sorted(p.name for p in out.iterdir()) == [f"{PREV}.json", f"{DAY}.json", "index.json"]
     d = _day(out)
     assert (out / f"{DAY}.json").stat().st_size < 20_000
 
@@ -148,14 +157,23 @@ def test_export_writes_one_small_file_for_the_day(lab_data, tmp_path):
     assert brk["description"] == "Buy 55-day highs on heavy volume."
     assert brk["robust"] is None and brk["stage"] == "missed"
     assert set(brk["run"]["missed"]) <= {"SPY Sharpe", "SPY CAGR", "equal-weight Sharpe", "equal-weight CAGR"}
-    assert brk["notes"] == ["| breakout-vol | volume filter too loose |"]
+    assert brk["notes"] == ["volume filter too loose"]
 
     rob = dip["robust"]
     assert [c["name"] for c in rob["checks"]] == ["nudges", "sectors", "cap_buckets", "selloffs", "single_stock"]
     assert rob["failed"] == [c["name"] for c in rob["checks"] if c["status"] == "fail"]
     assert all(c["detail"] for c in rob["checks"])
     assert dip["robust_variants_today"] > 0
-    assert dip["notes"] == ["rsi-dip: Sharpe 0.92, nudges fragile; try a trend filter"]
+    assert dip["notes"] == ["Nudges fragile; try a trend filter."]  # not yesterday's, not rs-pullback-quiet's
+    assert d["session_notes"] == {"snapback": [{"session": "afternoon session: 10 specs", "notes": [
+        "rs-pullback-quiet: Refinement of rsi-dip: cut DD.",
+        "rsi-dip-wide: a different spec",
+        "Lessons: the quiet filter cuts drawdown but costs exposure.",
+        "Next session: use the quiet filter as a rank input. No nominations today.",
+    ]}]}
+    prev = _day(out, PREV)
+    assert prev["ideas"] == []
+    assert prev["session_notes"]["snapback"][0]["notes"] == ["rsi-dip: Older note from yesterday."]
     assert dip["nomination"] == {"pr": 30, "url": "https://example.test/pull/30", "state": "open",
                                  "opened_day": DAY, "skeptic": {"verdict": "objection", "at": "2026-10-13T19:00:00Z"}}
     assert dip["stage"] == "nominated"
@@ -170,8 +188,8 @@ def test_export_writes_one_small_file_for_the_day(lab_data, tmp_path):
     assert d["summary"]["robust_runs"] == 1 and d["bots"]["snapback"]["robust"] == 1
 
     index = json.loads((out / "index.json").read_text(encoding="utf-8"))
-    assert [r["date"] for r in index["days"]] == [DAY]
-    assert index["days"][0]["ideas"] == 2
+    assert [r["date"] for r in index["days"]] == [PREV, DAY]
+    assert index["days"][1]["ideas"] == 2
 
 
 def test_validation_and_holdout_never_reach_the_journal(lab_data, tmp_path):
@@ -192,7 +210,7 @@ def test_validation_and_holdout_never_reach_the_journal(lab_data, tmp_path):
     (saved / "holdout-run.json").write_text(json.dumps({**rep, "window": {"name": "holdout"}}), encoding="utf-8")
 
     res, out = _export(data, tmp_path)
-    assert res["written"] == [DAY] and res["refused"] == []
+    assert res["written"] == [PREV, DAY] and res["refused"] == []
     text = "".join(p.read_text(encoding="utf-8") for p in out.glob("*.json"))
     assert "9.87" not in text
     assert "locked" not in text
@@ -220,7 +238,7 @@ def test_days_without_activity_get_no_file(lab_data, tmp_path):
     assert index["days"] == [] and index["first_day"] is None
 
     res, out = _export(lab_data, tmp_path, days=None, today=date(2026, 10, 20))
-    assert res["written"] == [DAY]  # --all
+    assert res["written"] == [PREV, DAY]  # --all
     assert not (out / "2026-10-10.json").exists()  # a non-lab PR doesn't make a day
 
 
@@ -231,7 +249,7 @@ def test_cli_export_lab_journal(lab_data, tmp_path, capsys):
     rc = main(["export-lab-journal", "--out", str(out), "--lab-data", str(lab_data),
                "--lab-work", str(_lab_work(tmp_path)), "--prs-json", str(prs), "--all"])
     assert rc == 0
-    assert json.loads(capsys.readouterr().out)["written"] == [DAY]
+    assert json.loads(capsys.readouterr().out)["written"] == [PREV, DAY]
     assert (out / f"{DAY}.json").is_file()
 
 
@@ -271,7 +289,7 @@ def test_a_day_that_still_mentions_a_locked_window_is_refused(lab_data, tmp_path
     prs[0]["title"] = "feat(lab): cup_handle, safe before holdout"  # titles are hidden, so this one passes
     prs[0]["files"].append({"path": "lab_nominations/validation-notes.json"})  # a file path is not redacted
     res, out = _export(lab_data, tmp_path, prs=prs)
-    assert res["refused"] == [DAY] and res["written"] == []
+    assert res["refused"] == [DAY] and res["written"] == [PREV]
     assert not (out / f"{DAY}.json").exists()
 
     prs = _prs()
@@ -279,3 +297,24 @@ def test_a_day_that_still_mentions_a_locked_window_is_refused(lab_data, tmp_path
     res, out = _export(lab_data, tmp_path, prs=prs)
     assert res["written"] == [DAY]
     assert _day(out)["indicators"][0]["title"].startswith("(title hidden")
+
+
+def test_notes_parse_spec_rows_paragraphs_and_sessions():
+    from quant_system.lab_journal import parse_notes
+
+    items = parse_notes(
+        "## 2026-10-13 (Tue) morning session: venv rebuilt\n"
+        "- cup-stage-handle | 0123456789abcdef | 0.1 (CAGR 1%, DD 9%) | fail | Many handles never pay.\n"
+        "1. trend-hold-regime | 89abcdef | 1.09 | fail | First to pass nudges;\n"
+        "   failed sectors.\n"
+        "Lessons: anticipating\nthe breakout did not help.\n"
+        "Note on 2018-10-01 selloff stays on Oct 13.\n"
+    )
+    assert [(i["ref"], i["text"]) for i in items] == [
+        ("cup-stage-handle", "Many handles never pay."),
+        ("trend-hold-regime", "First to pass nudges; failed sectors."),
+        (None, "Lessons: anticipating the breakout did not help. Note on 2018-10-01 selloff stays on Oct 13."),
+    ]
+    assert {i["day"] for i in items} == {"2026-10-13"}
+    assert {i["session"] for i in items} == {"morning session: venv rebuilt"}
+    assert items[1]["ref_hash"] == "89abcdef" and items[2]["kind"] == "para"

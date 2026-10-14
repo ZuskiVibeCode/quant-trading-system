@@ -285,6 +285,7 @@
         const body = mine.length ? mine.map((i) => ideaCard(i, d.date)).join("") : `<p class="empty">No ideas from ${esc(bot)} this day.</p>`;
         return `<div class="bot-group">
           <h3 class="bot-head"><span class="pill accent">${esc(bot)}</span><span class="subtle">${esc(BOT_ROLE[bot] || "")} · ${plural(mine.length, "idea")}</span></h3>
+          ${sessionNotes(bot, (d.session_notes || {})[bot])}
           ${body}
         </div>`;
       })
@@ -307,6 +308,18 @@
       </details>
       ${groups}
     </section>`;
+  }
+
+  /** Notes from the bot's session that aren't about one idea ("Lessons:", "Next session: ..."). */
+  function sessionNotes(bot, groups) {
+    if (!groups || !groups.length) return "";
+    const blocks = groups
+      .map((g) => `<div class="session-block">
+        ${g.session ? `<p class="kicker">${esc(g.session)}</p>` : ""}
+        <ul>${(g.notes || []).map((n) => `<li>${esc(n)}</li>`).join("")}</ul>
+      </div>`)
+      .join("");
+    return `<div class="session-notes" aria-label="Session notes from ${esc(bot)}"><p class="session-title">Session notes from ${esc(bot)}</p>${blocks}</div>`;
   }
 
   function stagePill(stage) {
