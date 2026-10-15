@@ -1,0 +1,89 @@
+{
+ "schema": 1,
+ "kind": "lab_nomination",
+ "spec_id": "cushion-early-start",
+ "spec_hash": "85af75e814d6c0c4",
+ "author_bot": "momo",
+ "nominated_at": "2026-10-15T22:38:26+00:00",
+ "git_commit": "1d10350aae34e99c31d63a35232c4aac12cd38c0",
+ "frozen_trials": {
+  "window": "discovery",
+  "n_trials": 126,
+  "n_records": 317,
+  "sharpe_variance": 0.09728142887727714
+ },
+ "discovery": {
+  "passed": true,
+  "complete": true,
+  "sharpe": 1.1551983442396019,
+  "cagr": 0.2200784697283391,
+  "checks": {
+   "nudges": "pass",
+   "sectors": "pass",
+   "cap_buckets": "pass",
+   "selloffs": "pass",
+   "single_stock": "pass"
+  },
+  "robust_report": "20261015T223825288901Z-momo-85af75e814d6c0c4.json",
+  "vs_benchmarks": {
+   "SPY": {
+    "sharpe_diff": 0.15713872677148932,
+    "excess_cagr": 0.04690523355334464
+   },
+   "equal_weight": {
+    "sharpe_diff": 0.3005624138462094,
+    "excess_cagr": 0.053132608933508685
+   }
+  }
+ },
+ "spec": {
+  "id": "cushion-early-start",
+  "author_bot": "momo",
+  "description": "ATR-scaled cushion above the 6-month-low anchored VWAP, short warm-up, wide trend and SPY regime exits.",
+  "universe": "broad",
+  "indicators": {
+   "low_d": {
+    "fn": "avwap_low_dist",
+    "length": 126
+   },
+   "vol": {
+    "fn": "atr_pct",
+    "length": 63
+   },
+   "trend": {
+    "fn": "sma",
+    "length": 126
+   },
+   "roc126": {
+    "fn": "roc",
+    "length": 126
+   },
+   "rs126": {
+    "fn": "rel_strength",
+    "length": 126
+   },
+   "roc50": {
+    "fn": "roc",
+    "length": 50
+   },
+   "rs50": {
+    "fn": "rel_strength",
+    "length": 50
+   }
+  },
+  "params": {
+   "k": {
+    "value": 6.0,
+    "min": 3.0,
+    "max": 10.0
+   }
+  },
+  "entry": "low_d > k * vol and close > trend and (1 + roc126) / (1 + rs126) > 1",
+  "exit": "close < 0.9 * trend or (1 + roc50) / (1 + rs50) < 0.95",
+  "sizing": {
+   "method": "equal_weight",
+   "max_positions": 10,
+   "max_weight": 0.1
+  }
+ }
+}
