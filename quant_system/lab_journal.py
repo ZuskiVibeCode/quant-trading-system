@@ -361,13 +361,23 @@ def _check_detail(name: str, c: Mapping[str, Any], th: Mapping[str, Any]) -> str
         noun = "sectors" if name == "sectors" else "cap buckets"
         need = th.get("sector_pass_share" if name == "sectors" else "cap_pass_share", 0.6)
         groups = c.get("groups") or []
-        wins = [g for g in groups if g.get("beats_equal_weight_sharpe")]
-        losers = [str(g.get(key)) for g in groups if not g.get("beats_equal_weight_sharpe")]
-        text = (f"Beat that group's equal-weight Sharpe in {len(wins)} of {len(groups)} {noun} "
-                f"(needs {_pct(need)}).")
+        matched = any("passes" in g for g in groups)  # reports from Oct 15, 2026 on
+        won = (lambda g: g.get("passes")) if matched else (lambda g: g.get("beats_equal_weight_sharpe"))
+        wins = [g for g in groups if won(g)]
+        losers = [str(g.get(key)) for g in groups if not won(g)]
+        if matched:
+            text = (f"Beat that group's equal-weight, held at the strategy's own exposure, in {len(wins)} "
+                    f"of {len(groups)} {noun} (needs {_pct(need)}; a group with fewer than "
+                    f"{th.get('min_subset_entries', 30)} entries counts as a miss).")
+        else:
+            text = (f"Beat that group's equal-weight Sharpe in {len(wins)} of {len(groups)} {noun} "
+                    f"(needs {_pct(need)}).")
         if losers:
             more = f" and {len(losers) - MAX_GROUP_NAMES} more" if len(losers) > MAX_GROUP_NAMES else ""
             text += f" Missed: {', '.join(losers[:MAX_GROUP_NAMES])}{more}."
+        thin = c.get("thin") or []
+        if thin:
+            text += f" Too few entries: {', '.join(str(x) for x in thin[:MAX_GROUP_NAMES])}."
         return text
     if name == "selloffs":
         ratio = th.get("selloff_dd_ratio", 1.25)

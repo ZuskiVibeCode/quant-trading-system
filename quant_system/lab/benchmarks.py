@@ -57,6 +57,9 @@ def buy_and_hold(
         "signal_date": None,
         "entry_date": None,
         "returns": flat,
+        # (1 + overnight) x (1 + intraday) = 1 + returns: close to open, then open to close.
+        "overnight": flat,
+        "intraday": flat,
     }
     if not held or sessions.empty:
         return result
@@ -75,14 +78,23 @@ def buy_and_hold(
     entry_px = fill_price(open_.loc[entry, names], 1, bps[names])
     qty = (1.0 / len(names)) / entry_px
     marks = (close.loc[entry:, names].ffill() * qty).sum(axis=1)
-    equity = pd.concat([pd.Series(1.0, index=sessions[sessions < entry]), marks])
+    cash = pd.Series(1.0, index=sessions[sessions < entry])
+    equity = pd.concat([cash, marks])
     returns = (equity / equity.shift(1) - 1.0).fillna(equity.iloc[0] - 1.0)
+    # Value at each open (a name with no bar keeps its last close); on the entry day
+    # the basket is still cash at the open and is bought there.
+    open_px = open_.loc[entry:, names].fillna(close.loc[entry:, names].ffill())
+    at_open = pd.concat([cash, (open_px * qty).sum(axis=1)])
+    at_open.loc[entry] = 1.0
+    overnight = at_open / equity.shift(1).fillna(1.0) - 1.0
     result.update(
         tickers=sorted(names),
         excluded=sorted(set(wanted) - set(names)),
         signal_date=str(day.date()),
         entry_date=str(entry.date()),
         returns=returns,
+        overnight=overnight,
+        intraday=equity / at_open - 1.0,
     )
     return result
 

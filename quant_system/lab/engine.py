@@ -50,6 +50,8 @@ class EngineResult:
     missing: list[str]  # universe names with no bars
     first_trade_date: str | None = None
     notes: list[str] = field(default_factory=list)
+    # Share of equity in positions right after each open's fills, valued at the open.
+    open_exposure: pd.Series | None = None
 
     @property
     def trade_count(self) -> int:
@@ -143,6 +145,7 @@ def run_spec(
     equity_out = np.empty(len(pos))
     weights_out = np.zeros((len(pos), n))
     traded_out = np.zeros(len(pos))
+    open_exposure_out = np.zeros(len(pos))
     trades: list[dict[str, Any]] = []
 
     for k, i in enumerate(pos):
@@ -177,6 +180,9 @@ def run_spec(
                            "price": px_open, "bps": b, "notional": budget})
         traded_out[k] = traded / prev_equity
         sells, buys = [], []
+        at_open = shares * np.nan_to_num(np.where(np.isnan(open_[i]), mark[i], open_[i]))
+        invested = float(at_open.sum())
+        open_exposure_out[k] = invested / (cash + invested) if cash + invested > 0 else 0.0
 
         # 2. Close: mark to market.
         values = shares * np.nan_to_num(mark[i])
@@ -225,4 +231,5 @@ def run_spec(
         missing=missing,
         first_trade_date=first,
         notes=notes,
+        open_exposure=pd.Series(open_exposure_out, index=sessions),
     )

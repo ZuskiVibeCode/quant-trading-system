@@ -70,6 +70,8 @@ class LabRobustSettings(BaseModel):
     nudge_pass_share: float = 0.75
     peak_ratio: float = 0.5
     min_subset_names: int = 10
+    # A sector / cap bucket rerun with fewer entries than this counts as a miss.
+    min_subset_entries: int = 30
     sector_pass_share: float = 0.6
     cap_pass_share: float = 0.6
     selloffs: list[Selloff] = [
