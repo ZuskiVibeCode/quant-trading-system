@@ -112,7 +112,7 @@ def _pm_at(tracker: Tracker, equity: float, *, day_start: float):
     tracker.set_state("cash", f"{equity:.6f}")
     tracker.set_state("day_start_equity", f"{day_start:.6f}")
     cfg = load_config()
-    assert cfg.risk.max_loss_from_start_pct == pytest.approx(0.10)
+    cfg.risk.max_loss_from_start_pct = 0.10  # exercise the rule itself; repo config disables it
     return PortfolioManager(tracker, MockMarketData(prices={"IONQ": 10.0, "SPY": 100.0}), cfg)
 
 
@@ -154,7 +154,23 @@ def test_backtests_turn_the_start_stop_off():
 
     cfg = _apply_backtest_risk_overrides(load_config())
     assert cfg.risk.max_loss_from_start_pct is None
-    assert load_config().risk.max_loss_from_start_pct == pytest.approx(0.10)
+
+
+def test_repo_config_disables_start_stop_but_keeps_other_limits():
+    """Sabastian turned the $90 full halt off on 2026-10-15; daily loss and drawdown stay."""
+    from quant_system.config.loader import load_config
+
+    risk = load_config().risk
+    assert risk.max_loss_from_start_pct is None
+    assert risk.max_daily_loss_pct == pytest.approx(0.10)
+    assert risk.max_drawdown_pct == pytest.approx(0.15)
+
+
+def test_disabled_start_stop_does_not_halt(tracker):
+    pm = _pm_at(tracker, 89.9, day_start=90.0)
+    pm.risk.max_loss_from_start_pct = None
+    pm.weigh_and_decide(_one_signal(tracker))
+    assert tracker.is_halted() is False
 
 
 def test_start_stop_fails_safe_when_the_key_is_missing():
