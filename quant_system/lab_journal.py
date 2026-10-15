@@ -760,6 +760,8 @@ def build_days(
             variants_by_day[day][rec.get("parent_hash") or h] += 1
             continue
         hashes_until.append((day, h))
+        if rec.get("rescore"):
+            continue  # `lab rescore` reruns old specs after a scoring change; not that bot's work today
         if rec.get("author_bot") in INVENTORS:
             first_seen.setdefault(h, day)
             trial_by_day[day][h].append(rec)

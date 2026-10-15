@@ -10,6 +10,18 @@ data:
   feed: sip
   # Split + dividend adjusted.
   adjustment: all
+  # Warm-up bars before `start`, which Alpaca doesn't have: yfinance daily bars
+  # (split + dividend adjusted) feed indicators and the cost model's lookback
+  # only. Nothing before `start` is scored, and from `start` on Alpaca is the
+  # only source. The days from `start` to overlap_end are in both sources and
+  # line them up (prices scaled by the median close ratio). A name whose sources
+  # disagree there gets no warm-up and starts late. Sync: `lab data warmup`.
+  warmup:
+    start: "2014-01-01"
+    overlap_end: "2016-01-31"
+    min_overlap_days: 10
+    price_tolerance: 0.01
+    volume_ratio_max: 1.5
 benchmark: SPY
 # Fill model: signal at day t's close, fill at day t+1's open. Slippage per side
 # by the 20-day median dollar volume as of day t (Alpaca charges no commission).

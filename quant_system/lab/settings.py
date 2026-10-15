@@ -15,11 +15,30 @@ DATA_DIR_ENV = "QUANT_LAB_DATA_DIR"
 CEILING_ENV = "QUANT_LAB_DATA_CEILING"
 
 
+class LabWarmupSettings(BaseModel):
+    """Bars before ``data.start`` (Alpaca has none) for indicator and cost-model warm-up only.
+
+    Fetched from yfinance for ``start`` .. ``overlap_end``. The days from
+    ``data.start`` to ``overlap_end`` are in both sources and only line the two
+    up; a name whose sources disagree there gets no warm-up.
+    """
+
+    start: date = date(2014, 1, 1)
+    overlap_end: date = date(2016, 1, 31)
+    # Fewer shared days than this, and the sources can't be compared: no warm-up.
+    min_overlap_days: int = 10
+    # Each shared day's Alpaca / yfinance close ratio within this of the median ratio.
+    price_tolerance: float = 0.01
+    # Median Alpaca / yfinance volume ratio within [1 / x, x] (the cost model reads volume).
+    volume_ratio_max: float = 1.5
+
+
 class LabDataSettings(BaseModel):
     start: date = date(2016, 1, 1)
     ceiling: date = date(2021, 12, 31)
     feed: str = "sip"
     adjustment: str = "all"
+    warmup: LabWarmupSettings = LabWarmupSettings()
 
 
 class CostBucket(BaseModel):

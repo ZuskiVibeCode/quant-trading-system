@@ -74,8 +74,8 @@ smith opens a PR, skeptic attacks it, and Orbit Control merges it.
 ## Shared setup (all four bots)
 
 - Shared lab data: `QUANT_LAB_DATA_DIR=/workspace/lab-data` (bar cache through
-  2021-12-31, trial log, robust reports). It already exists; Orbit Control
-  synced it.
+  2021-12-31, 2014-2015 warm-up bars, trial log, robust reports). It already
+  exists; Orbit Control synced it.
 - Never set `QUANT_LAB_UNLOCK` or `QUANT_LAB_DATA_CEILING`. Never run
   `lab validate` or `lab holdout`. They run only on the validation machine
   (Sabastian's Windows machine) and refuse on this one anyway.

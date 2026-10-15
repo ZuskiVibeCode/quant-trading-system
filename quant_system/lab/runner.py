@@ -103,7 +103,14 @@ def score_spec_full(
         return dsr, pass_bar(rw.name, cmp_, dsr, required=required)
 
     author = author_bot or spec.author_bot or "unknown"
-    universe_info = {"name": spec.universe, "names": len(result.symbols), "missing": result.missing}
+    start = pd.Timestamp(s.data.start)
+    universe_info = {
+        "name": spec.universe,
+        "names": len(result.symbols),
+        "missing": result.missing,
+        # Names with warm-up bars from before data.start (lab.data); the rest start late.
+        "warmup_names": sum(1 for sym in result.symbols if bars[sym].index.min() < start),
+    }
     if frozen_trials is not None:
         # Locked windows: the verdict goes into the record, and the record is written first.
         dsr, verdict = _verdict(frozen_trials)

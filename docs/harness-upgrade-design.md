@@ -72,6 +72,18 @@ CLI, all under `python -m quant_system lab ...`:
 - **Warm-up:** Alpaca data starts in 2016, so a 200-day indicator has no values
   until about October 2016. The engine reports the first date it actually
   traded. Validation and holdout use late-2021 / 2024 bars for warm-up only.
+- **Discovery warm-up (Oct 15, 2026):** `lab data warmup` caches yfinance bars
+  for 2014-01-01 to 2016-01-31 under `$QUANT_LAB_DATA_DIR/bars_warmup/`, once
+  per machine (the validation machine needs them too, to recompute the
+  discovery gate). On load, each name's rows before 2016-01-01 go in front of
+  its Alpaca bars, scaled by the median Alpaca / yfinance close ratio over the
+  January 2016 days both have. They feed indicators and the cost model only;
+  nothing before 2016-01-01 is scored, and Alpaca is the only source from then
+  on. A name gets no warm-up (and starts late, as before) when the sources
+  disagree on those days: fewer than 10 shared days, any day's close ratio more
+  than 1% off the median, or median volume more than 1.5x apart. Settings in
+  `config/lab.yaml` `data.warmup`; `lab data status` lists the rejected names.
+  Each trial records `universe.warmup_names`.
 
 ## 2. Fills and costs
 
@@ -103,9 +115,12 @@ can finally be judged.
 
 As built (PR 3, `lab/benchmarks.py`): both benchmarks enter on the same day,
 the first fill any strategy could get. The signal day is the first window
-session on which the cost model can price a trade (20 bars of history: about
-session 20 of discovery, session 1 of validation thanks to late-2021 warm-up
-bars), and the fill is the next session's open with each name's own slippage.
+session on which the cost model can price a trade (20 bars of history: session
+1 of discovery with the pre-2016 warm-up bars, about session 20 without them;
+session 1 of validation thanks to late-2021 bars), and the fill is the next
+session's open with each name's own slippage. With warm-up, discovery's
+benchmarks enter 2016-01-05; a name with no warm-up isn't tradable that day,
+so it is left out of equal-weight (listed under `excluded`).
 No exit cost at the window end, for strategies or benchmarks.
 
 ## 4. Windows
@@ -149,6 +164,13 @@ second run.
   spec neither adds a trial nor earns a second validation run. Rerunning the
   same spec replaces its score (latest record wins) instead of adding a trial.
   `lab trials [--window]` prints the count and recent runs.
+- `lab rescore` (after a scoring change, from a clean checkout): reruns the
+  latest record of every logged discovery spec, so each spec's score moves to
+  the new method and the trial count stays the same. Reruns keep the spec's
+  author and carry `rescore: true`; the lab journal leaves them out of the
+  day's work. A spec that no longer loads or hashes differently is skipped and
+  listed, since rerunning it would add a trial. It refuses to run until
+  `lab data warmup` has cached the warm-up bars.
 - Deflated Sharpe (Bailey and Lopez de Prado) uses the number of discovery
   trials and the spread of their Sharpes. The trial count is frozen into each
   candidate when it is nominated for validation.
@@ -414,5 +436,17 @@ Each PR: own branch, `pytest` passing, tests with synthetic bars (no network).
     or daily-loss halts; report max drawdown instead.
   - **2022 selloff and theme check:** robustness uses Q4 2018 and Feb-Apr 2020.
     The validation report breaks out 2022 and the theme names on their own.
+
+## Decided (Sabastian, Oct 15, 2026)
+
+- **Discovery warm-up:** load 2014-2015 daily bars from yfinance as warm-up
+  only, lined up with Alpaca on the January 2016 days both cover; a name whose
+  sources disagree gets no warm-up. Discovery's dates don't change. Keep the
+  trial count and rescore every discovery spec once (`lab rescore`). Section 1
+  has the details.
+- **Process:** decided before any rerun; Orbit Control merges, rescores, then
+  reruns the robustness checks on every spec that passes the discovery
+  benchmark. If most specs that failed before suddenly pass, treat it as a
+  bug. The results stand, with no second round of rule changes.
 
 No open questions right now.

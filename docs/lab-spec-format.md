@@ -73,8 +73,10 @@ any comparison with it is false.
   bought. Exiting a name that has dropped below $2M costs 30 bps.
 - `bars_held` is 1 at the close of the day a position was bought.
 - No trades on the window's last day. Open positions are marked at the last close.
-- Indicators warm up on their own: a 200-day SMA has no value until about
-  October 2016, and nothing triggers before then.
+- Indicators warm up on 2014-2015 bars (yfinance, lined up with Alpaca), so a
+  spec with lookbacks up to 400 days can trade from the first week of 2016.
+  Those bars are never scored. A name whose two sources disagree gets no
+  warm-up, so its 200-day SMA has no value until about October 2016.
 
 ## Scorecard and pass bar
 
