@@ -1,0 +1,91 @@
+{
+ "schema": 1,
+ "kind": "lab_nomination",
+ "spec_id": "rs-relative-dip-abs",
+ "spec_hash": "d841b49ce73cdd10",
+ "author_bot": "snapback",
+ "nominated_at": "2026-10-15T22:38:52+00:00",
+ "git_commit": "1d10350aae34e99c31d63a35232c4aac12cd38c0",
+ "frozen_trials": {
+  "window": "discovery",
+  "n_trials": 126,
+  "n_records": 318,
+  "sharpe_variance": 0.09728142887727714
+ },
+ "discovery": {
+  "passed": true,
+  "complete": true,
+  "sharpe": 1.2369701982736843,
+  "cagr": 0.28167250525368437,
+  "checks": {
+   "nudges": "pass",
+   "sectors": "pass",
+   "cap_buckets": "pass",
+   "selloffs": "pass",
+   "single_stock": "pass"
+  },
+  "robust_report": "20261015T223851497162Z-snapback-d841b49ce73cdd10.json",
+  "vs_benchmarks": {
+   "SPY": {
+    "sharpe_diff": 0.2389105808055717,
+    "excess_cagr": 0.1084992690786899
+   },
+   "equal_weight": {
+    "sharpe_diff": 0.3823342678802918,
+    "excess_cagr": 0.11472664445885394
+   }
+  }
+ },
+ "spec": {
+  "id": "rs-relative-dip-abs",
+  "author_bot": "snapback",
+  "description": "Relative-to-SPY 10-day dip in any stock with a positive 120-day return, above SMA200, no panic.",
+  "universe": "broad",
+  "indicators": {
+   "rs": {
+    "fn": "rel_strength",
+    "length": 120
+   },
+   "up": {
+    "fn": "roc",
+    "length": 120
+   },
+   "rsf": {
+    "fn": "rel_strength",
+    "length": 10
+   },
+   "trend": {
+    "fn": "sma",
+    "length": 200
+   },
+   "vfast": {
+    "fn": "atr_pct",
+    "length": 10
+   },
+   "vslow": {
+    "fn": "atr_pct",
+    "length": 50
+   }
+  },
+  "params": {
+   "dip": {
+    "value": -0.05,
+    "min": -0.12,
+    "max": -0.02
+   },
+   "max_hold": {
+    "value": 20.0,
+    "min": 8.0,
+    "max": 40.0
+   }
+  },
+  "entry": "up > 0 and rsf < dip and close > trend and vfast < 1.5 * vslow",
+  "exit": "rsf > 0 or close < trend or bars_held >= max_hold",
+  "rank": "rs",
+  "sizing": {
+   "method": "equal_weight",
+   "max_positions": 10,
+   "max_weight": 0.1
+  }
+ }
+}
