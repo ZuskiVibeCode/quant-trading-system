@@ -1,0 +1,85 @@
+{
+ "schema": 1,
+ "kind": "lab_nomination",
+ "spec_id": "rsi-early-start",
+ "spec_hash": "698906413d3803ef",
+ "author_bot": "momo",
+ "nominated_at": "2026-10-15T22:38:49+00:00",
+ "git_commit": "1d10350aae34e99c31d63a35232c4aac12cd38c0",
+ "frozen_trials": {
+  "window": "discovery",
+  "n_trials": 126,
+  "n_records": 318,
+  "sharpe_variance": 0.09728142887727714
+ },
+ "discovery": {
+  "passed": true,
+  "complete": true,
+  "sharpe": 1.2774053727594221,
+  "cagr": 0.24892645823349246,
+  "checks": {
+   "nudges": "pass",
+   "sectors": "pass",
+   "cap_buckets": "pass",
+   "selloffs": "pass",
+   "single_stock": "pass"
+  },
+  "robust_report": "20261015T223847869703Z-momo-698906413d3803ef.json",
+  "vs_benchmarks": {
+   "SPY": {
+    "sharpe_diff": 0.27934575529130956,
+    "excess_cagr": 0.075753222058498
+   },
+   "equal_weight": {
+    "sharpe_diff": 0.42276944236602965,
+    "excess_cagr": 0.08198059743866204
+   }
+  }
+ },
+ "spec": {
+  "id": "rsi-early-start",
+  "author_bot": "momo",
+  "description": "Quarterly RSI strength in a 6-month uptrend with short warm-up, RSI decay and wide regime exits.",
+  "universe": "broad",
+  "indicators": {
+   "r": {
+    "fn": "rsi",
+    "length": "$rsi_len"
+   },
+   "trend": {
+    "fn": "sma",
+    "length": 126
+   },
+   "roc126": {
+    "fn": "roc",
+    "length": 126
+   },
+   "rs126": {
+    "fn": "rel_strength",
+    "length": 126
+   },
+   "roc50": {
+    "fn": "roc",
+    "length": 50
+   },
+   "rs50": {
+    "fn": "rel_strength",
+    "length": 50
+   }
+  },
+  "params": {
+   "rsi_len": {
+    "value": 63.0,
+    "min": 40.0,
+    "max": 100.0
+   }
+  },
+  "entry": "r > 55 and close > trend and (1 + roc126) / (1 + rs126) > 1",
+  "exit": "r < 45 or close < 0.95 * trend or (1 + roc50) / (1 + rs50) < 0.95",
+  "sizing": {
+   "method": "equal_weight",
+   "max_positions": 10,
+   "max_weight": 0.1
+  }
+ }
+}
