@@ -2,9 +2,9 @@
 
 Both benchmarks enter on the same day, the first fill any strategy could get in
 the window: the signal day is the first window session on which the cost model
-can price a trade in any name (20 bars of history; about session 20 of
-discovery, session 1 of validation), and the fill is the next session's open
-with each name's own slippage. Equal weight at entry, no rebalancing, marked at
+can price a trade in any name (20 bars of history; session 1 of discovery with
+the pre-2016 warm-up bars from ``lab.data``, session 1 of validation), and the
+fill is the next session's open with each name's own slippage. Equal weight at entry, no rebalancing, marked at
 each close, no exit cost. A name's liquidity bucket is its last reading on or
 before the signal day, so a name that skipped that session still counts. Names
 not tradable then or with no bar on the entry day are excluded and listed.

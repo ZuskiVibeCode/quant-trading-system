@@ -307,13 +307,43 @@ def cmd_lab_data_sync(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_lab_data_warmup(args: argparse.Namespace) -> int:
+    """Download the yfinance warm-up bars from before Alpaca's history (one time per machine)."""
+    from quant_system.lab.data import sync_warmup
+    from quant_system.lab.settings import load_lab_settings
+    from quant_system.lab.universe import universe_symbols
+
+    settings = load_lab_settings()
+    if args.tickers:
+        symbols = [t.strip() for t in args.tickers.split(",") if t.strip()]
+    else:
+        symbols = universe_symbols(args.universe, settings=settings)
+    report = sync_warmup([settings.benchmark, *symbols], settings=settings, force=bool(args.force))
+    print(json.dumps(report, indent=2))
+    return 0
+
+
 def cmd_lab_data_status(args: argparse.Namespace) -> int:
     """Summarize the lab bar cache and flag anything past this machine's data ceiling."""
-    from quant_system.lab.data import cache_status
+    from quant_system.lab.data import cache_status, warmup_status
 
     status = cache_status()
+    status["warmup"] = warmup_status()
     print(json.dumps(status, indent=2))
     return 1 if status["rows_past_ceiling"] else 0
+
+
+def cmd_lab_rescore(args: argparse.Namespace) -> int:
+    """Rerun every logged discovery spec under the current scoring code; the trial count stays put."""
+    from quant_system.lab.rescore import RescoreError, rescore_discovery
+
+    try:
+        report = rescore_discovery()
+    except RescoreError as exc:
+        print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
+        return 1
+    print(json.dumps(report, indent=2, default=str))
+    return 0
 
 
 def cmd_lab_trials(args: argparse.Namespace) -> int:
@@ -630,6 +660,18 @@ def build_parser() -> argparse.ArgumentParser:
     sync.add_argument("--tickers", default=None, help="Comma-separated symbols instead of a universe")
     sync.add_argument("--force", action="store_true", help="Refetch even if the cache is current")
     sync.set_defaults(func=cmd_lab_data_sync)
+    warm = data_sub.add_parser(
+        "warmup",
+        help="Download yfinance warm-up bars from before Alpaca's history (indicators and costs only, never scored)",
+    )
+    warm.add_argument(
+        "--universe",
+        default="all",
+        help=f"Universe to sync: {' | '.join(UNIVERSE_NAMES)} | <theme> (default: all)",
+    )
+    warm.add_argument("--tickers", default=None, help="Comma-separated symbols instead of a universe")
+    warm.add_argument("--force", action="store_true", help="Refetch even if already cached")
+    warm.set_defaults(func=cmd_lab_data_warmup)
     status = data_sub.add_parser("status", help="Cache summary; exits 1 if rows past the ceiling exist")
     status.set_defaults(func=cmd_lab_data_status)
     trials = lab_sub.add_parser("trials", help="Trial count and recent results from the shared trial log")
@@ -654,6 +696,12 @@ def build_parser() -> argparse.ArgumentParser:
     robust.add_argument("spec", help="Path to a spec YAML file")
     robust.add_argument("--bot", default=None, help="Author bot name (default: $QUANT_LAB_BOT, then the spec's author_bot)")
     robust.set_defaults(func=cmd_lab_robust)
+    rescore = lab_sub.add_parser(
+        "rescore",
+        help="After a scoring change: rerun every logged discovery spec from a clean checkout "
+        "(replaces each score; the trial count doesn't change)",
+    )
+    rescore.set_defaults(func=cmd_lab_rescore)
     nom = lab_sub.add_parser(
         "nominate",
         help="Rerun the robustness checks from a clean checkout; if they pass completely, write a "
