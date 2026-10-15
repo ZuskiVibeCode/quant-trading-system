@@ -88,7 +88,10 @@ after costs.
 
 `lab robust` is the next screen. It nudges each setting ±10% and ±20%, reruns
 inside each sector and cap bucket, checks the Q4 2018 and Feb-Apr 2020
-selloffs, and reruns without the top contributing stock. The variants are
+selloffs, and reruns without the top contributing stock. A sector or cap
+bucket passes when the rerun makes at least 30 entries there and beats that
+group's equal-weight held at the strategy's own invested fraction, so days in
+cash neither count against a sparse strategy nor for one that sat out a slump. The variants are
 logged under your spec and don't add to the trial count. A spec only counts as
 a survivor with `passed: true` and `complete: true`, run from a checkout with no
 local edits (`git_dirty: false`). Thresholds are in `config/lab.yaml`

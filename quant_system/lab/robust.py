@@ -8,8 +8,15 @@ never add to the trial count. Checks (thresholds in ``config/lab.yaml`` robust):
   one at a time. Enough variants must still beat SPY and equal-weight, and
   their median Sharpe must stay near the spec's: one sharp peak fails.
 - sectors / cap buckets: rerun inside each sector and each cap bucket of the
-  broad universe; the strategy's Sharpe must beat that subset's equal-weight
-  Sharpe in enough of them.
+  broad universe (same sizing). A subset passes when the rerun's average daily
+  return beats that subset's equal-weight held at the strategy's own invested
+  fraction each day (``matched_returns``), with at least ``min_subset_entries``
+  entries; a thinner subset counts as a miss. Enough subsets must pass. Matching
+  the exposure asks whether the picks beat the group while invested: days in
+  cash neither drag a sparse strategy down nor credit a strategy for sitting
+  out the group's slump. (Until Oct 15, 2026 the rule compared Sharpe with the
+  always-invested equal-weight; reports keep that as
+  ``beats_equal_weight_sharpe`` for comparison.)
 - selloffs: from the spec's own run, the worst drawdown inside Q4 2018 and
   Feb-Apr 2020 may not be much worse than SPY's or equal-weight's.
 - single stock: rerun without the top contributing name; it must still pass.
@@ -31,7 +38,7 @@ import pandas as pd
 
 from quant_system.config.loader import AppConfig
 from quant_system.lab.data import load_lab_bars
-from quant_system.lab.metrics import max_drawdown, pass_bar
+from quant_system.lab.metrics import TRADING_DAYS_PER_YEAR, cagr, max_drawdown, pass_bar
 from quant_system.lab.runner import Evaluation, evaluate, score_spec_full
 from quant_system.lab.settings import LabRobustSettings, LabSettings, Selloff, lab_data_dir, load_lab_settings
 from quant_system.lab.spec import StrategySpec
@@ -69,14 +76,40 @@ def _groups(spec: StrategySpec, settings: LabSettings, symbols: list[str], key: 
     return dict(sorted(out.items()))
 
 
+def matched_returns(ev: Evaluation) -> pd.Series:
+    """The run's equal-weight benchmark held at the strategy's own invested fraction each day.
+
+    Close to open at the fraction invested at the previous close; open to close
+    at the fraction right after that open's fills (the strategy trades at the
+    open). A day the strategy is all cash earns nothing on either side.
+    """
+    ew, res = ev.benchmarks["equal_weight"], ev.result
+    idx = res.returns.index
+    at_close = res.weights.sum(axis=1).reindex(idx).fillna(0.0)
+    at_open = (res.open_exposure if res.open_exposure is not None else at_close).reindex(idx).fillna(0.0)
+    overnight = ew["overnight"].reindex(idx).fillna(0.0)
+    intraday = ew["intraday"].reindex(idx).fillna(0.0)
+    return (1.0 + at_close.shift(1).fillna(0.0) * overnight) * (1.0 + at_open * intraday) - 1.0
+
+
 def subset_row(ev: Evaluation) -> dict[str, Any]:
     vs = ev.comparison["vs_benchmarks"]
+    trades = ev.result.trades
+    matched = matched_returns(ev)
+    active = float((ev.result.returns - matched).mean())
     return {
         "sharpe": ev.strategy["sharpe"],
         "cagr": ev.strategy["cagr"],
         "trade_count": ev.strategy.get("trade_count"),
+        "entries": int((trades["side"] == "buy").sum()),
+        "exposure": ev.strategy.get("exposure"),
         "ew_sharpe": vs["equal_weight"]["sharpe"],
+        # The rule before Oct 15, 2026, kept for comparison.
         "beats_equal_weight_sharpe": vs["equal_weight"]["sharpe_diff"] > 0,
+        "matched_ew_cagr": cagr(matched),
+        # Mean daily return over the exposure-matched equal-weight, x252.
+        "active_return": active * TRADING_DAYS_PER_YEAR,
+        "beats_matched_equal_weight": active > 1e-12,  # float noise isn't an edge
     }
 
 
@@ -173,10 +206,15 @@ def run_robust(
                 too_small.append(group)
                 continue
             ev = run(spec, names, check, {key: group, "names": len(names)})
-            scored.append({key: group, "names": len(names), **subset_row(ev)})
+            row = {key: group, "names": len(names), **subset_row(ev)}
+            row["enough_entries"] = row["entries"] >= r.min_subset_entries
+            row["passes"] = row["enough_entries"] and row["beats_matched_equal_weight"]
+            scored.append(row)
         if scored:
-            share = sum(x["beats_equal_weight_sharpe"] for x in scored) / len(scored)
+            # Thin subsets stay in the denominator: too few entries is a miss, not a skip.
+            share = sum(x["passes"] for x in scored) / len(scored)
             checks[check] = {"status": _status(share >= need), "pass_share": share, "groups": scored,
+                             "thin": [x[key] for x in scored if not x["enough_entries"]],
                              "skipped_small": too_small}
         else:
             reason = "universe has no sector / cap data" if not groups else "every group too small"

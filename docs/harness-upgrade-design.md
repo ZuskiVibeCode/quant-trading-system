@@ -253,13 +253,28 @@ copied into every report):
 | Check | How | Passes when |
 |---|---|---|
 | nudges | each setting x0.8 / 0.9 / 1.1 / 1.2, one at a time, clipped to the spec's own min/max (duplicates dropped) | at least 75% of variants still beat SPY and equal-weight, and their median Sharpe is at least 50% of the spec's (no sharp peak) |
-| sectors | rerun inside each sector of the broad universe with 10+ names | Sharpe beats that sector's equal-weight in at least 60% of sectors |
-| cap buckets | rerun inside large / mid / small | Sharpe beats that bucket's equal-weight in at least 60% (2 of 3) |
+| sectors | rerun inside each sector of the broad universe with 10+ names (same sizing) | at least 60% of sectors (7 of 11) pass: 30+ entries, and an average daily return above that sector's equal-weight held at the strategy's own invested fraction each day |
+| cap buckets | rerun inside large / mid / small | same rule, at least 60% (2 of 3) |
 | selloffs | slice the spec's own run: Q4 2018, Feb-Apr 2020 | worst drawdown in each is at most 1.25x the worse of SPY's and equal-weight's |
 | single stock | rerun without the top contributing name | still beats SPY and equal-weight |
 
 - Sector and cap subsets are judged against their own equal-weight, not SPY:
   the question is whether the rule adds value inside the group.
+- Exposure-matched (Sabastian, Oct 15, 2026; until then the subset's Sharpe had
+  to beat the always-invested equal-weight's). Inside one sector a sparse
+  strategy sits in cash most days, and with no cash yield that alone shrinks
+  its Sharpe by about the square root of its invested fraction, whatever its
+  picks do. Sitting in cash also earned a trend strategy a "win" in a sector
+  that slumped. The matched benchmark holds the sector's equal-weight at the
+  strategy's invested fraction: close to open at the previous close's
+  fraction, open to close at the fraction right after the open's fills. So it
+  asks whether the picks beat the group while invested. A sector with fewer
+  than 30 entries (`min_subset_entries`) counts as a miss and stays in the
+  denominator; reports list them under `thin`. Sizing doesn't change. Each
+  group row keeps the old verdict as `beats_equal_weight_sharpe` for
+  comparison. Orbit Control reruns `lab robust` on every spec that passes the
+  discovery benchmark; if most specs that failed before now pass, treat it as
+  a bug. The results stand, with no second round of rule changes.
 - `passed` needs the spec itself to pass the discovery bar and no check to
   fail. A check with nothing to test (no settings, a theme universe with no
   sector data, no profitable name) is `skipped`. That doesn't fail the spec,
