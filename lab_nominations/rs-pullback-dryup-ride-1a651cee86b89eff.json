@@ -1,0 +1,88 @@
+{
+ "schema": 1,
+ "kind": "lab_nomination",
+ "spec_id": "rs-pullback-dryup-ride",
+ "spec_hash": "1a651cee86b89eff",
+ "author_bot": "snapback",
+ "nominated_at": "2026-10-15T22:39:26+00:00",
+ "git_commit": "1d10350aae34e99c31d63a35232c4aac12cd38c0",
+ "frozen_trials": {
+  "window": "discovery",
+  "n_trials": 126,
+  "n_records": 319,
+  "sharpe_variance": 0.09728142887727714
+ },
+ "discovery": {
+  "passed": true,
+  "complete": true,
+  "sharpe": 1.1136642271894246,
+  "cagr": 0.2566200266028249,
+  "checks": {
+   "nudges": "pass",
+   "sectors": "pass",
+   "cap_buckets": "pass",
+   "selloffs": "pass",
+   "single_stock": "pass"
+  },
+  "robust_report": "20261015T223925541579Z-snapback-1a651cee86b89eff.json",
+  "vs_benchmarks": {
+   "SPY": {
+    "sharpe_diff": 0.11560460972131203,
+    "excess_cagr": 0.08344679042783043
+   },
+   "equal_weight": {
+    "sharpe_diff": 0.2590282967960321,
+    "excess_cagr": 0.08967416580799448
+   }
+  }
+ },
+ "spec": {
+  "id": "rs-pullback-dryup-ride",
+  "author_bot": "snapback",
+  "description": "rs-pullback-dryup entry; exit only when RS leadership or SMA200 breaks.",
+  "universe": "broad",
+  "indicators": {
+   "rs": {
+    "fn": "rel_strength",
+    "length": 120
+   },
+   "roc": {
+    "fn": "roc",
+    "length": 10
+   },
+   "trend": {
+    "fn": "sma",
+    "length": 200
+   },
+   "rvol": {
+    "fn": "rel_volume",
+    "length": 20
+   }
+  },
+  "params": {
+   "pullback": {
+    "value": -0.05,
+    "min": -0.12,
+    "max": -0.02
+   },
+   "dry": {
+    "value": 0.8,
+    "min": 0.4,
+    "max": 1.0
+   },
+   "max_hold": {
+    "value": 40.0,
+    "min": 15.0,
+    "max": 80.0
+   }
+  },
+  "entry": "rs > 0 and roc < pullback and close > trend and rvol < dry",
+  "exit": "rs < 0 or close < trend or bars_held >= max_hold",
+  "rank": "rs",
+  "sizing": {
+   "method": "equal_weight",
+   "max_positions": 10,
+   "max_weight": 0.1
+  }
+ }
+}
