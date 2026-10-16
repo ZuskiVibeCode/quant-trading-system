@@ -1,0 +1,85 @@
+{
+ "schema": 1,
+ "kind": "lab_nomination",
+ "spec_id": "mfi-early-start",
+ "spec_hash": "5cbc342922595ff6",
+ "author_bot": "momo",
+ "nominated_at": "2026-10-16T14:34:25+00:00",
+ "git_commit": "c8b8f0fded82e8282e6f622290dc4a1373924387",
+ "frozen_trials": {
+  "window": "discovery",
+  "n_trials": 127,
+  "n_records": 326,
+  "sharpe_variance": 0.09791153562130413
+ },
+ "discovery": {
+  "passed": true,
+  "complete": true,
+  "sharpe": 1.2423228687960326,
+  "cagr": 0.2520655857914966,
+  "checks": {
+   "nudges": "pass",
+   "sectors": "pass",
+   "cap_buckets": "pass",
+   "selloffs": "pass",
+   "single_stock": "pass"
+  },
+  "robust_report": "20261016T143423802574Z-momo-5cbc342922595ff6.json",
+  "vs_benchmarks": {
+   "SPY": {
+    "sharpe_diff": 0.24426325132792004,
+    "excess_cagr": 0.07889234961650216
+   },
+   "equal_weight": {
+    "sharpe_diff": 0.3876869384026401,
+    "excess_cagr": 0.0851197249966662
+   }
+  }
+ },
+ "spec": {
+  "id": "mfi-early-start",
+  "author_bot": "momo",
+  "description": "Quarterly MFI strength in a 6-month uptrend with short warm-up, MFI decay and wide regime exits.",
+  "universe": "broad",
+  "indicators": {
+   "m": {
+    "fn": "mfi",
+    "length": "$mfi_len"
+   },
+   "trend": {
+    "fn": "sma",
+    "length": 126
+   },
+   "roc126": {
+    "fn": "roc",
+    "length": 126
+   },
+   "rs126": {
+    "fn": "rel_strength",
+    "length": 126
+   },
+   "roc50": {
+    "fn": "roc",
+    "length": 50
+   },
+   "rs50": {
+    "fn": "rel_strength",
+    "length": 50
+   }
+  },
+  "params": {
+   "mfi_len": {
+    "value": 63.0,
+    "min": 40.0,
+    "max": 100.0
+   }
+  },
+  "entry": "m > 55 and close > trend and (1 + roc126) / (1 + rs126) > 1",
+  "exit": "m < 45 or close < 0.95 * trend or (1 + roc50) / (1 + rs50) < 0.95",
+  "sizing": {
+   "method": "equal_weight",
+   "max_positions": 10,
+   "max_weight": 0.1
+  }
+ }
+}
