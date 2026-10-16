@@ -1,0 +1,85 @@
+{
+ "schema": 1,
+ "kind": "lab_nomination",
+ "spec_id": "cmf-state-early",
+ "spec_hash": "59641eeb1d8188a7",
+ "author_bot": "momo",
+ "nominated_at": "2026-10-16T14:37:24+00:00",
+ "git_commit": "c8b8f0fded82e8282e6f622290dc4a1373924387",
+ "frozen_trials": {
+  "window": "discovery",
+  "n_trials": 128,
+  "n_records": 329,
+  "sharpe_variance": 0.09868328486577789
+ },
+ "discovery": {
+  "passed": true,
+  "complete": true,
+  "sharpe": 1.2680257729644542,
+  "cagr": 0.2536281345659066,
+  "checks": {
+   "nudges": "pass",
+   "sectors": "pass",
+   "cap_buckets": "pass",
+   "selloffs": "pass",
+   "single_stock": "pass"
+  },
+  "robust_report": "20261016T143722669446Z-momo-59641eeb1d8188a7.json",
+  "vs_benchmarks": {
+   "SPY": {
+    "sharpe_diff": 0.2699661554963416,
+    "excess_cagr": 0.08045489839091213
+   },
+   "equal_weight": {
+    "sharpe_diff": 0.4133898425710617,
+    "excess_cagr": 0.08668227377107618
+   }
+  }
+ },
+ "spec": {
+  "id": "cmf-state-early",
+  "author_bot": "momo",
+  "description": "Persistent positive Chaikin money flow as a level state, short warm-up, wide trend and SPY regime exits.",
+  "universe": "broad",
+  "indicators": {
+   "c": {
+    "fn": "cmf",
+    "length": "$cmf_len"
+   },
+   "trend": {
+    "fn": "sma",
+    "length": 126
+   },
+   "roc126": {
+    "fn": "roc",
+    "length": 126
+   },
+   "rs126": {
+    "fn": "rel_strength",
+    "length": 126
+   },
+   "roc50": {
+    "fn": "roc",
+    "length": 50
+   },
+   "rs50": {
+    "fn": "rel_strength",
+    "length": 50
+   }
+  },
+  "params": {
+   "cmf_len": {
+    "value": 40.0,
+    "min": 20.0,
+    "max": 80.0
+   }
+  },
+  "entry": "c > 0.05 and close > trend and (1 + roc126) / (1 + rs126) > 1",
+  "exit": "c < -0.05 or close < 0.95 * trend or (1 + roc50) / (1 + rs50) < 0.95",
+  "sizing": {
+   "method": "equal_weight",
+   "max_positions": 10,
+   "max_weight": 0.1
+  }
+ }
+}
