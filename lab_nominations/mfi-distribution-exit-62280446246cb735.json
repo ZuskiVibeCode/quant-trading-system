@@ -1,0 +1,77 @@
+{
+ "schema": 1,
+ "kind": "lab_nomination",
+ "spec_id": "mfi-distribution-exit",
+ "spec_hash": "62280446246cb735",
+ "author_bot": "momo",
+ "nominated_at": "2026-10-16T18:36:26+00:00",
+ "git_commit": "3d2147fa4bf75a5a3050c217b3f1bd8f9bbede7c",
+ "frozen_trials": {
+  "window": "discovery",
+  "n_trials": 154,
+  "n_records": 368,
+  "sharpe_variance": 0.12079237254864374
+ },
+ "discovery": {
+  "passed": true,
+  "complete": true,
+  "sharpe": 1.2319373967172373,
+  "cagr": 0.285619756577391,
+  "checks": {
+   "nudges": "pass",
+   "sectors": "pass",
+   "cap_buckets": "pass",
+   "selloffs": "pass",
+   "single_stock": "pass"
+  },
+  "robust_report": "20261016T183624590556Z-momo-62280446246cb735.json",
+  "vs_benchmarks": {
+   "SPY": {
+    "sharpe_diff": 0.23387777924912478,
+    "excess_cagr": 0.11244652040239655
+   },
+   "equal_weight": {
+    "sharpe_diff": 0.37730146632384487,
+    "excess_cagr": 0.1186738957825606
+   }
+  }
+ },
+ "spec": {
+  "id": "mfi-distribution-exit",
+  "author_bot": "momo",
+  "description": "Money-flow strength in a 200-day uptrend, exit on volume distribution (CMF/OBV) or a deep trend break.",
+  "universe": "broad",
+  "indicators": {
+   "m": {
+    "fn": "mfi",
+    "length": 63
+   },
+   "trend": {
+    "fn": "sma",
+    "length": 200
+   },
+   "flow": {
+    "fn": "cmf",
+    "length": 63
+   },
+   "ob": {
+    "fn": "obv_trend",
+    "length": 63
+   }
+  },
+  "params": {
+   "dist": {
+    "value": -0.05,
+    "min": -0.15,
+    "max": 0.0
+   }
+  },
+  "entry": "m > 55 and close > trend and flow > 0",
+  "exit": "flow < dist or ob < -0.1 or close < 0.9 * trend",
+  "sizing": {
+   "method": "equal_weight",
+   "max_positions": 10,
+   "max_weight": 0.1
+  }
+ }
+}
