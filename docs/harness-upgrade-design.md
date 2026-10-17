@@ -396,6 +396,64 @@ discovery to its two single runs:
   `lab data sync --universe all` with `QUANT_LAB_DATA_CEILING=today`, and a
   `QUANT_LAB_DATA_DIR` outside the checkout.
 
+## 12. Intraday bars (Stage 1)
+
+A spec may declare `timeframe: 15m` or `1h` (no timeframe = daily, and daily
+spec hashes are unchanged). Code: `quant_system/lab/intraday.py` (data, bar
+sizes, panels, coverage) and `engine.run_spec_intraday`.
+
+- **Data.** Only Alpaca 15m bars are downloaded (`lab data intraday`), SIP
+  feed, split + dividend adjusted, `data.start` to the machine's ceiling, so
+  Grok's machine holds 2016-2021 and the validation machine holds 2016 on.
+  If Alpaca refuses the feed, the sync stops; it never switches to IEX. Bars
+  are kept only inside regular hours from Alpaca's market calendar (cached as
+  `_calendar.csv`; 12 early closes in 2016-2021). Alpaca's own 1h bars start
+  on the clock hour, so the 09:00 bar mixes in pre-market trades; 30m / 1h /
+  2h bars are built here from 15m bars, starting at each session's open
+  (1h: 09:30 ... 14:30, then 15:30-16:00). The closing auction prints at 16:00
+  and lands outside the session, so the last 15m close is the last trade
+  before the close. Storage: `bars_15m/<SYM>.csv.gz`, about 39k rows per name
+  for 2016-2021.
+- **Coverage.** `lab data intraday-status` reports per name and per bar size
+  (15m, 1h): missing bars against the calendar, sessions with no bars (on days
+  the daily cache has a bar), the longest gap, and sessions whose first open or
+  last close is off the daily bar by over 1% (after scaling by the median
+  ratio, since the two caches are adjusted at different times), and sessions
+  with under half their bars. Names past the `data.intraday.coverage` limits
+  are flagged, not dropped. The report also lists dates where many names are
+  short at once. Alpaca's 2016-2021 15m history has four:
+  2018-05-02 and 2018-05-03 (about a quarter of the broad universe) and
+  2021-04-19 and 2021-10-25 (about two thirds), where most of those names have
+  only their opening bar. On those days the affected names have no bars, so
+  nothing fills and positions keep their last price. Renamed tickers (BBWI,
+  VTRS, LIN, DXC...) start late in both the daily and the intraday cache.
+- **Fills and costs.** Same rule as daily: signal at a bar's close, fill at the
+  next bar's open, which after the session's last bar is the next session's
+  open (overnight gaps are part of the trade). Intraday fills pay the spread,
+  so `costs.intraday` charges 8 / 20 / 40 bps per side in the same liquidity
+  buckets, from the daily 20-day median dollar volume as of the previous
+  session's close. A fill in the first 30 minutes after the open, other than
+  the opening print, pays 1.5x. `bar_of_day` and `bars_left_today` let a spec
+  be flat overnight or skip late entries.
+- **Scoring.** The engine runs bar by bar and reports equity at each session's
+  close, so metrics, the pass bar, deflated Sharpe and the trial log all use
+  daily returns. Benchmarks are the same daily buy-and-holds. Each timeframe
+  is its own spec hash, so each counts as a trial in the same discovery pool.
+  The scorecard splits the return into overnight (previous close to the first
+  bar's open) and intraday.
+- **Robustness.** Sector and cap-bucket subsets compare against equal-weight
+  held at the strategy's own exposure bar by bar, so trading in and out during
+  a session earns no credit for timing the group. Intraday specs add a
+  `timeframes` check: the same spec on nearby bar sizes (1h: 30m and 2h; 15m:
+  30m) must each beat SPY and equal-weight, with a median Sharpe at least
+  `peak_ratio` x the spec's. These are robustness runs, not trials, and 30m /
+  2h can't be submitted as specs.
+- **Memory.** Grok's machine has about 3 GB free and no swap. Panels are
+  float32 bars x names arrays filled one name at a time; one bar size is cached
+  at a time; robustness subsets mask names instead of copying; every rerun runs
+  in sequence, never in parallel. Robust reports and intraday `lab run` cards
+  record `peak_memory_mb`.
+
 ## Order of PRs
 
 1. Agent replay fixes: next-open default, same-bar fix, benchmarks, overrides
@@ -463,5 +521,16 @@ Each PR: own branch, `pytest` passing, tests with synthetic bars (no network).
   reruns the robustness checks on every spec that passes the discovery
   benchmark. If most specs that failed before suddenly pass, treat it as a
   bug. The results stand, with no second round of rule changes.
+
+## Decided (Sabastian, Oct 17, 2026)
+
+- **Intraday Stage 1** (section 12) approved, including the `quant_system/lab/`
+  and `config/lab*.yaml` changes. Daily rules and thresholds are unchanged.
+  Every timeframe tried is a trial. Stage 2 (a slower bar size for direction,
+  a faster one for entries, with a test that a 15m signal can't see the
+  current day's daily bar) and Stage 3 (a multi-timeframe inventor bot) come
+  later, one PR each.
+- `lab robust` on intraday specs runs its reruns one at a time and stays well
+  inside the free memory on Grok's machine.
 
 No open questions right now.
