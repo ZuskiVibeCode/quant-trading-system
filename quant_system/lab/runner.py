@@ -7,15 +7,17 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
+import numpy as np
 import pandas as pd
 
 from quant_system.config.loader import AppConfig
 from quant_system.lab.benchmarks import benchmark_returns
 from quant_system.lab.data import load_lab_bars
-from quant_system.lab.engine import EngineResult, run_spec
+from quant_system.lab.engine import EngineResult, ffill_rows, run_spec, run_spec_intraday
+from quant_system.lab.intraday import IntradayPanels, IntradaySource
 from quant_system.lab.metrics import compare, deflated_sharpe, pass_bar, summary
 from quant_system.lab.settings import LabSettings, load_lab_settings
-from quant_system.lab.spec import StrategySpec
+from quant_system.lab.spec import StrategySpec, require_spec_timeframe
 from quant_system.lab.trials import record_trial, trial_stats
 from quant_system.lab.universe import universe_symbols
 from quant_system.lab.windows import ResolvedWindow, authorize_run, get_window
@@ -31,6 +33,8 @@ class Evaluation:
     benchmarks: dict[str, dict[str, Any]]
     strategy: dict[str, Any]  # metrics.summary of the strategy
     comparison: dict[str, Any]  # metrics.compare vs the benchmarks
+    # Intraday specs: the equal-weight basket's value at each bar's open and close.
+    ew_bars: pd.DataFrame | None = None
 
     def metrics(self) -> dict[str, Any]:
         return {
@@ -41,21 +45,74 @@ class Evaluation:
         }
 
 
+def equal_weight_bars(panels: IntradayPanels, ew: dict[str, Any], index: pd.DatetimeIndex) -> pd.DataFrame:
+    """The equal-weight benchmark's value at each bar's open and close (intraday specs).
+
+    Cash (1.0) until its entry; on the entry session's first bar it is bought at
+    the open (value 1.0 there), then held at the daily benchmark's share counts.
+    A name with no bar keeps its last close.
+    """
+    out = pd.DataFrame({"open": 1.0, "close": 1.0}, index=index)
+    qty = ew.get("qty")
+    if qty is None or qty.empty or not ew.get("entry_date"):
+        return out
+    col = {s: j for j, s in enumerate(panels.symbols)}
+    names = [s for s in qty.index if s in col]
+    rows = panels.index.get_indexer(index)
+    cols = np.array([col[s] for s in names])
+    q = qty[names].to_numpy(dtype=float)
+    upto = int(rows.max()) + 1
+    close = panels.close[:upto][:, cols]
+    mark = ffill_rows(close)[rows].astype(float)
+    open_ = panels.open[:upto][:, cols][rows].astype(float)
+    open_ = np.where(np.isnan(open_), mark, open_)
+    v_close = np.nan_to_num(mark) @ q
+    v_open = np.nan_to_num(open_) @ q
+    entry = pd.Timestamp(ew["entry_date"])
+    day = index.normalize()
+    held = day >= entry
+    first = held & ~np.r_[False, held[:-1]]
+    out.loc[held, "close"] = v_close[held]
+    out.loc[held & ~first, "open"] = v_open[held & ~first]
+    return out
+
+
 def evaluate(
     spec: StrategySpec,
     bars: dict[str, pd.DataFrame],
     universe: list[str],
     window: ResolvedWindow,
     settings: LabSettings,
+    *,
+    intraday: IntradaySource | None = None,
 ) -> Evaluation:
-    """Engine + SPY / equal-weight benchmarks + metrics, over ``universe``."""
-    result = run_spec(spec, bars, universe, window, settings.costs, bench=settings.benchmark)
+    """Engine + SPY / equal-weight benchmarks + metrics, over ``universe``.
+
+    Intraday specs read their bars from ``intraday``; ``bars`` (daily) still
+    price their liquidity and the benchmarks, which are the same daily
+    buy-and-holds as for daily specs.
+    """
+    panels = None
+    if spec.timeframe:
+        if intraday is None:
+            raise ValueError(f"spec {spec.id} runs on {spec.timeframe} bars; pass an IntradaySource")
+        panels = intraday.panels(spec.timeframe, universe, bench=settings.benchmark)
+        result = run_spec_intraday(spec, panels, bars, universe, window, settings.costs, bench=settings.benchmark)
+    else:
+        result = run_spec(spec, bars, universe, window, settings.costs, bench=settings.benchmark)
     bench = benchmark_returns(bars, result.symbols, window, settings.costs, spy=settings.benchmark)
     strat = summary(
         result.returns, weights=result.weights, trade_count=result.trade_count, traded=result.traded
     )
+    ew_bars = None
+    if panels is not None:
+        strat["timeframe"] = spec.timeframe
+        # Where the return came from: previous close to the first bar's open, then the session.
+        strat["overnight_return"] = float((1.0 + result.overnight).prod() - 1.0)
+        strat["intraday_return"] = float((1.0 + result.intraday).prod() - 1.0)
+        ew_bars = equal_weight_bars(panels, bench["equal_weight"], result.bar_exposure.index)
     cmp_ = compare(result.returns, {k: v["returns"] for k, v in bench.items()})
-    return Evaluation(result, bench, strat, cmp_)
+    return Evaluation(result, bench, strat, cmp_, ew_bars)
 
 
 def score_spec(spec: StrategySpec, **kwargs: Any) -> dict[str, Any]:
@@ -75,6 +132,7 @@ def score_spec_full(
     data_dir: Path | str | None = None,
     today: date | None = None,
     extra: Callable[[Evaluation, ResolvedWindow], Mapping[str, Any]] | None = None,
+    intraday: IntradaySource | None = None,
 ) -> tuple[dict[str, Any], Evaluation]:
     """Run, log and score ``spec``; returns the scorecard and the evaluation behind it.
 
@@ -86,13 +144,16 @@ def score_spec_full(
     is written.
     """
     s = settings or load_lab_settings()
+    require_spec_timeframe(spec)  # 30m / 2h are robustness variants, never trials
     if get_window(window).locked and frozen_trials is None:
         raise ValueError(f"{window} needs frozen discovery trial stats for the deflated Sharpe")
     rw = authorize_run(window, spec.hash, settings=s, today=today, data_dir=data_dir)
     universe = universe_symbols(spec.universe, settings=s, cfg=cfg)
     if bars is None:
         bars = load_lab_bars([s.benchmark, *universe], settings=s, data_dir=data_dir, today=today)
-    ev = evaluate(spec, bars, universe, rw, s)
+    if spec.timeframe and intraday is None:
+        intraday = IntradaySource(settings=s, data_dir=data_dir, today=today)
+    ev = evaluate(spec, bars, universe, rw, s, intraday=intraday)
     added = dict(extra(ev, rw)) if extra else {}
     result, bench, strat, cmp_ = ev.result, ev.benchmarks, ev.strategy, ev.comparison
     required = (s.benchmark.upper(), "equal_weight")

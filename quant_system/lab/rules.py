@@ -1,13 +1,14 @@
 """Rule expressions for strategy specs: a small, safe language parsed with ``ast``.
 
 Allowed: numbers, ``True``/``False``, names (indicators, settings, ``open``,
-``high``, ``low``, ``close``, ``volume``, and ``bars_held`` in exit rules),
+``high``, ``low``, ``close``, ``volume``, ``bars_held`` in exit rules, and in
+intraday specs ``bar_of_day`` / ``bars_left_today``),
 ``+ - * /``, comparisons (chains too), ``and`` / ``or`` / ``not``, and the
 functions ``abs(x)``, ``min(a, b)``, ``max(a, b)``, ``prev(x)`` / ``prev(x, n)``
-(value n sessions ago, n a whole number 1-252), ``crosses_above(a, b)`` and
+(value n bars ago, n a whole number 1-252), ``crosses_above(a, b)`` and
 ``crosses_below(a, b)``. Nothing else parses, and nothing is ever ``eval``-ed.
 
-Evaluation is on numpy arrays shaped sessions x tickers. Missing values never
+Evaluation is on numpy arrays shaped bars x tickers (sessions, for daily specs). Missing values never
 trigger anything: a comparison with NaN is False.
 """
 
@@ -23,6 +24,9 @@ MAX_RULE_CHARS = 500
 MAX_PREV = 252
 PRICE_FIELDS = ("open", "high", "low", "close", "volume")
 STATE_NAMES = ("bars_held",)
+# Intraday specs only: the bar's place in its session (0 = the first bar) and the
+# scheduled bars after it (0 = the session's last bar; half days have fewer).
+SESSION_NAMES = ("bar_of_day", "bars_left_today")
 FUNCTIONS = {
     "abs": (1, 1),
     "min": (2, 2),
@@ -31,7 +35,7 @@ FUNCTIONS = {
     "crosses_above": (2, 2),
     "crosses_below": (2, 2),
 }
-RESERVED = frozenset(PRICE_FIELDS) | frozenset(STATE_NAMES) | frozenset(FUNCTIONS)
+RESERVED = frozenset(PRICE_FIELDS) | frozenset(STATE_NAMES) | frozenset(SESSION_NAMES) | frozenset(FUNCTIONS)
 
 _BOOL_OPS = {ast.And: np.logical_and, ast.Or: np.logical_or}
 _BIN_OPS = {ast.Add: np.add, ast.Sub: np.subtract, ast.Mult: np.multiply, ast.Div: np.divide}

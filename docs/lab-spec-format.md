@@ -26,6 +26,7 @@ id: rsi-pullback-in-uptrend      # lowercase, digits, - and _
 author_bot: <your-bot-name>
 description: Mean reversion inside an uptrend.   # optional
 universe: broad                  # broad | themes | all | quantum | space | robotics
+# timeframe: 1h                  # optional: 15m | 1h; leave out for daily bars
 indicators:
   rsi:   {fn: rsi, length: $rsi_len}   # $name = a tunable setting from params
   trend: {fn: sma, length: 200}        # fixed setting
@@ -46,14 +47,14 @@ More in [`lab_specs/examples/`](../lab_specs/examples/).
 
 | Allowed | Notes |
 |---|---|
-| Names | your indicators, your params, `open` `high` `low` `close` `volume`; `bars_held` in `exit` only |
+| Names | your indicators, your params, `open` `high` `low` `close` `volume`; `bars_held` in `exit` only; `bar_of_day`, `bars_left_today` in intraday specs |
 | Numbers, `True`, `False` | |
 | `+ - * /` | divide by zero gives "missing" |
 | `< <= > >= == !=`, chains like `20 < rsi < 40` | |
 | `and` `or` `not` | |
 | `abs(x)`, `min(a, b)`, `max(a, b)` | |
-| `prev(x)`, `prev(x, n)` | value n sessions ago (n = 1-252) |
-| `crosses_above(a, b)`, `crosses_below(a, b)` | a was at or below b yesterday and is above it today (or the reverse) |
+| `prev(x)`, `prev(x, n)` | value n bars ago (n = 1-252; a bar is a session for daily specs) |
+| `crosses_above(a, b)`, `crosses_below(a, b)` | a was at or below b on the previous bar and is above it now (or the reverse) |
 
 Nothing else parses: no attribute access, indexing, strings or other functions.
 A missing value (indicator warm-up, a day with no bar) never triggers a rule:
@@ -77,6 +78,44 @@ any comparison with it is false.
   spec with lookbacks up to 400 days can trade from the first week of 2016.
   Those bars are never scored. A name whose two sources disagree gets no
   warm-up, so its 200-day SMA has no value until about October 2016.
+
+## Intraday specs (`timeframe`)
+
+`timeframe: 15m` or `timeframe: 1h` runs the same rules on intraday bars
+instead of daily ones. Leave it out for daily bars, as before.
+
+- **Each timeframe is its own trial.** The 15m and 1h versions of an idea are
+  two specs with two hashes, and both count toward the trial count.
+- Bars are regular hours only (09:30-16:00 New York time; 13:00 on half days),
+  from Alpaca 15m bars. 1h bars start at the open: 09:30, 10:30 ... 14:30, then
+  15:30-16:00. The last bar's close is the last trade before 16:00, not the
+  closing auction.
+- Same fill rule: a signal at a bar's close fills at the next bar's open. After
+  a session's last bar that is the next session's open, so a position held
+  overnight carries the gap.
+- Lookbacks, `prev(x, n)` and `bars_held` count bars, across sessions. A
+  400-bar SMA on 15m bars covers about 15 sessions. There are no intraday bars
+  before 2016, so long lookbacks have no value in early January 2016.
+- `bar_of_day` is 0 on a session's first bar. `bars_left_today` is the number of
+  scheduled bars after this one (0 on the last bar; fewer on half days). To be
+  flat at every close, exit with `bars_left_today <= 1`: that signal fills at
+  the last bar's open. To skip new entries late in the day, add
+  `bars_left_today >= 2` to `entry`.
+- Slippage per side is higher than daily, because intraday fills pay the
+  spread: 8 / 20 / 40 bps above $50M / $10M / $2M median daily dollar volume
+  (as of the previous session's close). A fill in the first 30 minutes after
+  the open, other than the opening print, costs 1.5x. A 15m spec that trades a
+  few times a day pays this every time, so expect most of them to fail on costs.
+- The scorecard, benchmarks, pass bar and deflated Sharpe all use daily
+  returns (equity at each session's close), the same as daily specs. The
+  scorecard also shows `overnight_return` and `intraday_return`: how much came
+  from holding across closes and how much from inside sessions.
+- `lab robust` adds a timeframe check: the same spec on nearby bar sizes
+  (1h: 30m and 2h; 15m: 30m) must still beat SPY and equal-weight, with a
+  median Sharpe at least half the spec's. This only checks the idea; it never
+  picks a timeframe, and you can't submit 30m or 2h specs.
+- A 15m run takes several minutes and about 1-2 GB of memory. `lab robust`
+  reruns one at a time and reports `peak_memory_mb`.
 
 ## Scorecard and pass bar
 

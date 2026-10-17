@@ -33,17 +33,54 @@ class LabWarmupSettings(BaseModel):
     volume_ratio_max: float = 1.5
 
 
+class LabCoverageSettings(BaseModel):
+    """Intraday coverage flags (`lab data intraday-status`). A flagged name is listed, not dropped."""
+
+    # Share of a name's scheduled 15m bars with no bar (no trade in that slot).
+    max_missing_share: float = 0.05
+    # Sessions with no regular-hours bar at all while the daily cache has a bar.
+    max_empty_sessions: int = 5
+    # A session's first 15m open / last 15m close vs the daily bar, after scaling
+    # by the median ratio (the two caches can be adjusted a few days apart).
+    price_tolerance: float = 0.01
+    max_mismatch_days: int = 5
+
+
+class LabIntradaySettings(BaseModel):
+    """Alpaca 15m bars, regular hours only; 30m / 1h / 2h are built from them."""
+
+    coverage: LabCoverageSettings = LabCoverageSettings()
+
+
 class LabDataSettings(BaseModel):
     start: date = date(2016, 1, 1)
     ceiling: date = date(2021, 12, 31)
     feed: str = "sip"
     adjustment: str = "all"
     warmup: LabWarmupSettings = LabWarmupSettings()
+    intraday: LabIntradaySettings = LabIntradaySettings()
 
 
 class CostBucket(BaseModel):
     min_dollar_volume: float
     bps: float
+
+
+class LabIntradayCostSettings(BaseModel):
+    """Intraday fills: continuous-market spread, so dearer than the daily open.
+
+    Same median-dollar-volume buckets (from daily bars, as of the previous
+    session's close); a fill within ``open_window_minutes`` after the session
+    opens, other than the opening print itself, pays ``open_window_multiplier``.
+    """
+
+    buckets: list[CostBucket] = [
+        CostBucket(min_dollar_volume=50_000_000, bps=8),
+        CostBucket(min_dollar_volume=10_000_000, bps=20),
+        CostBucket(min_dollar_volume=2_000_000, bps=40),
+    ]
+    open_window_minutes: int = 30
+    open_window_multiplier: float = 1.5
 
 
 class LabCostSettings(BaseModel):
@@ -55,6 +92,7 @@ class LabCostSettings(BaseModel):
         CostBucket(min_dollar_volume=10_000_000, bps=15),
         CostBucket(min_dollar_volume=2_000_000, bps=30),
     ]
+    intraday: LabIntradayCostSettings = LabIntradayCostSettings()
 
 
 class Selloff(BaseModel):
@@ -79,6 +117,10 @@ class LabRobustSettings(BaseModel):
         Selloff(name="covid_2020", start=date(2020, 2, 1), end=date(2020, 4, 30)),
     ]
     selloff_dd_ratio: float = 1.25
+    # Intraday specs only: the same spec rerun on nearby bar sizes. Every neighbour
+    # must still beat SPY and equal-weight, and their median Sharpe must be at least
+    # peak_ratio x the spec's. A check, never a way to pick the better timeframe.
+    timeframe_neighbors: dict[str, list[str]] = {"15m": ["30m"], "1h": ["30m", "2h"]}
 
 
 class LabLockedSettings(BaseModel):

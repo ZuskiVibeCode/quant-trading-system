@@ -11,7 +11,15 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from quant_system.lab.indicators import get_indicator
-from quant_system.lab.rules import PRICE_FIELDS, RESERVED, STATE_NAMES, Rule, RuleError, parse_rule
+from quant_system.lab.rules import (
+    PRICE_FIELDS,
+    RESERVED,
+    SESSION_NAMES,
+    STATE_NAMES,
+    Rule,
+    RuleError,
+    parse_rule,
+)
 from quant_system.lab.trials import spec_hash
 
 MAX_PARAMS = 4
@@ -20,6 +28,11 @@ MAX_INDICATORS = 8
 POSITION_CAP = 0.20
 _NAME = re.compile(r"^[a-z_][a-z0-9_]{0,31}$")
 _ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
+# Bar sizes the engine can run (all built from Alpaca 15m bars, lab.intraday).
+# No timeframe = daily bars. Specs may declare only SPEC_TIMEFRAMES; the others
+# exist for the robustness neighbour check and are never scored as trials.
+Timeframe = Literal["15m", "30m", "1h", "2h"]
+SPEC_TIMEFRAMES = ("15m", "1h")
 
 
 class ParamSpec(BaseModel):
@@ -56,6 +69,9 @@ class StrategySpec(BaseModel):
     description: str | None = None
     notes: str | None = None
     universe: str = "broad"
+    # None = daily. Left out of the canonical form when None, so daily spec hashes
+    # are what they were before intraday existed.
+    timeframe: Timeframe | None = None
     indicators: dict[str, dict[str, Any]] = Field(default_factory=dict)
     params: dict[str, ParamSpec] = Field(default_factory=dict)
     entry: str
@@ -101,6 +117,8 @@ class StrategySpec(BaseModel):
                 raise ValueError(f"indicator {name!r}: {exc}") from None
 
         known = set(self.indicators) | set(self.params) | set(PRICE_FIELDS)
+        if self.timeframe:
+            known |= set(SESSION_NAMES)
         try:
             rules = self.rules
         except RuleError as exc:
@@ -110,6 +128,8 @@ class StrategySpec(BaseModel):
             unknown = rule.names - allowed
             if unknown:
                 hint = " (bars_held only works in exit)" if unknown & set(STATE_NAMES) else ""
+                if unknown & set(SESSION_NAMES):
+                    hint = f" ({', '.join(SESSION_NAMES)} need an intraday timeframe)"
                 raise ValueError(f"{field}: unknown name(s) {sorted(unknown)}{hint}")
             used |= rule.names
         unused = set(self.params) - used
@@ -146,6 +166,10 @@ class StrategySpec(BaseModel):
             data["params"][k]["value"] = float(v)
         return StrategySpec.model_validate(data)
 
+    def with_timeframe(self, timeframe: str) -> "StrategySpec":
+        """Same rules on another bar size (the robustness neighbour check)."""
+        return StrategySpec.model_validate({**self.canonical(), "timeframe": timeframe})
+
     def canonical(self) -> dict[str, Any]:
         return self.model_dump(mode="json", exclude_none=True)
 
@@ -167,6 +191,20 @@ def load_spec(path: Path | str) -> StrategySpec:
     if not isinstance(raw, dict):
         raise SpecError(f"{p}: expected a YAML mapping")
     try:
-        return StrategySpec.model_validate(raw)
+        spec = StrategySpec.model_validate(raw)
     except ValueError as exc:
         raise SpecError(f"{p}: {exc}") from None
+    try:
+        require_spec_timeframe(spec)
+    except ValueError as exc:
+        raise SpecError(f"{p}: {exc}") from None
+    return spec
+
+
+def require_spec_timeframe(spec: StrategySpec) -> None:
+    """Refuse a timeframe a spec may not declare (30m / 2h are robustness-only)."""
+    if spec.timeframe is not None and spec.timeframe not in SPEC_TIMEFRAMES:
+        raise ValueError(
+            f"timeframe {spec.timeframe!r}: specs may declare {', '.join(SPEC_TIMEFRAMES)} "
+            "(or leave it out for daily)"
+        )

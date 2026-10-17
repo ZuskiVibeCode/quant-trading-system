@@ -22,6 +22,17 @@ data:
     min_overlap_days: 10
     price_tolerance: 0.01
     volume_ratio_max: 1.5
+  # Intraday (specs with a `timeframe`): Alpaca SIP 15m bars, same start, ceiling,
+  # feed and adjustment, regular hours only (Alpaca's market calendar, so half
+  # days end at 13:00). 30m / 1h / 2h bars are built from them, starting at
+  # each session's open. Sync: `lab data intraday`; coverage: `lab data intraday-status`.
+  intraday:
+    # A name is flagged (listed, not dropped) past any of these.
+    coverage:
+      max_missing_share: 0.05
+      max_empty_sessions: 5
+      price_tolerance: 0.01
+      max_mismatch_days: 5
 benchmark: SPY
 # Fill model: signal at day t's close, fill at day t+1's open. Slippage per side
 # by the 20-day median dollar volume as of day t (Alpaca charges no commission).
@@ -32,6 +43,19 @@ costs:
     - {min_dollar_volume: 50000000, bps: 5}
     - {min_dollar_volume: 10000000, bps: 15}
     - {min_dollar_volume: 2000000, bps: 30}
+  # Intraday specs: signal at a bar's close, fill at the next bar's open (the next
+  # session's open after the day's last bar). Fills in the continuous market pay
+  # the spread, so every bucket costs more than the daily open. Same buckets, from
+  # the daily median dollar volume as of the previous session's close. Fills in
+  # the first open_window_minutes after the open (not the opening print) pay
+  # open_window_multiplier x.
+  intraday:
+    buckets:
+      - {min_dollar_volume: 50000000, bps: 8}
+      - {min_dollar_volume: 10000000, bps: 20}
+      - {min_dollar_volume: 2000000, bps: 40}
+    open_window_minutes: 30
+    open_window_multiplier: 1.5
 # Robustness (`lab robust`, gauntlet step 2). Starting thresholds; every report
 # records the values it used.
 robust:
@@ -57,6 +81,13 @@ robust:
     - {name: q4_2018, start: "2018-10-01", end: "2018-12-31"}
     - {name: covid_2020, start: "2020-02-01", end: "2020-04-30"}
   selloff_dd_ratio: 1.25
+  # Intraday specs only: the same spec rerun on nearby bar sizes (built from the
+  # same 15m bars). Every neighbour must still beat SPY and equal-weight, and the
+  # median neighbour Sharpe must be at least peak_ratio x the spec's. A check,
+  # never a way to pick the better timeframe; neighbour runs are not trials.
+  timeframe_neighbors:
+    15m: [30m]
+    1h: [30m, 2h]
 # Validation / holdout runs (`lab validate`, `lab holdout`, on the validation machine).
 # These breakouts are reported next to the verdict, not part of the pass bar.
 locked:
