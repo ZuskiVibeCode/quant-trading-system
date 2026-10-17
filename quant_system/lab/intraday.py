@@ -613,6 +613,11 @@ def ticker_coverage(
     row["longest_empty_run"] = _longest_run(empty)
     if row["empty_sessions"] > cov.max_empty_sessions:
         flags.append(f"{row['empty_sessions']} sessions with no bars (limit {cov.max_empty_sessions})")
+    scheduled = bar_slots(sub, BASE_TIMEFRAME, start, ceiling).groupby("session").size().reindex(days).to_numpy()
+    short = (per_day > 0) & (per_day < scheduled / 2)
+    row["short_sessions"] = [str(d.date()) for d in days[short]]
+    if short.sum() > cov.max_short_sessions:
+        flags.append(f"{int(short.sum())} sessions with under half their bars (limit {cov.max_short_sessions})")
     if daily is not None and not daily.empty:
         d = daily.loc[daily.index.isin(days)]
         first_open = by_day["Open"].first().reindex(d.index)
@@ -660,6 +665,12 @@ def intraday_coverage(
         rows[sym] = ticker_coverage(load_intraday(sym, data_dir), daily, cal, s.data.start, ceiling,
                                     s.data.intraday.coverage)
     flagged = {k: v["flags"] for k, v in rows.items() if v["flags"]}
+    # Dates on which many names are short at once: a gap in the source, not in one name.
+    short_days: dict[str, int] = {}
+    for v in rows.values():
+        for d in v.get("short_sessions") or []:
+            short_days[d] = short_days.get(d, 0) + 1
+    widespread = {d: n for d, n in sorted(short_days.items()) if n >= max(3, len(rows) // 10)}
 
     def _median(tf: str) -> float | None:
         vals = [v[tf]["missing_share"] for v in rows.values() if tf in v]
@@ -680,6 +691,8 @@ def intraday_coverage(
         "median_missing_share": {tf: _median(tf) for tf in ("15m", "1h")},
         "most_missing": {tf: _worst(tf) for tf in ("15m", "1h")},
         "flagged": flagged,
+        # Sessions where at least a tenth of the names have under half their bars.
+        "short_session_dates": widespread,
         "thresholds": s.data.intraday.coverage.model_dump(mode="json"),
     }
     if write:

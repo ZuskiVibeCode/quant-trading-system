@@ -435,6 +435,10 @@ def test_coverage_flags_missing_bars_empty_sessions_and_mismatches(tmp_path):
     assert row["empty_sessions"] == 3 and row["longest_empty_run"] == 3
     assert any("15m" in f for f in row["flags"]) and any("sessions with no bars" in f for f in row["flags"])
     assert row["open_mismatch_days"] >= 1
+    one_bar = intra["CCC"].loc[~((intra["CCC"].index.normalize() == cal.index[12])
+                                 & (intra["CCC"].index.time > pd.Timestamp("09:30").time()))]
+    short = ticker_coverage(one_bar, daily["CCC"], cal, date(2016, 1, 1), date(2021, 12, 31), cov)
+    assert short["short_sessions"] == [str(cal.index[12].date())] and short["empty_sessions"] == 0
 
 
 def test_intraday_coverage_report_from_the_cache(tmp_path):
@@ -450,6 +454,7 @@ def test_intraday_coverage_report_from_the_cache(tmp_path):
     rep = intraday_coverage(["SPY", "AAA", "QQQ"], data_dir=tmp_path, today=TODAY)
     assert rep["names"] == 3 and rep["no_bars"] == ["QQQ"]
     assert rep["early_closes"] == [] and rep["median_missing_share"]["15m"] == 0.0
+    assert rep["short_session_dates"] == {}
     assert Path(rep["full_report"]).is_file()
     back = load_intraday("AAA", tmp_path)
     assert np.allclose(back["Close"], intra["AAA"]["Close"], atol=1e-4)

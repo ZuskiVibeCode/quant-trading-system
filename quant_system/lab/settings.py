@@ -40,6 +40,9 @@ class LabCoverageSettings(BaseModel):
     max_missing_share: float = 0.05
     # Sessions with no regular-hours bar at all while the daily cache has a bar.
     max_empty_sessions: int = 5
+    # Sessions with some bars but under half their scheduled 15m bars (Alpaca has
+    # market-wide gaps on a few dates, e.g. 2021-04-19: often just the opening bar).
+    max_short_sessions: int = 5
     # A session's first 15m open / last 15m close vs the daily bar, after scaling
     # by the median ratio (the two caches can be adjusted a few days apart).
     price_tolerance: float = 0.01

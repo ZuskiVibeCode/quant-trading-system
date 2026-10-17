@@ -418,8 +418,15 @@ sizes, panels, coverage) and `engine.run_spec_intraday`.
   (15m, 1h): missing bars against the calendar, sessions with no bars (on days
   the daily cache has a bar), the longest gap, and sessions whose first open or
   last close is off the daily bar by over 1% (after scaling by the median
-  ratio, since the two caches are adjusted at different times). Names past the
-  `data.intraday.coverage` limits are flagged, not dropped.
+  ratio, since the two caches are adjusted at different times), and sessions
+  with under half their bars. Names past the `data.intraday.coverage` limits
+  are flagged, not dropped. The report also lists dates where many names are
+  short at once. Alpaca's 2016-2021 15m history has four:
+  2018-05-02 and 2018-05-03 (about a quarter of the broad universe) and
+  2021-04-19 and 2021-10-25 (about two thirds), where most of those names have
+  only their opening bar. On those days the affected names have no bars, so
+  nothing fills and positions keep their last price. Renamed tickers (BBWI,
+  VTRS, LIN, DXC...) start late in both the daily and the intraday cache.
 - **Fills and costs.** Same rule as daily: signal at a bar's close, fill at the
   next bar's open, which after the session's last bar is the next session's
   open (overnight gaps are part of the trade). Intraday fills pay the spread,
