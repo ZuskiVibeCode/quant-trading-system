@@ -1,6 +1,6 @@
 {
-  "exported_at": "2026-10-16T19:55:14.889783Z",
-  "count": 186,
+  "exported_at": "2026-10-19T13:35:59.738375Z",
+  "count": 187,
   "reviews": [
     {
       "ticker": "RGTI",
@@ -29872,7 +29872,7 @@
       },
       "path": {
         "mfe_pct": 7.2501,
-        "mae_pct": -14.1973,
+        "mae_pct": -14.1976,
         "ret_pct": -13.6377
       },
       "verdict": "Lost money: Realized PnL=-0.6560. Entered aligned; lead agent momentum was long@95.0 (see momentum signal #8591 long @ conf=95.0). Entry weighted_score=0.498. Exit was an opportunity-rotate trim to fund another name. Held 533.6h.",
@@ -29948,7 +29948,168 @@
           "kind": "path",
           "id": null,
           "label": "path stats",
-          "detail": "source=daily_bars; mfe_pct=7.2501; mae_pct=-14.1973; ret_pct=-13.6377"
+          "detail": "source=daily_bars; mfe_pct=7.2501; mae_pct=-14.1976; ret_pct=-13.6377"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "quantum"
+    },
+    {
+      "ticker": "AMD",
+      "qty": 0.005876,
+      "entry": 614.0041281552158,
+      "exit": 548.63,
+      "pnl": -0.3841383770400479,
+      "pnl_pct": -10.6472,
+      "opened_at": "2026-09-24T14:18:39.569740Z",
+      "closed_at": "2026-10-19T13:35:00.722365Z",
+      "hold_hours": 599.273,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.005876 AMD @~548.37; opportunity rotate to fund ADSK (buy_score=0.490 donor_score=0.159)",
+      "entry_ticket_id": 252,
+      "exit_ticket_id": 363,
+      "entry_fill_id": 136,
+      "exit_fill_id": 246,
+      "entry_score": {
+        "weighted_score": 0.498,
+        "blended_conf": 62.8
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 95.0,
+          "reasoning_trunc": "MA20 > MA50 (short-term uptrend); MA50 > MA200 (intermediate uptrend); RSI constructive (66.0); MACD histogram positive; 20d RS vs SPY: +29.73%; RVOL 0.53x vs\u2026",
+          "signal_id": 8591,
+          "created_at": "2026-09-29T18:53:18.764318Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "long",
+          "confidence": 79.7,
+          "reasoning_trunc": "Quality: Strong revenue growth (50.1%); Strong earnings growth (159.5%); Healthy profit margin (15.6%); Strong operating margin (17.2%) | Valuation/EV: rich P/\u2026",
+          "signal_id": 8592,
+          "created_at": "2026-09-29T18:53:19.306825Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "long",
+          "confidence": 74.4,
+          "reasoning_trunc": "price near MA20 (z=1.08); strong 20d momentum +29.7%; cross-sectional mom rank top (100%); vol regime=normal",
+          "signal_id": 8593,
+          "created_at": "2026-09-29T18:53:19.314359Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "neutral",
+          "confidence": 20.0,
+          "reasoning_trunc": "No recent headlines available for this ticker; emitting neutral with no manipulation flag (insufficient data, not risk).",
+          "signal_id": 8594,
+          "created_at": "2026-09-29T18:53:19.739072Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (quantum); VIX contained (16.1); Dollar firm (+2.2% 20d) \u2014 risk headwind; Rates headwind (\u2026",
+          "signal_id": 8595,
+          "created_at": "2026-09-29T18:53:19.743635Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "fundamental",
+          "statistical_ml"
+        ],
+        "short": [],
+        "neutral": [
+          "sentiment",
+          "macro"
+        ],
+        "disagreement": false,
+        "lead_agent": "momentum",
+        "lead_confidence": 95.0
+      },
+      "path": {
+        "mfe_pct": 7.2501,
+        "mae_pct": -14.1976,
+        "ret_pct": -10.6472
+      },
+      "verdict": "Lost money: Realized PnL=-0.3841. Entered aligned; lead agent momentum was long@95.0 (see momentum signal #8591 long @ conf=95.0). Entry weighted_score=0.498. Exit was an opportunity-rotate trim to fund another name. Held 599.3h.",
+      "verdict_tags": [
+        "loser",
+        "aligned",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 136,
+          "label": "entry fill",
+          "detail": "buy qty=0.005876 @ 614.0041281552158"
+        },
+        {
+          "kind": "fill",
+          "id": 246,
+          "label": "exit fill",
+          "detail": "sell @ 548.63"
+        },
+        {
+          "kind": "ticket",
+          "id": 252,
+          "label": "entry ticket",
+          "detail": "BUY 0.006217 AMD @~610.45; weighted_score=0.498; blended_conf=62.8; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 363,
+          "label": "exit ticket",
+          "detail": "SELL 0.005876 AMD @~548.37; opportunity rotate to fund ADSK (buy_score=0.490 donor_score=0.159)"
+        },
+        {
+          "kind": "signal",
+          "id": 8591,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=95.0"
+        },
+        {
+          "kind": "signal",
+          "id": 8592,
+          "label": "fundamental @ entry",
+          "detail": "long @ conf=79.7"
+        },
+        {
+          "kind": "signal",
+          "id": 8593,
+          "label": "statistical_ml @ entry",
+          "detail": "long @ conf=74.4"
+        },
+        {
+          "kind": "signal",
+          "id": 8594,
+          "label": "sentiment @ entry",
+          "detail": "neutral @ conf=20.0"
+        },
+        {
+          "kind": "signal",
+          "id": 8595,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.498; blended_conf=62.8"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=7.2501; mae_pct=-14.1976; ret_pct=-10.6472"
         }
       ],
       "mode": "alpaca",
