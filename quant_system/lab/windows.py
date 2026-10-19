@@ -59,9 +59,10 @@ class ResolvedWindow:
     end: date
 
     def mask(self, index: pd.Index) -> pd.Series:
-        idx = pd.DatetimeIndex(index)
+        """By session date, so intraday bars on ``end`` (09:30 and later) are inside."""
+        day = pd.DatetimeIndex(index).normalize()
         return pd.Series(
-            (idx >= pd.Timestamp(self.start)) & (idx <= pd.Timestamp(self.end)), index=index
+            (day >= pd.Timestamp(self.start)) & (day <= pd.Timestamp(self.end)), index=index
         )
 
     def sessions(self, index: pd.Index) -> pd.DatetimeIndex:

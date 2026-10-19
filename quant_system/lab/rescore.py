@@ -23,6 +23,7 @@ import pandas as pd
 
 from quant_system.config.loader import AppConfig
 from quant_system.lab.data import load_lab_bars, read_warmup_manifest
+from quant_system.lab.intraday import IntradaySource
 from quant_system.lab.nominate import NominationError, require_clean_checkout
 from quant_system.lab.runner import score_spec
 from quant_system.lab.settings import LabSettings, load_lab_settings
@@ -63,9 +64,12 @@ def rescore_discovery(
         latest[rec["spec_hash"]] = rec  # oldest first, so the last one wins
 
     loaded: dict[str, dict[str, pd.DataFrame]] = {}
+    intraday = IntradaySource(settings=s, data_dir=data_dir, today=today)  # loads nothing until asked
     rescored: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
-    for h, rec in latest.items():
+    # Daily specs first, then one bar size at a time (the intraday source caches one).
+    order = sorted(latest.items(), key=lambda kv: str((kv[1].get("spec") or {}).get("timeframe") or ""))
+    for h, rec in order:
         row = {"spec_hash": h, "spec_id": rec.get("spec_id"), "author_bot": rec.get("author_bot")}
         try:
             spec = StrategySpec.model_validate(rec.get("spec") or {})
@@ -85,6 +89,7 @@ def rescore_discovery(
         card = score_spec(
             spec, window="discovery", author_bot=rec.get("author_bot") or "unknown", settings=s, cfg=cfg,
             bars=use, data_dir=data_dir, today=today, extra=lambda ev, rw: {"rescore": True},
+            intraday=intraday,
         )
         old = rec.get("metrics") or {}
         rescored.append({

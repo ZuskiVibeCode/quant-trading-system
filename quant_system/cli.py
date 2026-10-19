@@ -323,14 +323,68 @@ def cmd_lab_data_warmup(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_lab_data_intraday(args: argparse.Namespace) -> int:
+    """Download Alpaca 15m bars (regular hours, SIP, adjusted) up to this machine's data ceiling."""
+    from quant_system.lab.intraday import sync_intraday
+    from quant_system.lab.settings import load_lab_settings
+    from quant_system.lab.universe import universe_symbols
+
+    settings = load_lab_settings()
+    if args.tickers:
+        symbols = [t.strip() for t in args.tickers.split(",") if t.strip()]
+    else:
+        symbols = universe_symbols(args.universe, settings=settings)
+    report = sync_intraday(
+        [settings.benchmark, *symbols], settings=settings, force=bool(args.force),
+        progress=lambda line: print(line, file=sys.stderr, flush=True),
+    )
+    print(json.dumps(report, indent=2))
+    return 0
+
+
+def cmd_lab_data_intraday_status(args: argparse.Namespace) -> int:
+    """Per-name intraday coverage (15m and 1h) against the calendar and the daily bars."""
+    from quant_system.lab.intraday import intraday_coverage
+    from quant_system.lab.settings import load_lab_settings
+    from quant_system.lab.universe import universe_symbols
+
+    settings = load_lab_settings()
+    if args.tickers:
+        symbols = [t.strip() for t in args.tickers.split(",") if t.strip()]
+    else:
+        symbols = universe_symbols(args.universe, settings=settings)
+    try:
+        report = intraday_coverage([settings.benchmark, *symbols], settings=settings)
+    except ValueError as exc:
+        print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
+        return 1
+    print(json.dumps(report, indent=2))
+    return 0
+
+
 def cmd_lab_data_status(args: argparse.Namespace) -> int:
     """Summarize the lab bar cache and flag anything past this machine's data ceiling."""
     from quant_system.lab.data import cache_status, warmup_status
+    from quant_system.lab.intraday import intraday_status
 
     status = cache_status()
     status["warmup"] = warmup_status()
+    status["intraday"] = intraday_status()
     print(json.dumps(status, indent=2))
-    return 1 if status["rows_past_ceiling"] else 0
+    return 1 if status["rows_past_ceiling"] or status["intraday"]["rows_past_ceiling"] else 0
+
+
+def _intraday_guard(spec: Any = None) -> Any:
+    """Machine-wide lock for intraday runs (one at a time); a no-op for daily specs."""
+    import contextlib
+
+    if spec is not None and not spec.timeframe:
+        return contextlib.nullcontext()
+    from quant_system.lab.intraday import intraday_run_lock
+
+    return intraday_run_lock(
+        wait=lambda: print("waiting for another intraday lab run on this machine...", file=sys.stderr, flush=True)
+    )
 
 
 def cmd_lab_rescore(args: argparse.Namespace) -> int:
@@ -338,7 +392,8 @@ def cmd_lab_rescore(args: argparse.Namespace) -> int:
     from quant_system.lab.rescore import RescoreError, rescore_discovery
 
     try:
-        report = rescore_discovery()
+        with _intraday_guard():  # may rerun intraday specs
+            report = rescore_discovery()
     except RescoreError as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
         return 1
@@ -408,7 +463,12 @@ def cmd_lab_run(args: argparse.Namespace) -> int:
         print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
         return 1
     bot = args.bot or os.environ.get("QUANT_LAB_BOT") or None
-    card = score_spec(spec, window="discovery", author_bot=bot)
+    with _intraday_guard(spec):
+        card = score_spec(spec, window="discovery", author_bot=bot)
+    if spec.timeframe:
+        from quant_system.lab.memory import peak_memory_mb
+
+        card["peak_memory_mb"] = peak_memory_mb()
     print(json.dumps(card, indent=2, default=str))
     return 0
 
@@ -426,7 +486,9 @@ def cmd_lab_robust(args: argparse.Namespace) -> int:
         print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
         return 1
     bot = args.bot or os.environ.get("QUANT_LAB_BOT") or None
-    print(json.dumps(run_robust(spec, author_bot=bot), indent=2, default=str))
+    with _intraday_guard(spec):
+        report = run_robust(spec, author_bot=bot)
+    print(json.dumps(report, indent=2, default=str))
     return 0
 
 
@@ -440,7 +502,8 @@ def cmd_lab_nominate(args: argparse.Namespace) -> int:
     try:
         spec = load_spec(args.spec)
         bot = args.bot or os.environ.get("QUANT_LAB_BOT") or None
-        result = nominate(spec, author_bot=bot, out_dir=args.out)
+        with _intraday_guard(spec):
+            result = nominate(spec, author_bot=bot, out_dir=args.out)
     except (SpecError, NominationError) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
         return 1
@@ -457,7 +520,8 @@ def cmd_lab_final(args: argparse.Namespace) -> int:
     runner = run_validation if args.lab_command == "validate" else run_holdout
     try:
         packet, spec = load_nomination(args.packet)
-        result = runner(packet, spec)
+        with _intraday_guard(spec):
+            result = runner(packet, spec)
     except (NominationError, WindowLocked) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
         return 1
@@ -672,6 +736,25 @@ def build_parser() -> argparse.ArgumentParser:
     warm.add_argument("--tickers", default=None, help="Comma-separated symbols instead of a universe")
     warm.add_argument("--force", action="store_true", help="Refetch even if already cached")
     warm.set_defaults(func=cmd_lab_data_warmup)
+    intra = data_sub.add_parser(
+        "intraday",
+        help="Download Alpaca 15m bars, regular hours only (30m / 1h / 2h are built from them)",
+    )
+    intra.add_argument(
+        "--universe",
+        default="all",
+        help=f"Universe to sync: {' | '.join(UNIVERSE_NAMES)} | <theme> (default: all)",
+    )
+    intra.add_argument("--tickers", default=None, help="Comma-separated symbols instead of a universe")
+    intra.add_argument("--force", action="store_true", help="Refetch even if the cache is current")
+    intra.set_defaults(func=cmd_lab_data_intraday)
+    icov = data_sub.add_parser(
+        "intraday-status",
+        help="Intraday coverage per name (15m and 1h): missing bars, empty sessions, mismatches vs daily",
+    )
+    icov.add_argument("--universe", default="all", help="Universe to check (default: all)")
+    icov.add_argument("--tickers", default=None, help="Comma-separated symbols instead of a universe")
+    icov.set_defaults(func=cmd_lab_data_intraday_status)
     status = data_sub.add_parser("status", help="Cache summary; exits 1 if rows past the ceiling exist")
     status.set_defaults(func=cmd_lab_data_status)
     trials = lab_sub.add_parser("trials", help="Trial count and recent results from the shared trial log")

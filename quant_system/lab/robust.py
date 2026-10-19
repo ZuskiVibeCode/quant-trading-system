@@ -20,6 +20,17 @@ never add to the trial count. Checks (thresholds in ``config/lab.yaml`` robust):
 - selloffs: from the spec's own run, the worst drawdown inside Q4 2018 and
   Feb-Apr 2020 may not be much worse than SPY's or equal-weight's.
 - single stock: rerun without the top contributing name; it must still pass.
+- timeframes (intraday specs only): the same spec on the nearby bar sizes in
+  ``timeframe_neighbors`` (1h: 30m and 2h; 15m: 30m). Every neighbour must still
+  beat SPY and equal-weight, and their median Sharpe must be at least
+  ``peak_ratio`` x the spec's. Lookbacks and ``bars_held`` count bars, so a
+  neighbour is the same rules on a different chart. A passing neighbour is
+  never a candidate itself: neighbour runs are robustness runs, not trials.
+
+Every rerun happens one after another in this process; nothing runs in
+parallel. Intraday bars are read one name at a time and one bar size is held
+in memory at a time (``lab.intraday``). The report records the process's peak
+memory (``peak_memory_mb``) for Grok's shared machine.
 
 A check with nothing to test (no settings, a universe without sector data, no
 profitable name) is ``skipped``: it doesn't fail the spec, but the report is
@@ -38,6 +49,8 @@ import pandas as pd
 
 from quant_system.config.loader import AppConfig
 from quant_system.lab.data import load_lab_bars
+from quant_system.lab.intraday import IntradaySource
+from quant_system.lab.memory import peak_memory_mb
 from quant_system.lab.metrics import TRADING_DAYS_PER_YEAR, cagr, max_drawdown, pass_bar
 from quant_system.lab.runner import Evaluation, evaluate, score_spec_full
 from quant_system.lab.settings import LabRobustSettings, LabSettings, Selloff, lab_data_dir, load_lab_settings
@@ -76,13 +89,27 @@ def _groups(spec: StrategySpec, settings: LabSettings, symbols: list[str], key: 
     return dict(sorted(out.items()))
 
 
+def _matched_bars(ev: Evaluation) -> pd.Series:
+    """Intraday: the same matching bar by bar, compounded to each session."""
+    x, v = ev.result.bar_exposure, ev.ew_bars.reindex(ev.result.bar_exposure.index)
+    gap = v["open"] / v["close"].shift(1).fillna(1.0) - 1.0
+    body = v["close"] / v["open"] - 1.0
+    r = (1.0 + x["close"].shift(1).fillna(0.0) * gap) * (1.0 + x["open"] * body)
+    daily = r.groupby(x.index.normalize()).prod() - 1.0
+    return daily.reindex(ev.result.returns.index).fillna(0.0)
+
+
 def matched_returns(ev: Evaluation) -> pd.Series:
     """The run's equal-weight benchmark held at the strategy's own invested fraction each day.
 
     Close to open at the fraction invested at the previous close; open to close
     at the fraction right after that open's fills (the strategy trades at the
     open). A day the strategy is all cash earns nothing on either side.
+    Intraday specs match bar by bar (each bar's open and close), so moving in
+    and out during the session earns no credit for timing the group.
     """
+    if getattr(ev, "ew_bars", None) is not None and getattr(ev.result, "bar_exposure", None) is not None:
+        return _matched_bars(ev)
     ew, res = ev.benchmarks["equal_weight"], ev.result
     idx = res.returns.index
     at_close = res.weights.sum(axis=1).reindex(idx).fillna(0.0)
@@ -148,6 +175,15 @@ def nudge_check(rows: list[dict[str, Any]], base_sharpe: float, r: LabRobustSett
             "base_sharpe": base_sharpe, "variants": rows}
 
 
+def timeframe_check(rows: list[dict[str, Any]], base_sharpe: float, r: LabRobustSettings) -> dict[str, Any]:
+    """Every neighbouring bar size still passes, and their median Sharpe isn't far below the spec's."""
+    if not rows:
+        return {"status": "skipped", "reason": "no neighbouring timeframe configured"}
+    median = statistics.median(float(x["sharpe"]) for x in rows)
+    ok = all(x["passes"] for x in rows) and base_sharpe > 0 and median >= r.peak_ratio * base_sharpe
+    return {"status": _status(ok), "median_sharpe": median, "base_sharpe": base_sharpe, "variants": rows}
+
+
 def run_robust(
     spec: StrategySpec,
     *,
@@ -157,6 +193,7 @@ def run_robust(
     bars: dict[str, pd.DataFrame] | None = None,
     data_dir: Path | str | None = None,
     today: date | None = None,
+    intraday: IntradaySource | None = None,
 ) -> dict[str, Any]:
     s = settings or load_lab_settings()
     r = s.robust
@@ -168,10 +205,12 @@ def run_robust(
     if bars is None:
         bars = load_lab_bars([s.benchmark, *universe], settings=s, data_dir=data_dir, today=today)
     required = (s.benchmark.upper(), "equal_weight")
+    if spec.timeframe and intraday is None:
+        intraday = IntradaySource(settings=s, data_dir=data_dir, today=today)
 
     base_card, base = score_spec_full(
         spec, window="discovery", author_bot=author, settings=s, cfg=cfg, bars=bars,
-        data_dir=data_dir, today=today,
+        data_dir=data_dir, today=today, intraday=intraday,
     )
     base_sharpe = float(base.strategy["sharpe"])
 
@@ -179,7 +218,7 @@ def run_robust(
         return pass_bar("discovery", ev.comparison, required=required)["passed"]
 
     def run(variant: StrategySpec, names: list[str], check: str, detail: dict[str, Any]) -> Evaluation:
-        ev = evaluate(variant, bars, names, rw, s)
+        ev = evaluate(variant, bars, names, rw, s, intraday=intraday)
         record_trial(
             spec=variant.canonical(), window="discovery", metrics=ev.metrics(), returns=ev.result.returns,
             author_bot=author, kind="robustness", parent_hash=spec.hash,
@@ -242,6 +281,15 @@ def run_robust(
     else:
         checks["single_stock"] = {"status": "skipped", "reason": "no profitable name to remove"}
 
+    # 6. Nearby bar sizes (intraday specs only; last, so the spec's own bars are read once).
+    if spec.timeframe:
+        rows = []
+        for tf in r.timeframe_neighbors.get(spec.timeframe, []):
+            ev = run(spec.with_timeframe(tf), universe, "timeframe", {"timeframe": tf})
+            rows.append({"timeframe": tf, "sharpe": ev.strategy["sharpe"], "cagr": ev.strategy["cagr"],
+                         "trade_count": ev.strategy.get("trade_count"), "passes": passes(ev)})
+        checks["timeframes"] = timeframe_check(rows, base_sharpe, r)
+
     base_passed = bool(base_card["verdict"]["passed"])
     statuses = [c["status"] for c in checks.values()]
     report = {
@@ -258,6 +306,7 @@ def run_robust(
                  "vs_benchmarks": base_card["vs_benchmarks"], "trial_file": base_card["trial_file"]},
         "checks": checks,
         "thresholds": r.model_dump(mode="json"),
+        "peak_memory_mb": peak_memory_mb(),
     }
     path = write_json_atomic(robust_dir(data_dir) / stamped_name(author, spec.hash), report)
     report["report_file"] = str(path)

@@ -60,6 +60,8 @@ def buy_and_hold(
         # (1 + overnight) x (1 + intraday) = 1 + returns: close to open, then open to close.
         "overnight": flat,
         "intraday": flat,
+        # Shares held per name (fraction of starting equity / entry fill price).
+        "qty": pd.Series(dtype=float),
     }
     if not held or sessions.empty:
         return result
@@ -95,6 +97,7 @@ def buy_and_hold(
         returns=returns,
         overnight=overnight,
         intraday=equity / at_open - 1.0,
+        qty=qty,
     )
     return result
 

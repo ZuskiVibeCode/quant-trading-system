@@ -37,6 +37,7 @@ import pandas as pd
 
 from quant_system.config.loader import AppConfig, load_config
 from quant_system.lab.data import load_lab_bars
+from quant_system.lab.intraday import IntradaySource
 from quant_system.lab.nominate import (
     NominationError,
     check_frozen_trials,
@@ -111,13 +112,14 @@ def breakouts(
     bars: dict[str, pd.DataFrame],
     settings: LabSettings,
     cfg: AppConfig,
+    intraday: IntradaySource | None = None,
 ) -> dict[str, Any]:
     """Selloffs inside the window and the spec rerun on each theme's names (and all of them)."""
     inside = [x for x in settings.locked.selloffs if rw.start <= x.start and x.end <= rw.end]
     themes: dict[str, Any] = {}
     for name in ["themes", *cfg.universe.themes]:
         names = theme_symbols(cfg, None if name == "themes" else name)
-        t = evaluate(spec, bars, names, rw, settings)
+        t = evaluate(spec, bars, names, rw, settings, intraday=intraday)
         themes[name] = {
             "names": len(t.result.symbols),
             "missing": len(t.result.missing),
@@ -158,10 +160,12 @@ def _final_run(
     if bars is None:
         wanted = [s.benchmark, *universe_symbols(spec.universe, settings=s, cfg=app), *theme_symbols(app)]
         bars = load_lab_bars(list(dict.fromkeys(wanted)), settings=s, data_dir=data_dir, today=today)
+    intraday = IntradaySource(settings=s, data_dir=data_dir, today=today) if spec.timeframe else None
 
     recheck = None
     if window == "validation":
-        report = run_robust(spec, author_bot=author, settings=s, cfg=app, bars=bars, data_dir=data_dir, today=today)
+        report = run_robust(spec, author_bot=author, settings=s, cfg=app, bars=bars, data_dir=data_dir,
+                            today=today, intraday=intraday)
         recheck = recheck_summary(report)
         failures = gate_failures(report, benchmark=s.benchmark, data_dir=data_dir)
         if failures:
@@ -174,12 +178,12 @@ def _final_run(
         out: dict[str, Any] = {"frozen_trials": frozen, "nomination": nomination, "scored_at_commit": commit}
         if recheck is not None:
             out["recheck"] = recheck
-        out["breakouts"] = breakouts(spec, ev, rw, bars, s, app)
+        out["breakouts"] = breakouts(spec, ev, rw, bars, s, app, intraday)
         return out
 
     card, _ = score_spec_full(
         spec, window=window, author_bot=author, frozen_trials=frozen, settings=s, cfg=app,
-        bars=bars, data_dir=data_dir, today=today, extra=extra,
+        bars=bars, data_dir=data_dir, today=today, extra=extra, intraday=intraday,
     )
     return {"ran": True, **card}
 
