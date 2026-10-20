@@ -6269,7 +6269,7 @@
       "points": [
         {
           "ticker": "ADSK",
-          "buy": 0.603672,
+          "buy": 0.603648,
           "sell": 0.0,
           "zone": "buy_zone",
           "held": true
@@ -6291,14 +6291,14 @@
         {
           "ticker": "AVAV",
           "buy": 0.166,
-          "sell": 0.2843,
+          "sell": 0.2933,
           "zone": "quiet",
           "held": false
         },
         {
           "ticker": "BA",
           "buy": 0.2948,
-          "sell": 0.058576,
+          "sell": 0.065474,
           "zone": "quiet",
           "held": false
         },
@@ -6312,7 +6312,7 @@
         {
           "ticker": "CGNX",
           "buy": 0.311,
-          "sell": 0.153907,
+          "sell": 0.155118,
           "zone": "quiet",
           "held": false
         },
@@ -6326,14 +6326,14 @@
         {
           "ticker": "HON",
           "buy": 0.35,
-          "sell": 0.073598,
+          "sell": 0.073682,
           "zone": "buy_zone",
           "held": false
         },
         {
           "ticker": "IBM",
           "buy": 0.166,
-          "sell": 0.20708,
+          "sell": 0.207117,
           "zone": "quiet",
           "held": false
         },
@@ -6347,13 +6347,13 @@
         {
           "ticker": "IRDM",
           "buy": 0.166,
-          "sell": 0.057991,
+          "sell": 0.057977,
           "zone": "quiet",
           "held": true
         },
         {
           "ticker": "ISRG",
-          "buy": 0.607585,
+          "buy": 0.47516,
           "sell": 0.0,
           "zone": "buy_zone",
           "held": true
@@ -6367,7 +6367,7 @@
         },
         {
           "ticker": "LMT",
-          "buy": 0.469359,
+          "buy": 0.469707,
           "sell": 0.0,
           "zone": "buy_zone",
           "held": false
@@ -6381,7 +6381,7 @@
         },
         {
           "ticker": "MSFT",
-          "buy": 0.676306,
+          "buy": 0.676297,
           "sell": 0.0,
           "zone": "buy_zone",
           "held": true
@@ -6389,13 +6389,13 @@
         {
           "ticker": "NOC",
           "buy": 0.3362,
-          "sell": 0.225192,
+          "sell": 0.225655,
           "zone": "quiet",
           "held": false
         },
         {
           "ticker": "NVDA",
-          "buy": 0.470803,
+          "buy": 0.470754,
           "sell": 0.0,
           "zone": "buy_zone",
           "held": true
@@ -6459,7 +6459,7 @@
         {
           "ticker": "SYM",
           "buy": 0.166,
-          "sell": 0.182635,
+          "sell": 0.182925,
           "zone": "quiet",
           "held": false
         },
