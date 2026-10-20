@@ -1,0 +1,81 @@
+{
+ "schema": 1,
+ "kind": "lab_nomination",
+ "spec_id": "roc-accel-flow",
+ "spec_hash": "ebbc148c087000a2",
+ "author_bot": "momo",
+ "nominated_at": "2026-10-20T14:28:12+00:00",
+ "git_commit": "58f5b39c624da583d313cf821f2f909276df9a9c",
+ "frozen_trials": {
+  "window": "discovery",
+  "n_trials": 194,
+  "n_records": 432,
+  "sharpe_variance": 0.11534359269461049
+ },
+ "discovery": {
+  "passed": true,
+  "complete": true,
+  "sharpe": 1.2975934123237272,
+  "cagr": 0.2974138082792257,
+  "checks": {
+   "nudges": "pass",
+   "sectors": "pass",
+   "cap_buckets": "pass",
+   "selloffs": "pass",
+   "single_stock": "pass"
+  },
+  "robust_report": "20261020T142809977052Z-momo-ebbc148c087000a2.json",
+  "vs_benchmarks": {
+   "SPY": {
+    "sharpe_diff": 0.2995337948556146,
+    "excess_cagr": 0.12424057210423123
+   },
+   "equal_weight": {
+    "sharpe_diff": 0.4429574819303347,
+    "excess_cagr": 0.13046794748439527
+   }
+  }
+ },
+ "spec": {
+  "id": "roc-accel-flow",
+  "author_bot": "momo",
+  "description": "Positive and accelerating 6-month momentum with positive CMF in a 200-day uptrend, exit on distribution.",
+  "universe": "broad",
+  "indicators": {
+   "m126": {
+    "fn": "roc",
+    "length": 126
+   },
+   "m63": {
+    "fn": "roc",
+    "length": 63
+   },
+   "trend": {
+    "fn": "sma",
+    "length": 200
+   },
+   "flow": {
+    "fn": "cmf",
+    "length": 63
+   },
+   "ob": {
+    "fn": "obv_trend",
+    "length": 63
+   }
+  },
+  "params": {
+   "floor": {
+    "value": 0.1,
+    "min": 0.05,
+    "max": 0.2
+   }
+  },
+  "entry": "m126 > floor and m63 > 0.5 * m126 and close > trend and flow > 0",
+  "exit": "m126 < 0 or flow < -0.05 or ob < -0.1 or close < 0.9 * trend",
+  "sizing": {
+   "method": "equal_weight",
+   "max_positions": 10,
+   "max_weight": 0.1
+  }
+ }
+}
