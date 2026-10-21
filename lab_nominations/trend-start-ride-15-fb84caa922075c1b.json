@@ -1,0 +1,78 @@
+{
+ "schema": 1,
+ "kind": "lab_nomination",
+ "spec_id": "trend-start-ride-15",
+ "spec_hash": "fb84caa922075c1b",
+ "author_bot": "momo",
+ "nominated_at": "2026-10-21T14:29:28+00:00",
+ "git_commit": "3badb0f5924442d36c65d70b05faa3ae991f074d",
+ "frozen_trials": {
+  "window": "discovery",
+  "n_trials": 231,
+  "n_records": 483,
+  "sharpe_variance": 0.28749073006046766
+ },
+ "discovery": {
+  "passed": true,
+  "complete": true,
+  "sharpe": 1.2570911497433417,
+  "cagr": 0.2232368793369539,
+  "checks": {
+   "nudges": "pass",
+   "sectors": "pass",
+   "cap_buckets": "pass",
+   "selloffs": "pass",
+   "single_stock": "pass"
+  },
+  "robust_report": "20261021T142925784132Z-momo-fb84caa922075c1b.json",
+  "vs_benchmarks": {
+   "SPY": {
+    "sharpe_diff": 0.2590315322752291,
+    "excess_cagr": 0.05006364316195944
+   },
+   "equal_weight": {
+    "sharpe_diff": 0.4024552193499492,
+    "excess_cagr": 0.05629101854212348
+   }
+  }
+ },
+ "spec": {
+  "id": "trend-start-ride-15",
+  "author_bot": "momo",
+  "description": "trend-start-ride with 15 slots so small sectors get more entries and no single name dominates.",
+  "universe": "broad",
+  "indicators": {
+   "trend": {
+    "fn": "sma",
+    "length": 200
+   },
+   "fast": {
+    "fn": "sma",
+    "length": 50
+   },
+   "ob": {
+    "fn": "obv_trend",
+    "length": 63
+   }
+  },
+  "params": {
+   "flow": {
+    "value": 0.05,
+    "min": 0.0,
+    "max": 0.15
+   },
+   "hold": {
+    "value": 126.0,
+    "min": 63.0,
+    "max": 189.0
+   }
+  },
+  "entry": "crosses_above(close, trend) and prev(close, 63) < prev(trend, 63) and ob > flow",
+  "exit": "close < 0.9 * trend or (bars_held >= hold and close < fast)",
+  "sizing": {
+   "method": "equal_weight",
+   "max_positions": 15,
+   "max_weight": 0.0667
+  }
+ }
+}
