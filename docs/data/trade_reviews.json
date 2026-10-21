@@ -1,6 +1,6 @@
 {
-  "exported_at": "2026-10-20T19:54:42.683484Z",
-  "count": 195,
+  "exported_at": "2026-10-21T13:34:28.493494Z",
+  "count": 197,
   "reviews": [
     {
       "ticker": "RGTI",
@@ -31402,6 +31402,328 @@
       ],
       "mode": "alpaca",
       "sector": "space"
+    },
+    {
+      "ticker": "TER",
+      "qty": 0.009994,
+      "entry": 388.7466117670804,
+      "exit": 346.51,
+      "pnl": -0.42211269800020185,
+      "pnl_pct": -10.8648,
+      "opened_at": "2026-09-08T19:46:13.355892Z",
+      "closed_at": "2026-10-21T13:33:52.390986Z",
+      "hold_hours": 1025.794,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.009994 TER @~347.47; opportunity rotate to fund GOOGL (buy_score=0.505 donor_score=0.235)",
+      "entry_ticket_id": 350,
+      "exit_ticket_id": 378,
+      "entry_fill_id": 233,
+      "exit_fill_id": 261,
+      "entry_score": {
+        "weighted_score": 0.52,
+        "blended_conf": 65.0
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 81.46924311217691,
+          "reasoning_trunc": "MA20 > MA50 (short-term uptrend); MA50 > MA200 (intermediate uptrend); MACD histogram negative; 20d RS vs SPY: +15.45%; RVOL 0.09x vs 20d avg; Demand imbalance\u2026",
+          "signal_id": 19478,
+          "created_at": "2026-10-12T13:51:15.938670Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "long",
+          "confidence": 92.0,
+          "reasoning_trunc": "Quality: Strong revenue growth (103.9%); Strong earnings growth (385.8%); High profit margin (25.8%); Strong operating margin (33.2%) | Valuation/EV: rich P/E\u2026",
+          "signal_id": 19479,
+          "created_at": "2026-10-12T13:51:16.208371Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "long",
+          "confidence": 86.55000000000001,
+          "reasoning_trunc": "price near MA20 (z=-0.22); strong 20d momentum +18.0%; 60d trend up +20.6%; cross-sectional mom rank top (85%); low vol regime",
+          "signal_id": 19480,
+          "created_at": "2026-10-12T13:51:16.216476Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "neutral",
+          "confidence": 20.0,
+          "reasoning_trunc": "No recent headlines available for this ticker; emitting neutral with no manipulation flag (insufficient data, not risk).",
+          "signal_id": 19481,
+          "created_at": "2026-10-12T13:51:16.396455Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (robotics); VIX contained (15.4); Dollar firm (+3.2% 20d) \u2014 risk headwind; Rates headwind\u2026",
+          "signal_id": 19482,
+          "created_at": "2026-10-12T13:51:16.399502Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "fundamental",
+          "statistical_ml"
+        ],
+        "short": [],
+        "neutral": [
+          "sentiment",
+          "macro"
+        ],
+        "disagreement": false,
+        "lead_agent": "fundamental",
+        "lead_confidence": 92.0
+      },
+      "path": {
+        "mfe_pct": 16.2351,
+        "mae_pct": -17.0848,
+        "ret_pct": -10.8648
+      },
+      "verdict": "Lost money: Realized PnL=-0.4221. Entered aligned; lead agent fundamental was long@92.0 (see fundamental signal #19479 long @ conf=92.0). Entry weighted_score=0.52. Exit was an opportunity-rotate trim to fund another name. Held 1025.8h.",
+      "verdict_tags": [
+        "loser",
+        "aligned",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 233,
+          "label": "entry fill",
+          "detail": "buy qty=0.009994 @ 388.7466117670804"
+        },
+        {
+          "kind": "fill",
+          "id": 261,
+          "label": "exit fill",
+          "detail": "sell @ 346.51"
+        },
+        {
+          "kind": "ticket",
+          "id": 350,
+          "label": "entry ticket",
+          "detail": "BUY 0.00268 TER @~388.58; weighted_score=0.520; blended_conf=65.0; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 378,
+          "label": "exit ticket",
+          "detail": "SELL 0.009994 TER @~347.47; opportunity rotate to fund GOOGL (buy_score=0.505 donor_score=0.235)"
+        },
+        {
+          "kind": "signal",
+          "id": 19478,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=81.5"
+        },
+        {
+          "kind": "signal",
+          "id": 19479,
+          "label": "fundamental @ entry",
+          "detail": "long @ conf=92.0"
+        },
+        {
+          "kind": "signal",
+          "id": 19480,
+          "label": "statistical_ml @ entry",
+          "detail": "long @ conf=86.6"
+        },
+        {
+          "kind": "signal",
+          "id": 19481,
+          "label": "sentiment @ entry",
+          "detail": "neutral @ conf=20.0"
+        },
+        {
+          "kind": "signal",
+          "id": 19482,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.52; blended_conf=65.0"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=16.2351; mae_pct=-17.0848; ret_pct=-10.8648"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "robotics"
+    },
+    {
+      "ticker": "TER",
+      "qty": 0.007495,
+      "entry": 388.7466117670804,
+      "exit": 346.51,
+      "pnl": -0.31656340519426784,
+      "pnl_pct": -10.8648,
+      "opened_at": "2026-09-08T19:46:13.355892Z",
+      "closed_at": "2026-10-21T13:33:53.177097Z",
+      "hold_hours": 1025.794,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.007495 TER @~347.47; opportunity rotate to fund LMT (buy_score=0.481 donor_score=0.235)",
+      "entry_ticket_id": 350,
+      "exit_ticket_id": 379,
+      "entry_fill_id": 233,
+      "exit_fill_id": 262,
+      "entry_score": {
+        "weighted_score": 0.52,
+        "blended_conf": 65.0
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 81.46924311217691,
+          "reasoning_trunc": "MA20 > MA50 (short-term uptrend); MA50 > MA200 (intermediate uptrend); MACD histogram negative; 20d RS vs SPY: +15.45%; RVOL 0.09x vs 20d avg; Demand imbalance\u2026",
+          "signal_id": 19478,
+          "created_at": "2026-10-12T13:51:15.938670Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "long",
+          "confidence": 92.0,
+          "reasoning_trunc": "Quality: Strong revenue growth (103.9%); Strong earnings growth (385.8%); High profit margin (25.8%); Strong operating margin (33.2%) | Valuation/EV: rich P/E\u2026",
+          "signal_id": 19479,
+          "created_at": "2026-10-12T13:51:16.208371Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "long",
+          "confidence": 86.55000000000001,
+          "reasoning_trunc": "price near MA20 (z=-0.22); strong 20d momentum +18.0%; 60d trend up +20.6%; cross-sectional mom rank top (85%); low vol regime",
+          "signal_id": 19480,
+          "created_at": "2026-10-12T13:51:16.216476Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "neutral",
+          "confidence": 20.0,
+          "reasoning_trunc": "No recent headlines available for this ticker; emitting neutral with no manipulation flag (insufficient data, not risk).",
+          "signal_id": 19481,
+          "created_at": "2026-10-12T13:51:16.396455Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "neutral",
+          "confidence": 45.0,
+          "reasoning_trunc": "Macro regime=neutral (risk=moderate); Neutral regime: no sector tilt (robotics); VIX contained (15.4); Dollar firm (+3.2% 20d) \u2014 risk headwind; Rates headwind\u2026",
+          "signal_id": 19482,
+          "created_at": "2026-10-12T13:51:16.399502Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "fundamental",
+          "statistical_ml"
+        ],
+        "short": [],
+        "neutral": [
+          "sentiment",
+          "macro"
+        ],
+        "disagreement": false,
+        "lead_agent": "fundamental",
+        "lead_confidence": 92.0
+      },
+      "path": {
+        "mfe_pct": 16.2351,
+        "mae_pct": -17.0848,
+        "ret_pct": -10.8648
+      },
+      "verdict": "Lost money: Realized PnL=-0.3166. Entered aligned; lead agent fundamental was long@92.0 (see fundamental signal #19479 long @ conf=92.0). Entry weighted_score=0.52. Exit was an opportunity-rotate trim to fund another name. Held 1025.8h.",
+      "verdict_tags": [
+        "loser",
+        "aligned",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 233,
+          "label": "entry fill",
+          "detail": "buy qty=0.007495 @ 388.7466117670804"
+        },
+        {
+          "kind": "fill",
+          "id": 262,
+          "label": "exit fill",
+          "detail": "sell @ 346.51"
+        },
+        {
+          "kind": "ticket",
+          "id": 350,
+          "label": "entry ticket",
+          "detail": "BUY 0.00268 TER @~388.58; weighted_score=0.520; blended_conf=65.0; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 379,
+          "label": "exit ticket",
+          "detail": "SELL 0.007495 TER @~347.47; opportunity rotate to fund LMT (buy_score=0.481 donor_score=0.235)"
+        },
+        {
+          "kind": "signal",
+          "id": 19478,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=81.5"
+        },
+        {
+          "kind": "signal",
+          "id": 19479,
+          "label": "fundamental @ entry",
+          "detail": "long @ conf=92.0"
+        },
+        {
+          "kind": "signal",
+          "id": 19480,
+          "label": "statistical_ml @ entry",
+          "detail": "long @ conf=86.6"
+        },
+        {
+          "kind": "signal",
+          "id": 19481,
+          "label": "sentiment @ entry",
+          "detail": "neutral @ conf=20.0"
+        },
+        {
+          "kind": "signal",
+          "id": 19482,
+          "label": "macro @ entry",
+          "detail": "neutral @ conf=45.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.52; blended_conf=65.0"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=16.2351; mae_pct=-17.0848; ret_pct=-10.8648"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "robotics"
     }
   ]
 }
