@@ -1,6 +1,6 @@
 {
-  "exported_at": "2026-10-21T17:56:00.383975Z",
-  "count": 206,
+  "exported_at": "2026-10-21T18:49:06.051240Z",
+  "count": 207,
   "reviews": [
     {
       "ticker": "RGTI",
@@ -33173,6 +33173,167 @@
       ],
       "mode": "alpaca",
       "sector": "quantum"
+    },
+    {
+      "ticker": "LMT",
+      "qty": 0.001825,
+      "entry": 552.284,
+      "exit": 547.58,
+      "pnl": -0.00858479999999991,
+      "pnl_pct": -0.8517,
+      "opened_at": "2026-10-21T13:33:54.751541Z",
+      "closed_at": "2026-10-21T18:48:36.227300Z",
+      "hold_hours": 5.245,
+      "exit_reason": "opportunity_rotate",
+      "exit_rationale": "SELL 0.001825 LMT @~548.03; opportunity rotate to fund PATH (buy_score=0.598 donor_score=0.362)",
+      "entry_ticket_id": 381,
+      "exit_ticket_id": 399,
+      "entry_fill_id": 264,
+      "exit_fill_id": 282,
+      "entry_score": {
+        "weighted_score": 0.481,
+        "blended_conf": 63.2
+      },
+      "agents_at_entry": [
+        {
+          "agent_id": "momentum",
+          "direction": "long",
+          "confidence": 59.64292060174249,
+          "reasoning_trunc": "MA20 < MA50 (short-term downtrend); MA50 > MA200 (intermediate uptrend); RSI constructive (64.3); MACD histogram positive; 20d RS vs SPY: +5.07%; RVOL 0.02x vs\u2026",
+          "signal_id": 28919,
+          "created_at": "2026-10-21T13:33:36.121884Z"
+        },
+        {
+          "agent_id": "fundamental",
+          "direction": "long",
+          "confidence": 92.0,
+          "reasoning_trunc": "Quality: Solid revenue growth (10.5%); Strong earnings growth (443.8%); Healthy profit margin (8.2%); OK operating margin (12.0%) | Valuation/EV: reasonable P/\u2026",
+          "signal_id": 28920,
+          "created_at": "2026-10-21T13:33:36.863379Z"
+        },
+        {
+          "agent_id": "statistical_ml",
+          "direction": "neutral",
+          "confidence": 55.365,
+          "reasoning_trunc": "overbought vs MA20 (z=1.88); residual_to_MA20=+6.3%; positive 20d momentum +5.4%; momentum dampened (extreme MA residual); cross-sectional mom rank top (92%);\u2026",
+          "signal_id": 28921,
+          "created_at": "2026-10-21T13:33:36.870639Z"
+        },
+        {
+          "agent_id": "sentiment",
+          "direction": "neutral",
+          "confidence": 20.0,
+          "reasoning_trunc": "No recent headlines available for this ticker; emitting neutral with no manipulation flag (insufficient data, not risk).",
+          "signal_id": 28922,
+          "created_at": "2026-10-21T13:33:37.309366Z"
+        },
+        {
+          "agent_id": "macro",
+          "direction": "long",
+          "confidence": 89.0,
+          "reasoning_trunc": "Macro regime=risk_on (risk=low); Risk-on: favor high-beta theme exposure (space); VIX contained (17.0); Dollar stable (+0.9% 20d); Rates stable (+0.2%); Benchm\u2026",
+          "signal_id": 28923,
+          "created_at": "2026-10-21T13:33:37.314005Z"
+        }
+      ],
+      "mix": {
+        "long": [
+          "momentum",
+          "fundamental",
+          "macro"
+        ],
+        "short": [],
+        "neutral": [
+          "statistical_ml",
+          "sentiment"
+        ],
+        "disagreement": false,
+        "lead_agent": "fundamental",
+        "lead_confidence": 92.0
+      },
+      "path": {
+        "mfe_pct": 0.0971,
+        "mae_pct": -1.3797,
+        "ret_pct": -0.8517
+      },
+      "verdict": "Lost money: Realized PnL=-0.0086. Entered aligned; lead agent fundamental was long@92.0 (see fundamental signal #28920 long @ conf=92.0). Entry weighted_score=0.481. Exit was an opportunity-rotate trim to fund another name. Held 5.2h.",
+      "verdict_tags": [
+        "loser",
+        "aligned",
+        "forced_exit",
+        "rotate_exit"
+      ],
+      "completeness": "full",
+      "evidence": [
+        {
+          "kind": "fill",
+          "id": 264,
+          "label": "entry fill",
+          "detail": "buy qty=0.001825 @ 552.284"
+        },
+        {
+          "kind": "fill",
+          "id": 282,
+          "label": "exit fill",
+          "detail": "sell @ 547.58"
+        },
+        {
+          "kind": "ticket",
+          "id": 381,
+          "label": "entry ticket",
+          "detail": "BUY 0.004787 LMT @~552.82; weighted_score=0.481; blended_conf=63.2; max_pos=20%"
+        },
+        {
+          "kind": "ticket",
+          "id": 399,
+          "label": "exit ticket",
+          "detail": "SELL 0.001825 LMT @~548.03; opportunity rotate to fund PATH (buy_score=0.598 donor_score=0.362)"
+        },
+        {
+          "kind": "signal",
+          "id": 28919,
+          "label": "momentum @ entry",
+          "detail": "long @ conf=59.6"
+        },
+        {
+          "kind": "signal",
+          "id": 28920,
+          "label": "fundamental @ entry",
+          "detail": "long @ conf=92.0"
+        },
+        {
+          "kind": "signal",
+          "id": 28921,
+          "label": "statistical_ml @ entry",
+          "detail": "neutral @ conf=55.4"
+        },
+        {
+          "kind": "signal",
+          "id": 28922,
+          "label": "sentiment @ entry",
+          "detail": "neutral @ conf=20.0"
+        },
+        {
+          "kind": "signal",
+          "id": 28923,
+          "label": "macro @ entry",
+          "detail": "long @ conf=89.0"
+        },
+        {
+          "kind": "score",
+          "id": null,
+          "label": "entry score",
+          "detail": "weighted_score=0.481; blended_conf=63.2"
+        },
+        {
+          "kind": "path",
+          "id": null,
+          "label": "path stats",
+          "detail": "source=daily_bars; mfe_pct=0.0971; mae_pct=-1.3797; ret_pct=-0.8517"
+        }
+      ],
+      "mode": "alpaca",
+      "sector": "space"
     }
   ]
 }
