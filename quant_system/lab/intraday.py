@@ -51,6 +51,10 @@ TIMEFRAME_MINUTES = {"15m": 15, "30m": 30, "1h": 60, "2h": 120}
 MANIFEST_NAME = "_manifest.json"
 CALENDAR_NAME = "_calendar.csv"
 COVERAGE_NAME = "_coverage.json"
+# Daily-bar comparisons scale by the median 15m / daily ratio of the previous
+# sessions (at least TRAIL_MIN of them; earlier sessions are not compared).
+TRAIL_SESSIONS = 20
+TRAIL_MIN = 5
 FIELDS = ("Open", "High", "Low", "Close", "Volume")
 _RAW_COLUMNS = {"o": "Open", "h": "High", "l": "Low", "c": "Close", "v": "Volume"}
 
@@ -432,7 +436,7 @@ def build_panels(
     start: date,
     ceiling: date,
     daily: Mapping[str, pd.DataFrame] | None = None,
-    tolerance: float = LabCoverageSettings().price_tolerance,
+    cov: LabCoverageSettings | None = None,
 ) -> IntradayPanels:
     """Read each name's 15m bars (one at a time), build ``timeframe`` bars, fill the panels.
 
@@ -457,7 +461,7 @@ def build_panels(
         df = df.loc[df.index.normalize() >= pd.Timestamp(start)]
         if check and not df.empty:
             bad = skipped_sessions(
-                session_problems(df, (daily or {}).get(sym), calendar, start, ceiling, tolerance)
+                session_problems(df, (daily or {}).get(sym), calendar, start, ceiling), cov or LabCoverageSettings()
             )
             if len(bad):
                 df = df.loc[~df.index.normalize().isin(bad)]
@@ -594,7 +598,7 @@ class IntradaySource:
         self._cached = build_panels(
             want, timeframe, bench=bench, calendar=self.calendar, loader=self._loader,
             start=self.settings.data.start, ceiling=self.ceiling, daily=daily,
-            tolerance=self.settings.data.intraday.coverage.price_tolerance,
+            cov=self.settings.data.intraday.coverage,
         )
         return self._cached
 
@@ -616,18 +620,24 @@ def session_problems(
     calendar: pd.DataFrame,
     start: date,
     ceiling: date,
-    tolerance: float,
 ) -> dict[str, Any]:
-    """One name's suspect sessions: what intraday runs leave out, and the coverage check lists.
+    """One name's sessions checked against the calendar and its daily bars.
 
     - ``short``: some bars, but under half the session's scheduled 15m bars.
       Alpaca has market-wide gaps (2018-05-02/03, 2021-04-19, 2021-10-25) where
       most names have only the opening bar.
-    - ``open`` / ``close``: the session's first 15m open or last 15m close is
-      over ``tolerance`` off the daily bar, after scaling by the median ratio
-      (the two caches can be adjusted a few days apart). Usually a first trade
-      away from the opening auction on a gap day; sometimes a bad print (PCG
-      2019-01-24: last 15m close 41% above the day's close).
+    - ``open_off`` / ``close_off`` (per session): how far the first 15m open /
+      last 15m close is from the daily bar's open / close, relative to the
+      median ratio of the previous ``TRAIL_SESSIONS`` sessions (the two caches
+      can be adjusted a few days apart; nothing later is used). A few percent is
+      normal on a gap day or a wild close: the first trade is not the opening
+      auction, and the closing auction prints after the last 15m bar. Tens of
+      percent is rare (8 closes in 2020 across 299 names), and then one of the
+      two sources is wrong about where the stock was.
+    - ``range_off`` (per session): how far the session's 15m high / low reach
+      outside the daily bar's high / low, scaled the same way. The daily bar is
+      built from the same trades plus the auctions, so a real 15m trade never
+      lands outside it; when one does, the 15m bars are broken (2018-05-02/03).
 
     Expected sessions (``days``): calendar sessions start..ceiling on which the
     daily cache has a bar (every session when there are no daily bars, and then
@@ -636,9 +646,10 @@ def session_problems(
     cal = calendar.loc[(calendar.index >= pd.Timestamp(start)) & (calendar.index <= pd.Timestamp(ceiling))]
     has_daily = daily is not None and not daily.empty
     days = cal.index.intersection(daily.index.normalize()) if has_daily else cal.index
-    none = pd.DatetimeIndex([])
+    none = pd.Series(dtype=float, index=pd.DatetimeIndex([]))
     out: dict[str, Any] = {
-        "days": days, "per_day": np.zeros(len(days), dtype=int), "short": none, "open": none, "close": none,
+        "days": days, "per_day": np.zeros(len(days), dtype=int), "short": pd.DatetimeIndex([]),
+        "open_off": none, "close_off": none, "range_off": none,
         "open_ratio_median": None, "close_ratio_median": None,
     }
     if df15 is None or df15.empty:
@@ -651,19 +662,38 @@ def session_problems(
     out["short"] = days[(per_day > 0) & (per_day < scheduled / 2)]
     if has_daily:
         d = daily.loc[daily.index.isin(days)]
+        refs = {}
         for name, ours, theirs in (("open", by_day["Open"].first(), d["Open"]),
                                    ("close", by_day["Close"].last(), d["Close"])):
             ratio = (ours.reindex(d.index) / theirs).replace([np.inf, -np.inf], np.nan).dropna()
-            k = float(ratio.median()) if len(ratio) else float("nan")
-            off = (ratio / k - 1.0).abs() if math.isfinite(k) and k > 0 else ratio * np.nan
-            out[name] = pd.DatetimeIndex(off.index[off > tolerance])
-            out[f"{name}_ratio_median"] = k
+            refs[name] = ref = ratio.shift(1).rolling(TRAIL_SESSIONS, min_periods=TRAIL_MIN).median()
+            out[f"{name}_off"] = (ratio / ref - 1.0).abs().dropna()
+            out[f"{name}_ratio_median"] = float(ratio.median()) if len(ratio) else None
+        ref = refs["close"].reindex(d.index)
+        above = by_day["High"].max().reindex(d.index) / (d["High"] * ref) - 1.0
+        below = 1.0 - by_day["Low"].min().reindex(d.index) / (d["Low"] * ref)
+        out["range_off"] = pd.concat([above, below], axis=1).max(axis=1).clip(lower=0.0).dropna()
     return out
 
 
-def skipped_sessions(problems: Mapping[str, Any]) -> pd.DatetimeIndex:
-    """Every session ``session_problems`` found, for any reason."""
-    return problems["short"].union(problems["open"]).union(problems["close"])
+def off_days(problems: Mapping[str, Any], name: str, tolerance: float) -> pd.DatetimeIndex:
+    """Sessions whose ``name`` (open / close / range) is over ``tolerance`` off the daily bar."""
+    off = problems[f"{name}_off"]
+    return pd.DatetimeIndex(off.index[off > tolerance])
+
+
+def skipped_sessions(problems: Mapping[str, Any], cov: LabCoverageSettings) -> pd.DatetimeIndex:
+    """Sessions intraday runs leave out: short ones, 15m prices outside the daily range by over
+    ``cov.range_tolerance``, and opens / closes off by over ``cov.skip_tolerance``.
+
+    A smaller open / close gap is kept: on big days the first and last trades
+    differ from the auctions, and skipping those sessions would drop the very
+    days gap and crash strategies trade (March 2020).
+    """
+    out = problems["short"].union(off_days(problems, "range", cov.range_tolerance))
+    return out.union(off_days(problems, "open", cov.skip_tolerance)).union(
+        off_days(problems, "close", cov.skip_tolerance)
+    )
 
 
 def ticker_coverage(
@@ -676,12 +706,13 @@ def ticker_coverage(
 ) -> dict[str, Any]:
     """Coverage of one name at 15m and 1h, against the calendar and its daily bars.
 
-    Expected sessions as in ``session_problems``. ``skipped_sessions`` are the
-    sessions intraday runs leave out for this name.
+    Expected sessions as in ``session_problems``. Mismatch days are counted at
+    ``price_tolerance`` (a flag, nothing dropped); ``skipped_sessions`` are the
+    sessions intraday runs leave out for this name (``skipped_sessions()``).
     """
     if df15 is not None:
         df15 = _clip(df15, ceiling)
-    probs = session_problems(df15, daily, calendar, start, ceiling, cov.price_tolerance)
+    probs = session_problems(df15, daily, calendar, start, ceiling)
     days = probs["days"]
     row: dict[str, Any] = {"sessions_expected": int(len(days))}
     if df15 is None or df15.empty:
@@ -711,8 +742,8 @@ def ticker_coverage(
         mism = 0
         for name in ("open", "close"):
             row[f"{name}_ratio_median"] = probs[f"{name}_ratio_median"]
-            row[f"{name}_mismatch_days"] = int(len(probs[name]))
-            mism += len(probs[name])
+            row[f"{name}_mismatch_days"] = n = int(len(off_days(probs, name, cov.price_tolerance)))
+            mism += n
         if mism > cov.max_mismatch_days:
             flags.append(f"{mism} open/close days off the daily bar by over {cov.price_tolerance:.0%}")
         d = daily.loc[daily.index.isin(days)]
@@ -721,7 +752,7 @@ def ticker_coverage(
         row["volume_ratio_median"] = float(vr.median()) if len(vr) else None
     else:
         flags.append("no daily bars to compare")
-    row["skipped_sessions"] = [str(d.date()) for d in skipped_sessions(probs)]
+    row["skipped_sessions"] = [str(d.date()) for d in skipped_sessions(probs, cov)]
     row["flags"] = flags
     return row
 

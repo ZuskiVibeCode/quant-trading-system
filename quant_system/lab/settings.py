@@ -36,8 +36,9 @@ class LabWarmupSettings(BaseModel):
 class LabCoverageSettings(BaseModel):
     """Intraday coverage flags (`lab data intraday-status`). A flagged name is listed, not dropped.
 
-    Intraday runs do leave out each name's short sessions and sessions off the
-    daily bar by over ``price_tolerance`` (``intraday.session_problems``).
+    Intraday runs do leave out each name's short sessions, sessions outside the
+    daily range by over ``range_tolerance`` and sessions off the daily open /
+    close by over ``skip_tolerance`` (``intraday.skipped_sessions``).
     """
 
     # Share of a name's scheduled 15m bars with no bar (no trade in that slot).
@@ -48,9 +49,18 @@ class LabCoverageSettings(BaseModel):
     # market-wide gaps on a few dates, e.g. 2021-04-19: often just the opening bar).
     max_short_sessions: int = 5
     # A session's first 15m open / last 15m close vs the daily bar, after scaling
-    # by the median ratio (the two caches can be adjusted a few days apart).
+    # by the median ratio of the previous sessions (the two caches can be adjusted
+    # a few days apart). Over price_tolerance is flagged; over skip_tolerance the
+    # session is left out of intraday runs. Between the two is normal on big days
+    # (first trade vs the opening auction, last trade vs the closing auction), and
+    # skipping it would drop the very days gap and crash strategies trade: at 1%,
+    # March 2020 lost 214 name-sessions across 299 names; with this rule, 11.
     price_tolerance: float = 0.01
     max_mismatch_days: int = 5
+    skip_tolerance: float = 0.10
+    # A session whose 15m high / low lands outside the daily bar's range by more
+    # than this is left out: real trades never do (Alpaca's 2018-05-02/03 bars do).
+    range_tolerance: float = 0.01
 
 
 class LabIntradaySettings(BaseModel):

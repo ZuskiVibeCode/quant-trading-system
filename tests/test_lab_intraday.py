@@ -26,8 +26,10 @@ from quant_system.lab.intraday import (
     raw_bars_frame,
     regular_hours,
     resample,
+    off_days,
     save_intraday,
     session_problems,
+    skipped_sessions,
     sync_intraday,
     ticker_coverage,
 )
@@ -487,38 +489,80 @@ def test_intraday_runs_take_turns_on_one_machine(tmp_path):
 
 
 def test_suspect_sessions_are_left_out_of_the_panels_but_not_the_benchmark():
-    cal, intra, daily = _world(n_sessions=12)
+    cal, intra, daily = _world(n_sessions=16)
     intra = {k: v.copy() for k, v in intra.items()}  # ``daily`` keeps the clean prices
-    d3, d5, d6 = cal.index[3], cal.index[5], cal.index[6]
+    d7, d9, d10, d11, d12 = (cal.index[i] for i in (7, 9, 10, 11, 12))
     day = lambda df, d: df.index.normalize() == d  # noqa: E731
+
+    def bump(sym, d, field, k, last=False):
+        df = intra[sym]
+        df.loc[df.index[day(df, d)][-1 if last else 0], field] *= k
+
     a = intra["AAA"]
-    intra["AAA"] = a.loc[~day(a, d3) | (a.index.time == pd.Timestamp("09:30").time())]  # one bar: short
-    b = intra["BBB"]
-    b.loc[b.index[day(b, d5)][-1], "Close"] *= 1.4  # a bad last print (PCG 2019-01-24)
-    c = intra["CCC"]
-    c.loc[c.index[day(c, d6)][0], "Open"] *= 1.02  # first trade off the opening auction
-    s = intra["SPY"]
-    s.loc[s.index[day(s, d5)][-1], "Close"] *= 1.4
+    intra["AAA"] = a.loc[~day(a, d7) | (a.index.time == pd.Timestamp("09:30").time())]  # one bar: short
+    bump("BBB", d9, "Close", 1.4, last=True)  # a bad last print (PCG 2019-01-24): skipped
+    bump("CCC", d10, "Open", 1.02)  # first trade off the opening auction on a gap day: kept
+    bump("DDD", d11, "Close", 1.03, last=True)  # last trade off the closing auction on a wild day: kept
+    bump("DDD", d12, "Open", 1.15)  # an opening print far off the open: skipped
+    bump("CCC", d12, "High", 1.03)  # a 15m high above the day's high: broken bars, skipped
+    bump("SPY", d9, "Close", 1.4, last=True)
 
     start, end = date(2016, 1, 1), date(2021, 12, 31)
-    probs = session_problems(intra["BBB"], daily["BBB"], cal, start, end, 0.01)
-    assert list(probs["close"]) == [d5] and len(probs["open"]) == 0 and len(probs["short"]) == 0
-    assert list(session_problems(intra["CCC"], daily["CCC"], cal, start, end, 0.01)["open"]) == [d6]
+    probs = session_problems(intra["BBB"], daily["BBB"], cal, start, end)
+    assert list(off_days(probs, "close", 0.01)) == [d9] and len(off_days(probs, "open", 0.01)) == 0
+    assert probs["close_off"].index[0] == cal.index[5]  # the first sessions have no trailing median yet
+    ccc = session_problems(intra["CCC"], daily["CCC"], cal, start, end)
+    cov = LabCoverageSettings()
+    assert list(off_days(ccc, "open", 0.01)) == [d10] and list(skipped_sessions(ccc, cov)) == [d12]
+    assert list(off_days(ccc, "range", 0.01)) == [d12]
 
     p = build_panels(list(NAMES), "15m", bench="SPY", calendar=cal, loader=intra.get, start=start,
                      ceiling=end, daily=daily)
-    assert p.skipped == {"AAA": 1, "BBB": 1, "CCC": 1}
+    assert p.skipped == {"AAA": 1, "BBB": 1, "CCC": 1, "DDD": 1}
     col = {sym: j for j, sym in enumerate(p.symbols)}
     on = lambda d: p.index.normalize() == d  # noqa: E731
-    assert np.isnan(p.close[on(d3), col["AAA"]]).all() and np.isnan(p.open[on(d5), col["BBB"]]).all()
-    assert np.isnan(p.close[on(d6), col["CCC"]]).all() and not np.isnan(p.close[on(d6), col["BBB"]]).any()
-    assert not np.isnan(p.bench_close[on(d5)]).any()  # the benchmark is never trimmed
+    assert np.isnan(p.close[on(d7), col["AAA"]]).all() and np.isnan(p.open[on(d9), col["BBB"]]).all()
+    assert np.isnan(p.close[on(d12), col["DDD"]]).all() and not np.isnan(p.close[on(d11), col["DDD"]]).any()
+    assert not np.isnan(p.close[on(d10), col["CCC"]]).any() and np.isnan(p.close[on(d12), col["CCC"]]).all()
+    assert not np.isnan(p.bench_close[on(d9)]).any()  # the benchmark is never trimmed
     # Without daily bars only short sessions can be found.
     bare = build_panels(list(NAMES), "15m", bench="SPY", calendar=cal, loader=intra.get, start=start, ceiling=end)
     assert bare.skipped == {"AAA": 1}
 
-    row = ticker_coverage(intra["BBB"], daily["BBB"], cal, start, end, LabCoverageSettings())
-    assert row["skipped_sessions"] == [str(d5.date())] and row["close_mismatch_days"] == 1
+    row = ticker_coverage(intra["DDD"], daily["DDD"], cal, start, end, LabCoverageSettings())
+    assert row["skipped_sessions"] == [str(d12.date())]
+    assert row["close_mismatch_days"] == 1 and row["open_mismatch_days"] == 1  # flagged at 1%, kept
+
+
+def test_session_checks_use_no_later_data():
+    cal, intra, daily = _world(n_sessions=30)
+    start, end = date(2016, 1, 1), date(2021, 12, 31)
+    df = intra["BBB"].copy()
+    df.loc[df.index[df.index.normalize() == cal.index[7]][-1], "Close"] *= 1.03
+    before = session_problems(df, daily["BBB"], cal, start, end)
+    late = df.index.normalize() > cal.index[9]
+    df.loc[late, ["Open", "High", "Low", "Close"]] *= 1.3  # most of the window: a whole-window median would move
+    after = session_problems(df, daily["BBB"], cal, start, end)
+    for name in ("open_off", "close_off"):
+        upto = lambda x: x.loc[x.index <= cal.index[9]]  # noqa: E731
+        pd.testing.assert_series_equal(upto(before[name]), upto(after[name]))
+    assert list(off_days(after, "close", 0.01)[:1]) == [cal.index[7]]
+
+
+def test_exit_on_an_empty_bar_fills_at_the_next_bar_with_a_price():
+    cal, intra, daily = _world(flat=True)
+    panels = _panels(cal, intra)
+    j = panels.symbols.index("AAA")
+    skip = panels.index.normalize() == cal.index[26]  # AAA's session 26 is skipped
+    for arr in (panels.open, panels.high, panels.low, panels.close):
+        arr[skip, j] = np.nan
+    spec = _spec(entry="bar_of_day == 0 and close > 0", exit="bar_of_day == 25 and close > 0",
+                 sizing={"max_positions": 1, "max_weight": 0.2})
+    res = run_spec_intraday(spec, panels, daily, list(NAMES), _window(cal, 25, 29), COSTS)
+    sells = res.trades[(res.trades["side"] == "sell") & (res.trades["symbol"] == "AAA")]
+    # Exit signal at session 25's last bar; session 26 has no AAA bar, so it fills at session 27's open
+    # (before, the order was dropped and the rule only fired again at session 27's close).
+    assert sells.iloc[0]["date"] == cal.index[27] + pd.Timedelta(hours=9, minutes=30)
 
 
 def test_intraday_runs_report_skipped_sessions(tmp_path):
