@@ -643,3 +643,141 @@ def test_smoke_run_is_not_a_trial_and_shows_no_score(tmp_path):
     # The same spec still scores as a trial afterwards.
     score_spec(spec, author_bot="b", intraday=_source(cal, intra, settings), **kw)
     assert trial_stats("discovery", data_dir=tmp_path)["n_trials"] == 1
+
+
+# -- multi-timeframe specs (Stage 2) ---------------------------------------------
+
+
+def _mtf(**changes) -> StrategySpec:
+    base = {
+        "indicators": {"trend": {"fn": "sma", "length": 3, "timeframe": "1d"},
+                       "h": {"fn": "sma", "length": 2, "timeframe": "1h"},
+                       "r": {"fn": "rsi", "length": 6}},
+        "entry": "close > trend and close > h and r < 60",
+        "exit": "r > 55 or bars_held >= 6",
+        "sizing": {"max_positions": 2},
+    }
+    return _spec(**{**base, **changes})
+
+
+def test_indicator_timeframes_must_be_slower_and_are_their_own_trial():
+    spec = _mtf()
+    assert spec.timeframes == ["15m", "1h", "1d"] and _spec().timeframes == ["15m"]
+    assert spec.indicator_args("trend") == {"length": 3}  # the timeframe is not an indicator setting
+    one_h = _spec(timeframe="1h", indicators={"t": {"fn": "sma", "length": 3, "timeframe": "1d"}}, entry="close > t")
+    assert one_h.timeframes == ["1h", "1d"]
+    with pytest.raises(ValueError, match="not slower than the spec's 1h"):
+        _spec(timeframe="1h", indicators={"t": {"fn": "sma", "timeframe": "1h"}}, entry="close > t")
+    with pytest.raises(ValueError, match="may read 1h or 1d"):
+        _spec(indicators={"t": {"fn": "sma", "timeframe": "15m"}}, entry="close > t")
+    with pytest.raises(ValueError, match="needs an intraday spec timeframe"):
+        _spec(timeframe=None, indicators={"t": {"fn": "sma", "timeframe": "1d"}}, entry="close > t")
+    daily_only = _spec(indicators={"trend": {"fn": "sma", "length": 3, "timeframe": "1d"}}, entry="close > trend")
+    no_tf = _spec(indicators={"trend": {"fn": "sma", "length": 3}}, entry="close > trend")
+    assert len({daily_only.hash, no_tf.hash, daily_only.with_timeframe("1h").hash}) == 3
+    assert "timeframe" not in no_tf.canonical()["indicators"]["trend"]  # old hashes unchanged
+    assert spec.with_timeframe("30m").timeframes == ["30m", "1h", "1d"]  # robustness neighbour still valid
+
+
+def test_slower_bars_are_seen_only_once_closed():
+    from quant_system.lab.engine import intraday_indicator_panels
+
+    cal, intra, daily = _world(n_sessions=30)
+    spec = _mtf()
+    names = list(NAMES)
+    D = cal.index[20]
+
+    def values(intra_, daily_):
+        p = _panels(cal, intra_)
+        cols = np.arange(len(p.symbols))
+        return p, intraday_indicator_panels(spec, p, len(p.index), cols, daily=daily_, bench="SPY")
+
+    p, base = values(intra, daily)
+    day = p.index.normalize()
+
+    # Today's daily bar: no bar of today may see it; tomorrow's bars do.
+    moved = {k: v.copy() for k, v in daily.items()}
+    for sym in names:
+        moved[sym].loc[D, ["Open", "High", "Low", "Close"]] *= 1.5
+    _, after = values(intra, moved)
+    upto = day <= D
+    np.testing.assert_array_equal(base["trend"][upto], after["trend"][upto])
+    assert not np.allclose(base["trend"][day == cal.index[21]], after["trend"][day == cal.index[21]])
+
+    # The 10:30-11:30 bar: no 15m bar closing before 11:30 may see it; the 11:15 bar (closes 11:30) does.
+    cut = D + pd.Timedelta(hours=10, minutes=30)
+    noisy = {}
+    for sym, df in intra.items():
+        df = df.copy()
+        late = df.index >= cut
+        df.loc[late, ["Open", "High", "Low", "Close"]] *= 1.5
+        noisy[sym] = df
+    _, after = values(noisy, daily)
+    closed_before = p.index + pd.Timedelta(minutes=15) <= cut + pd.Timedelta(minutes=45)  # bars closing by 11:15
+    np.testing.assert_array_equal(base["h"][closed_before], after["h"][closed_before])
+    at = p.index.get_loc(D + pd.Timedelta(hours=11, minutes=15))
+    assert not np.allclose(base["h"][at], after["h"][at])
+    # The daily trend can't see today's 15m bars either (it reads the daily cache only).
+    np.testing.assert_array_equal(base["trend"], after["trend"])
+
+
+def test_multi_timeframe_engine_trades_nothing_on_unfinished_slower_bars():
+    cal, intra, daily = _world(n_sessions=40)
+    spec = _mtf()
+    window = _window(cal, 22, 39)
+    base = run_spec_intraday(spec, _panels(cal, intra), daily, list(NAMES), window, COSTS)
+    D = cal.index[31]
+    cut = D + pd.Timedelta(hours=12)
+    noisy, moved = {}, {k: v.copy() for k, v in daily.items()}
+    rng = np.random.default_rng(3)
+    for sym, df in intra.items():
+        df = df.copy()
+        late = df.index > cut  # a fill at the cut bar's own open may use it
+        df.loc[late, ["Open", "High", "Low", "Close"]] *= rng.uniform(0.5, 1.5, (late.sum(), 1))
+        noisy[sym] = df
+        moved[sym].loc[moved[sym].index >= D, ["Open", "High", "Low", "Close"]] *= 1.3  # today's daily bar on
+    other = run_spec_intraday(spec, _panels(cal, noisy), moved, list(NAMES), window, COSTS)
+    keep = lambda t: t[t["date"] <= cut].reset_index(drop=True)  # noqa: E731
+    assert len(keep(base.trades)) > 0
+    pd.testing.assert_frame_equal(keep(base.trades), keep(other.trades))
+
+
+def test_multi_timeframe_specs_count_as_trials_and_smoke_runs_do_not(tmp_path):
+    from quant_system.lab.runner import smoke_spec
+
+    settings = _settings(tmp_path / "cfg")
+    cal, intra, daily = _world()
+    kw = dict(settings=settings, bars=daily, data_dir=tmp_path, today=TODAY)
+    src = _source(cal, intra, settings)
+    smoke = smoke_spec(_mtf(), author_bot="smoke-test", intraday=src, **kw)
+    assert smoke["timeframes"] == ["15m", "1h", "1d"] and smoke["sessions"] == len(cal)
+    assert trial_stats("discovery", data_dir=tmp_path)["n_trials"] == 0
+    only_daily = _mtf(indicators={"trend": {"fn": "sma", "length": 3, "timeframe": "1d"}, "r": {"fn": "rsi"}},
+                      entry="close > trend and r < 60")
+    card = score_spec(_mtf(), author_bot="b", intraday=src, **kw)
+    score_spec(only_daily, author_bot="b", intraday=src, **kw)
+    score_spec(_spec(), author_bot="b", intraday=src, **kw)
+    assert trial_stats("discovery", data_dir=tmp_path)["n_trials"] == 3
+    assert card["strategy"]["timeframes"] == ["15m", "1h", "1d"]
+    # The robustness neighbour runs too: 30m bars, same 1h and daily indicators.
+    ev = evaluate(_mtf().with_timeframe("30m"), daily, list(NAMES), _window(cal, 0, len(cal) - 1), settings,
+                  intraday=src)
+    assert ev.strategy["timeframes"] == ["30m", "1h", "1d"]
+
+
+def test_a_pending_sell_holds_its_slot_until_it_fills():
+    cal, intra, daily = _world(flat=True)
+    panels = _panels(cal, intra)
+    j = panels.symbols.index("AAA")
+    skip = panels.index.normalize() == cal.index[26]  # AAA's session 26 is skipped
+    for arr in (panels.open, panels.high, panels.low, panels.close):
+        arr[skip, j] = np.nan
+    spec = _spec(entry="close > 0", exit="bar_of_day == 25 and close > 0",
+                 sizing={"max_positions": 1, "max_weight": 0.2})
+    res = run_spec_intraday(spec, panels, daily, list(NAMES), _window(cal, 25, 29), COSTS)
+    held: set[str] = set()
+    for t in res.trades.itertuples():
+        (held.add if t.side == "buy" else held.discard)(t.symbol)
+        assert len(held) <= 1, f"{sorted(held)} held at {t.date}"
+    sold = res.trades[(res.trades["side"] == "sell") & (res.trades["symbol"] == "AAA")].iloc[0]
+    assert sold["date"] == cal.index[27] + pd.Timedelta(hours=9, minutes=30)

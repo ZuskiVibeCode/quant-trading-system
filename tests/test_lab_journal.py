@@ -138,6 +138,10 @@ def test_rules_read_as_plain_english():
     assert w["indicators"][0]["about"].startswith("Highest high")
     assert w["settings"] == [{"name": "n", "value": 55, "min": 20, "max": 100}]
     assert describe_spec({**SPEC, "rank": "-rsi"})["order"] == "buys the lowest rsi(14) first"
+    mtf = describe_spec({"indicators": {"trend": {"fn": "sma", "length": 50, "timeframe": "1d"}},
+                         "entry": "close > trend", "exit": "close < trend"})
+    assert mtf["buy"] == "close is above sma(50) on 1d bars"
+    assert mtf["indicators"][0]["timeframe"] == "1d" and mtf["indicators"][0]["settings"] == {"length": 50}
 
 
 def test_export_writes_one_small_file_for_the_day(lab_data, tmp_path):

@@ -135,7 +135,9 @@ def _simulate(
     weights are kept; all rows when None. ``carry_exits``: a sell whose fill
     row has no price stays pending and fills at the next row that has one
     (intraday specs, where a name's skipped session is a run of empty bars);
-    otherwise it is dropped and the exit rule decides again.
+    otherwise it is dropped and the exit rule decides again. With
+    ``carry_exits`` a buy also checks the position cap when it fills, so a
+    pending sell keeps its slot until it fills.
     """
     n = len(symbols)
     shares = np.zeros(n)
@@ -189,6 +191,8 @@ def _simulate(
             budget = min(target_w * prev_equity, cash)
             if np.isnan(px_open) or budget <= 1e-9:
                 continue
+            if carry_exits and int((shares > 0).sum()) >= max_pos:
+                continue  # a pending sell still holds its slot until it fills
             b = bps[signal_row, j]
             shares[j] = budget / (px_open * (1.0 + b / 10_000.0))
             cost_basis[j] = budget
@@ -323,33 +327,116 @@ def ffill_rows(arr: np.ndarray) -> np.ndarray:
 
 
 def intraday_indicator_panels(
-    spec: StrategySpec, panels: "IntradayPanels", rows: int, columns: np.ndarray
+    spec: StrategySpec,
+    panels: "IntradayPanels",
+    rows: int,
+    columns: np.ndarray,
+    *,
+    daily: dict[str, pd.DataFrame] | None = None,
+    bench: str = "SPY",
 ) -> dict[str, np.ndarray]:
-    """Each spec indicator per name on that name's own bars, as float32 bars x names.
+    """Each spec indicator per name, as float32 bars x names on the spec's own bars.
 
-    One name at a time (memory); columns not in ``columns`` stay NaN.
+    Indicators on the spec's bars use that name's own bars. Slower ones
+    (``timeframe: 1h`` / ``1d``) are computed on the slower bars and placed
+    on each fast bar only once the slower bar has fully closed
+    (``slower_bar_rows``, ``daily_bar_rows``). One name at a time (memory);
+    columns not in ``columns`` stay NaN.
     """
     out = {name: np.full((rows, len(panels.symbols)), np.nan, dtype=np.float32) for name in spec.indicators}
     if not spec.indicators:
         return out
-    inds = {name: (get_indicator(str(spec.indicators[name]["fn"])), spec.indicator_args(name)) for name in spec.indicators}
+    inds = {name: (get_indicator(str(spec.indicators[name]["fn"])), spec.indicator_args(name),
+                   spec.indicator_timeframe(name)) for name in spec.indicators}
+    by_tf: dict[str | None, list[str]] = {}
+    for name, (_, _, tf) in inds.items():
+        by_tf.setdefault(tf, []).append(name)
     index = panels.index[:rows]
-    bench = panels.bench_close[:rows]
+    bench_close = panels.bench_close[:rows]
+    hourly = slower_bar_rows(panels, rows, 60) if "1h" in by_tf else None
+    day_rows = daily_bar_rows(panels, rows) if "1d" in by_tf else None
+    bench_daily = (daily or {}).get(bench.upper())
     for j in columns:
         has = np.flatnonzero(~np.isnan(panels.close[:rows, j]))
-        if not len(has):
-            continue
-        frame = pd.DataFrame(
-            {
-                "Open": panels.open[has, j].astype(float), "High": panels.high[has, j].astype(float),
-                "Low": panels.low[has, j].astype(float), "Close": panels.close[has, j].astype(float),
-                "Volume": panels.volume[has, j].astype(float), "BenchClose": bench[has],
-            },
-            index=index[has],
-        )
-        for name, (ind, args) in inds.items():
-            out[name][has, j] = ind(frame, **args).to_numpy(dtype=float)
+        if len(has):
+            frame = pd.DataFrame(
+                {
+                    "Open": panels.open[has, j].astype(float), "High": panels.high[has, j].astype(float),
+                    "Low": panels.low[has, j].astype(float), "Close": panels.close[has, j].astype(float),
+                    "Volume": panels.volume[has, j].astype(float), "BenchClose": bench_close[has],
+                },
+                index=index[has],
+            )
+            for name in by_tf.get(None, []):
+                ind, args, _ = inds[name]
+                out[name][has, j] = ind(frame, **args).to_numpy(dtype=float)
+            if hourly is not None:
+                key, ends = hourly
+                bars_1h, last_key = resample_rows(frame, key[has])
+                for name in by_tf["1h"]:
+                    ind, args, _ = inds[name]
+                    out[name][:, j] = place_closed(ind(bars_1h, **args).to_numpy(dtype=float), last_key, ends, rows)
+        if day_rows is not None:
+            df = (daily or {}).get(panels.symbols[j])
+            if df is None or df.empty:
+                continue
+            frame_d = df[["Open", "High", "Low", "Close", "Volume"]].assign(
+                BenchClose=bench_daily["Close"].reindex(df.index) if bench_daily is not None else np.nan
+            )
+            prior = df.index.searchsorted(panels.sessions, side="left") - 1  # last daily bar before each session
+            for name in by_tf["1d"]:
+                ind, args, _ = inds[name]
+                vals = ind(frame_d, **args).to_numpy(dtype=float)
+                per_session = np.where(prior >= 0, vals[np.clip(prior, 0, None)], np.nan)
+                out[name][:, j] = per_session[day_rows]
     return out
+
+
+def slower_bar_rows(panels: "IntradayPanels", rows: int, minutes: int) -> tuple[np.ndarray, np.ndarray]:
+    """Which slower bar each fast row belongs to, and the fast row where each slower bar closes.
+
+    Slower bars start at the session's open like every bar here (1h: 09:30,
+    10:30 ...). Returns ``key`` (per fast row: session * 10_000 + slot) and
+    ``ends`` (sorted keys and, for each, its last scheduled fast row). A slower
+    bar has closed at the close of that row, whether or not the name traded in it.
+    """
+    key = panels.session[:rows].astype(np.int64) * 10_000 + panels.minute[:rows].astype(np.int64) // minutes
+    last = np.flatnonzero(np.r_[key[1:] != key[:-1], True])
+    return key, np.stack([key[last], last])
+
+
+def daily_bar_rows(panels: "IntradayPanels", rows: int) -> np.ndarray:
+    """Per fast row, its session's position: a daily value is looked up as of the session before.
+
+    A session's own daily bar closes with the closing auction, after its last
+    intraday bar, so no intraday bar ever sees it; each session sees the daily
+    bars of earlier sessions only.
+    """
+    return panels.session[:rows]
+
+
+def resample_rows(frame: pd.DataFrame, key: np.ndarray) -> tuple[pd.DataFrame, np.ndarray]:
+    """One name's fast bars grouped into slower bars by ``key`` (sorted); returns the bars and their keys.
+
+    A slower bar is built only from the fast bars inside it, like ``intraday.resample``.
+    """
+    g = frame.groupby(key, sort=True)
+    out = pd.DataFrame({
+        "Open": g["Open"].first(), "High": g["High"].max(), "Low": g["Low"].min(),
+        "Close": g["Close"].last(), "Volume": g["Volume"].sum(), "BenchClose": g["BenchClose"].last(),
+    })
+    keys = out.index.to_numpy()
+    first = np.r_[True, key[1:] != key[:-1]]
+    out.index = frame.index[first]  # each slower bar's first fast bar
+    return out, keys
+
+
+def place_closed(values: np.ndarray, keys: np.ndarray, ends: np.ndarray, rows: int) -> np.ndarray:
+    """Slower-bar values on the fast rows: each from the row where its bar closes, carried forward."""
+    col = np.full(rows, np.nan)
+    at = ends[1][np.searchsorted(ends[0], keys)]
+    col[at] = values
+    return ffill_rows(col[:, None])[:, 0]
 
 
 def _bucket_bps(mdv: np.ndarray, buckets) -> np.ndarray:
@@ -403,7 +490,7 @@ def run_spec_intraday(
         "bar_of_day": panels.bar_of_day[:T, None].astype(float),
         "bars_left_today": panels.bars_left[:T, None].astype(float),
     }
-    env.update(intraday_indicator_panels(spec, panels, T, cols))
+    env.update(intraday_indicator_panels(spec, panels, T, cols, daily=bars, bench=bench))
     env.update(spec.param_values())
 
     # Liquidity from daily bars, as of the previous session's close.

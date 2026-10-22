@@ -122,6 +122,40 @@ instead of daily ones. Leave it out for daily bars, as before.
 - A 15m run takes several minutes and about 1-2 GB of memory. `lab robust`
   reruns one at a time and reports `peak_memory_mb`.
 
+### Multi-timeframe specs
+
+An intraday spec's indicators may read slower bars: add `timeframe: 1h` or
+`timeframe: 1d` to an indicator. The spec's own `timeframe` is the fastest one.
+Rules run, and orders fill, on its bars.
+
+```yaml
+timeframe: 15m
+indicators:
+  trend: {fn: sma, length: 50, timeframe: 1d}   # 50-day SMA from the daily cache
+  h_rsi: {fn: rsi, length: 14, timeframe: 1h}   # RSI of 1h bars
+  r: {fn: rsi, length: 6}                       # the spec's own 15m bars
+entry: close > trend and h_rsi > 50 and r < 30
+exit: r > 70 or bars_held >= 26
+```
+
+- **Only fully closed slower bars.**
+  - **Daily:** a session sees daily bars only up to the day before. On a 15m
+    bar at 10:30, `trend` uses yesterday's daily bar, because today's doesn't
+    exist yet.
+  - **1h:** a 1h bar (09:30-10:30, 10:30-11:30 ...) counts from the close of
+    its last 15m bar. Before that, the previous 1h bar's value applies.
+- A slower timeframe must be slower than the spec's own: a 15m spec may add 1h
+  and 1d, a 1h spec may add 1d. Daily specs have no slower timeframe.
+- Lookbacks count the slower bars: `length: 50` on `1d` is 50 sessions.
+  Daily indicators have the same pre-2016 warm-up as daily specs.
+- **Each combination is its own trial.** A 15m spec with a daily trend, the
+  same spec with a 1h filter added, and the plain 15m spec are three specs
+  with three hashes. Changing a timeframe is changing a setting.
+- Fills, costs, skipped sessions, the scorecard and `lab robust` are the same
+  as for any intraday spec. The robust timeframe check changes only the
+  spec's own bars (15m to 30m); slower indicators keep their timeframe.
+  `--smoke` works the same.
+
 ## Scorecard and pass bar
 
 `lab run` prints CAGR, Sharpe, max drawdown, turnover, exposure and trade count,
