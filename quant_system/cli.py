@@ -451,10 +451,10 @@ def cmd_lab_check(args: argparse.Namespace) -> int:
 
 
 def cmd_lab_run(args: argparse.Namespace) -> int:
-    """Score a spec on the discovery window and log the trial."""
+    """Score a spec on the discovery window and log the trial (``--smoke``: test run, no score, not a trial)."""
     import os
 
-    from quant_system.lab.runner import score_spec
+    from quant_system.lab.runner import score_spec, smoke_spec
     from quant_system.lab.spec import SpecError, load_spec
 
     try:
@@ -464,7 +464,10 @@ def cmd_lab_run(args: argparse.Namespace) -> int:
         return 1
     bot = args.bot or os.environ.get("QUANT_LAB_BOT") or None
     with _intraday_guard(spec):
-        card = score_spec(spec, window="discovery", author_bot=bot)
+        if args.smoke:
+            card = smoke_spec(spec, author_bot=bot)
+        else:
+            card = score_spec(spec, window="discovery", author_bot=bot)
     if spec.timeframe:
         from quant_system.lab.memory import peak_memory_mb
 
@@ -771,6 +774,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run.add_argument("spec", help="Path to a spec YAML file")
     run.add_argument("--bot", default=None, help="Author bot name (default: $QUANT_LAB_BOT, then the spec's author_bot)")
+    run.add_argument(
+        "--smoke", action="store_true",
+        help="Test run of the pipeline: runs end to end but prints no score (no returns, Sharpe or "
+        "benchmarks), so it is not a trial and isn't counted; recorded under smoke/",
+    )
     run.set_defaults(func=cmd_lab_run)
     robust = lab_sub.add_parser(
         "robust",

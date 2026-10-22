@@ -19,6 +19,11 @@ the multiple-testing penalty (deflated Sharpe) for every candidate. Run `lab
 check` while drafting. Rerunning an identical spec doesn't add a trial; changing
 any setting does.
 
+To test the pipeline itself (a new machine, memory, the intraday lock), use
+`lab run my.yaml --smoke`. The spec runs end to end, but you see only whether it
+ran, its trade count and its runtime, with no score. It is not a trial and isn't
+counted.
+
 ## Example
 
 ```yaml

@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
@@ -18,7 +19,15 @@ from quant_system.lab.intraday import IntradayPanels, IntradaySource
 from quant_system.lab.metrics import compare, deflated_sharpe, pass_bar, summary
 from quant_system.lab.settings import LabSettings, load_lab_settings
 from quant_system.lab.spec import StrategySpec, require_spec_timeframe
-from quant_system.lab.trials import record_trial, trial_stats
+from quant_system.lab.trials import (
+    SCHEMA_VERSION,
+    git_state,
+    record_trial,
+    smoke_dir,
+    stamped_name,
+    trial_stats,
+    write_json_atomic,
+)
 from quant_system.lab.universe import universe_symbols
 from quant_system.lab.windows import ResolvedWindow, authorize_run, get_window
 
@@ -96,7 +105,7 @@ def evaluate(
     if spec.timeframe:
         if intraday is None:
             raise ValueError(f"spec {spec.id} runs on {spec.timeframe} bars; pass an IntradaySource")
-        panels = intraday.panels(spec.timeframe, universe, bench=settings.benchmark)
+        panels = intraday.panels(spec.timeframe, universe, bench=settings.benchmark, daily=bars)
         result = run_spec_intraday(spec, panels, bars, universe, window, settings.costs, bench=settings.benchmark)
     else:
         result = run_spec(spec, bars, universe, window, settings.costs, bench=settings.benchmark)
@@ -110,6 +119,8 @@ def evaluate(
         # Where the return came from: previous close to the first bar's open, then the session.
         strat["overnight_return"] = float((1.0 + result.overnight).prod() - 1.0)
         strat["intraday_return"] = float((1.0 + result.intraday).prod() - 1.0)
+        # Name-sessions (data.start..ceiling) of the scored names left out as suspect bars.
+        strat["skipped_sessions"] = sum(panels.skipped.get(s, 0) for s in result.symbols)
         ew_bars = equal_weight_bars(panels, bench["equal_weight"], result.bar_exposure.index)
     cmp_ = compare(result.returns, {k: v["returns"] for k, v in bench.items()})
     return Evaluation(result, bench, strat, cmp_, ew_bars)
@@ -220,3 +231,57 @@ def score_spec_full(
         "trial_file": str(path),
     }
     return card, ev
+
+
+def smoke_spec(
+    spec: StrategySpec,
+    *,
+    author_bot: str | None = None,
+    settings: LabSettings | None = None,
+    cfg: AppConfig | None = None,
+    bars: dict[str, pd.DataFrame] | None = None,
+    data_dir: Path | str | None = None,
+    today: date | None = None,
+    intraday: IntradaySource | None = None,
+) -> dict[str, Any]:
+    """Run ``spec`` end to end on discovery as a test of the pipeline, not of the idea.
+
+    Nothing reaches the trial log, so the run never counts as a trial, and so
+    nothing about how it did comes back: no returns, Sharpe, benchmarks,
+    verdict or contributors. Only that it ran, how much it traded and how long
+    it took. A record of the run goes to ``smoke_dir()`` so test runs stay on file.
+    """
+    started = time.perf_counter()
+    s = settings or load_lab_settings()
+    require_spec_timeframe(spec)
+    rw = authorize_run("discovery", spec.hash, settings=s, today=today, data_dir=data_dir)
+    universe = universe_symbols(spec.universe, settings=s, cfg=cfg)
+    if bars is None:
+        bars = load_lab_bars([s.benchmark, *universe], settings=s, data_dir=data_dir, today=today)
+    if spec.timeframe and intraday is None:
+        intraday = IntradaySource(settings=s, data_dir=data_dir, today=today)
+    ev = evaluate(spec, bars, universe, rw, s, intraday=intraday)
+    result = ev.result
+    author = author_bot or spec.author_bot or "unknown"
+    commit, dirty = git_state()
+    card: dict[str, Any] = {
+        "kind": "smoke",
+        "spec_id": spec.id,
+        "spec_hash": spec.hash,
+        "author_bot": author,
+        "timeframe": spec.timeframe or "1d",
+        "window": {"name": rw.name, "start": str(rw.start), "end": str(rw.end)},
+        "universe": {"name": spec.universe, "names": len(result.symbols), "missing": len(result.missing)},
+        "sessions": int(len(result.returns)),
+        "trade_count": int(result.trade_count),
+        "first_trade_date": result.first_trade_date,
+        "skipped_sessions": ev.strategy.get("skipped_sessions"),
+        "notes": result.notes,
+        "seconds": round(time.perf_counter() - started, 1),
+    }
+    stamp = datetime.now(timezone.utc)
+    record = {"schema": SCHEMA_VERSION, "recorded_at": stamp.isoformat(timespec="microseconds"),
+              "git_commit": commit, "git_dirty": dirty, **card, "spec": spec.canonical()}
+    path = write_json_atomic(smoke_dir(data_dir) / stamped_name(author, spec.hash, stamp), record)
+    card["smoke_file"] = str(path)
+    return card

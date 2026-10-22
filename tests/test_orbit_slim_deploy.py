@@ -1,5 +1,8 @@
 """Regression tests for the slim Orbit Vercel deploy payload."""
 
+import json
+import sys
+
 from scripts.build_orbit_slim_deploy import slim_signal
 
 
@@ -125,3 +128,35 @@ def test_slim_latest_keeps_why_bought_and_trims_text():
     sig = buy["signals"][0]
     assert (sig["agent_id"], sig["direction"], sig["confidence"]) == ("momentum", "long", 78.0)
     assert len(sig["reasoning_trunc"]) <= 140
+
+
+def _docs(tmp_path, *, latest_pad=0):
+    docs = tmp_path / "docs"
+    (docs / "data" / "lab").mkdir(parents=True)
+    (docs / "art").mkdir()
+    latest = {"meta": {"exported_at": "2026-10-22"}, "mission_log": [{"pad": "x" * latest_pad}]}
+    (docs / "data" / "latest.json").write_text(json.dumps(latest, indent=2), encoding="utf-8")
+    (docs / "data" / "zones_history.json").write_text(json.dumps({"days": [{"day": "d", "points": []}]}, indent=2),
+                                                      encoding="utf-8")
+    for name in ["index.html", "styles.css", "app.js", "vercel.json", "lab.html", "lab.js"]:
+        (docs / name).write_text("x", encoding="utf-8")
+    return docs
+
+
+def test_deploy_tree_is_minified_and_checked_against_the_budget(tmp_path, monkeypatch, capsys):
+    from scripts import build_orbit_slim_deploy as slim
+
+    docs, out = _docs(tmp_path), tmp_path / "deploy"
+    monkeypatch.setattr(sys, "argv", ["slim", "--docs", str(docs), "--out", str(out)])
+    assert slim.main() == 0
+    for name in ("latest.json", "zones_history.json"):
+        text = (out / "data" / name).read_text(encoding="utf-8")
+        assert "\n" not in text and json.loads(text)
+    assert "total=" in capsys.readouterr().out
+
+    # Over the budget: fail before the upload, naming the biggest files (leftovers count too).
+    (out / "data" / "trade_reviews.json").write_text("x" * 5_000, encoding="utf-8")
+    monkeypatch.setattr(sys, "argv", ["slim", "--docs", str(docs), "--out", str(out), "--budget", "4000"])
+    assert slim.main() == 2
+    err = capsys.readouterr().err
+    assert "over the 4000-byte budget" in err and "data/trade_reviews.json 5000" in err

@@ -211,7 +211,12 @@ As built (PR 4, `lab/spec.py`, `lab/rules.py`, `docs/lab-spec-format.md`):
 - `rank` is optional; the default is most liquid first (20-day median dollar
   volume), not alphabetical.
 - `lab run` scores discovery only and always logs. There is no flag to skip
-  logging. `lab check` validates without running. The validation/holdout
+  logging and still get a score. `lab run --smoke` tests the pipeline: it runs
+  the spec end to end but returns only whether it ran, its trade count and
+  its runtime, with no returns, Sharpe, benchmarks or verdict. Since nothing
+  about performance comes back, it is not a trial. It is recorded under
+  `$QUANT_LAB_DATA_DIR/smoke/`, outside the trial log. `lab check` validates
+  without running. The validation/holdout
   runner comes in PR 6 (`score_spec` already takes frozen trial stats and
   writes the record before returning).
 - Engine semantics (`lab/engine.py` docstring): fills at the next open, sells
@@ -413,7 +418,9 @@ sizes, panels, coverage) and `engine.run_spec_intraday`.
   (1h: 09:30 ... 14:30, then 15:30-16:00). The closing auction prints at 16:00
   and lands outside the session, so the last 15m close is the last trade
   before the close. Storage: `bars_15m/<SYM>.csv.gz`, about 39k rows per name
-  for 2016-2021.
+  for 2016-2021. Every Alpaca request (daily and 15m bars, the calendar) has a
+  network timeout (10 s to connect, 60 s between bytes) and two retries, 5 s
+  and 15 s apart. After that the sync stops, and a rerun resumes at that name.
 - **Coverage.** `lab data intraday-status` reports per name and per bar size
   (15m, 1h): missing bars against the calendar, sessions with no bars (on days
   the daily cache has a bar), the longest gap, and sessions whose first open or
@@ -424,9 +431,44 @@ sizes, panels, coverage) and `engine.run_spec_intraday`.
   short at once. Alpaca's 2016-2021 15m history has four:
   2018-05-02 and 2018-05-03 (about a quarter of the broad universe) and
   2021-04-19 and 2021-10-25 (about two thirds), where most of those names have
-  only their opening bar. On those days the affected names have no bars, so
-  nothing fills and positions keep their last price. Renamed tickers (BBWI,
-  VTRS, LIN, DXC...) start late in both the daily and the intraday cache.
+  only their opening bar. Renamed tickers (BBWI, VTRS, LIN, DXC...) start late
+  in both the daily and the intraday cache.
+- **Skipped sessions.** Intraday runs leave out three kinds of session for a
+  name (`intraday.skipped_sessions`, also listed per name in the coverage
+  report as `skipped_sessions`):
+  - short sessions (above);
+  - sessions whose 15m high or low lands outside the daily bar's range by more
+    than `range_tolerance` (1%). The daily bar is built from the same trades
+    plus the auctions, so real trades never land outside it; Alpaca's
+    2018-05-02/03 bars do;
+  - sessions whose first open or last close is more than `skip_tolerance`
+    (10%) off the daily bar.
+
+  The daily-bar comparisons scale by the median 15m / daily ratio of the
+  previous 20 sessions, never later ones. Open and close gaps of 1-10% are
+  flagged in the coverage report (`price_tolerance`) but kept. On big days the
+  first and last trades differ from the auctions, and the 15m bars move
+  smoothly through them, so skipping those sessions would drop the very days
+  gap and crash strategies trade. Measured on 2020 15m bars for 299 broad
+  names:
+  - the first rule (skip any open or close over 1% off) dropped 313
+    name-sessions, 214 of them in March (58 on 03-12, 40 on 03-18), mostly on
+    the close;
+  - this rule drops 16, 11 of them in March (7 on 03-12, 2 on 03-18): 8 closes
+    11-17% off and 3 sessions outside the daily range.
+
+  PCG 2019-01-24 (last 15m close 41% above the official close) is still
+  skipped, though the 15m bars there look like real trading: the news rally
+  started in the 15:15 bar on heavy volume. It is the official close that
+  disagrees.
+
+  A skipped session is blank for that name, so the engine treats it like any
+  missing bar: no new signal or entry there, indicators skip it, and
+  positions keep their last price. An exit whose fill bar is blank stays
+  pending and fills at the open of the next bar that has a price. The
+  benchmark is never trimmed, because its close feeds every name's
+  indicators. Scorecards report `skipped_sessions`. Intraday trials logged
+  before this change need `lab rescore`.
 - **Fills and costs.** Same rule as daily: signal at a bar's close, fill at the
   next bar's open, which after the session's last bar is the next session's
   open (overnight gaps are part of the trade). Intraday fills pay the spread,

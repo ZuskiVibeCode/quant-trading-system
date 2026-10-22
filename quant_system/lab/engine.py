@@ -126,12 +126,16 @@ def _simulate(
     exit_eval: Evaluator,
     exit_full: np.ndarray | None,
     weight_rows: np.ndarray | None = None,
+    carry_exits: bool = False,
 ) -> _Sim:
     """The fill loop over calendar rows ``pos`` (sessions, or bars for intraday specs).
 
     ``bps`` / ``worst_bps`` are per signal row (the row whose close made the
     order). ``weight_rows`` (bool per ``pos`` entry) picks the rows whose
-    weights are kept; all rows when None.
+    weights are kept; all rows when None. ``carry_exits``: a sell whose fill
+    row has no price stays pending and fills at the next row that has one
+    (intraday specs, where a name's skipped session is a run of empty bars);
+    otherwise it is dropped and the exit rule decides again.
     """
     n = len(symbols)
     shares = np.zeros(n)
@@ -162,9 +166,14 @@ def _simulate(
         open_px = np.nan_to_num(np.where(np.isnan(open_[i]), mark[i], open_[i]))
         pre_open_out[k] = cash + float((shares * open_px).sum())
         # 1. Open: fill orders from the previous close.
+        unfilled: list[int] = []
         for j in sells:
             px_open = open_[i, j]
-            if np.isnan(px_open) or shares[j] <= 0:
+            if shares[j] <= 0:
+                continue
+            if np.isnan(px_open):
+                if carry_exits:
+                    unfilled.append(j)
                 continue
             b = bps[signal_row, j]
             b = worst_bps[signal_row] if np.isnan(b) else b
@@ -214,6 +223,8 @@ def _simulate(
                 bars_held = np.where(held, i - entered_at + 1, np.nan).astype(float)
                 ex = exit_eval.at(i, {"bars_held": bars_held})
             sells = list(np.flatnonzero(held & ex))
+        if unfilled:
+            sells = sorted(set(sells) | set(unfilled))
         slots = max_pos - (int(held.sum()) - len(sells))
         if slots > 0:
             cand = np.flatnonzero(entry[i] & ~held)
@@ -425,7 +436,7 @@ def run_spec_intraday(
     session_end = bars_left == 0
     sim = _simulate(
         spec, calendar, pos, list(panels.symbols), panels.open[:T], mark, bps, worst_bps,
-        entry, rank, exit_eval, exit_full, weight_rows=session_end,
+        entry, rank, exit_eval, exit_full, weight_rows=session_end, carry_exits=True,
     )
     days = pd.DatetimeIndex(panels.sessions[sess_rows[pos]])
     end_k = np.flatnonzero(session_end)

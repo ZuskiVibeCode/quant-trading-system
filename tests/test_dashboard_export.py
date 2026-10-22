@@ -58,6 +58,10 @@ def test_export_schema_and_files(tmp_path, capsys):
     blob = json.dumps(payload)
     assert "ALPACA_SECRET" not in blob
     assert "secret_key" not in blob
+    # Minified (the Vercel deploy is capped at 10 MB): one line, no indentation.
+    for name in ("latest.json", "trade_reviews.json", "zones_history.json"):
+        text = (docs / "data" / name).read_text()
+        assert text == json.dumps(json.loads(text), separators=(",", ":")) + "\n"
 
 
 def test_build_payload_agents_shape(tmp_path):

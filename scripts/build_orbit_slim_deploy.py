@@ -1,12 +1,32 @@
 #!/usr/bin/env python3
-"""Build MCP-friendly slim docs deploy tree from docs/data/latest.json."""
+"""Build MCP-friendly slim docs deploy tree from docs/data/latest.json.
+
+Everything it writes is minified JSON, and it exits 2 when the tree is over
+DEPLOY_BUDGET, so an oversize deploy stops here instead of at Vercel.
+"""
 from __future__ import annotations
-import argparse, json, shutil
+import argparse, json, shutil, sys
 from pathlib import Path
 
 # Lab journal days shipped to Vercel, newest first, until this many bytes.
 # Older days stay in the repo (docs/data/lab/); the deployed index lists only what shipped.
 LAB_DEPLOY_BUDGET = 2_500_000
+# Vercel rejects a deploy upload over 10 MB, and the upload is bigger than the
+# files on disk (images go up base64-encoded), so the whole tree stays under this.
+DEPLOY_BUDGET = 8_000_000
+
+
+def write_min_json(src: Path, dst: Path) -> int:
+    """Copy a JSON file minified; returns the bytes written."""
+    raw = json.dumps(json.loads(src.read_text(encoding="utf-8")), separators=(",", ":"))
+    dst.write_text(raw, encoding="utf-8")
+    return len(raw.encode("utf-8"))
+
+
+def tree_size(root: Path) -> tuple[int, list[tuple[int, str]]]:
+    """Total bytes under ``root`` and the five biggest files (stale leftovers count too)."""
+    files = [(p.stat().st_size, p.relative_to(root).as_posix()) for p in root.rglob("*") if p.is_file()]
+    return sum(n for n, _ in files), sorted(files, reverse=True)[:5]
 
 def trunc(s, n=250):
     if not isinstance(s, str):
@@ -254,6 +274,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--docs", type=Path, default=Path("docs"))
     ap.add_argument("--out", type=Path, default=Path("/workspace/orbit-full-deploy"))
+    ap.add_argument("--budget", type=int, default=DEPLOY_BUDGET,
+                    help="Fail (exit 2) when the deploy tree is bigger than this many bytes")
     args = ap.parse_args()
     docs, out = args.docs, args.out
     (out / "art").mkdir(parents=True, exist_ok=True)
@@ -265,7 +287,7 @@ def main():
     # zones_history is required for detail charts when zones_series is trimmed
     zh = docs / "data" / "zones_history.json"
     if zh.exists():
-        shutil.copy2(zh, out / "data" / "zones_history.json")
+        write_min_json(zh, out / "data" / "zones_history.json")
     schema = docs / "SCHEMA.md"
     if schema.exists():
         shutil.copy2(schema, out / "SCHEMA.md")
@@ -274,7 +296,15 @@ def main():
     lab = copy_lab_journal(docs, out)
     for img in (docs / "art").glob("*.jpg"):
         shutil.copy2(img, out / "art" / img.name)
-    print(f"wrote {out} latest.json={len(raw)} bytes lab_days={lab['days']} lab_bytes={lab['bytes']}")
+    total, biggest = tree_size(out)
+    print(f"wrote {out} latest.json={len(raw)} bytes lab_days={lab['days']} lab_bytes={lab['bytes']} "
+          f"total={total} bytes")
+    if total > args.budget:
+        print(f"deploy tree is {total} bytes, over the {args.budget}-byte budget (Vercel's limit is 10 MB). "
+              "Biggest files: " + ", ".join(f"{name} {n}" for n, name in biggest)
+              + ". Build into an empty --out directory; files copied in by hand count too.", file=sys.stderr)
+        return 2
+    return 0
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
