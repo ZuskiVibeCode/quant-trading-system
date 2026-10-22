@@ -8,6 +8,9 @@ The discovery trial count and the spread of trial Sharpes feed the deflated
 Sharpe (``metrics.deflated_sharpe``). A trial is a distinct spec hash: rerunning
 the same spec is not a new test, and robustness runs (``kind: robustness``) test
 one idea under nudged settings, so neither adds to the count.
+
+Smoke runs (`lab run --smoke`) test the pipeline, not an idea: they return no
+score, so they are kept apart in ``lab_data_dir()/smoke`` and never counted.
 """
 
 from __future__ import annotations
@@ -37,6 +40,11 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 def trials_dir(data_dir: Path | str | None = None) -> Path:
     """``<lab data dir>/trials``; ``data_dir`` overrides the lab data root."""
     return (Path(data_dir) if data_dir else lab_data_dir()) / "trials"
+
+
+def smoke_dir(data_dir: Path | str | None = None) -> Path:
+    """``<lab data dir>/smoke``: `lab run --smoke` records, outside the trial log (never counted)."""
+    return (Path(data_dir) if data_dir else lab_data_dir()) / "smoke"
 
 
 def spec_hash(spec: Mapping[str, Any]) -> str:

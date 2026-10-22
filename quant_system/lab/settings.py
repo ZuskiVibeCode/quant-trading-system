@@ -34,7 +34,11 @@ class LabWarmupSettings(BaseModel):
 
 
 class LabCoverageSettings(BaseModel):
-    """Intraday coverage flags (`lab data intraday-status`). A flagged name is listed, not dropped."""
+    """Intraday coverage flags (`lab data intraday-status`). A flagged name is listed, not dropped.
+
+    Intraday runs do leave out each name's short sessions and sessions off the
+    daily bar by over ``price_tolerance`` (``intraday.session_problems``).
+    """
 
     # Share of a name's scheduled 15m bars with no bar (no trade in that slot).
     max_missing_share: float = 0.05

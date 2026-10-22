@@ -31,14 +31,20 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timezone
 from pathlib import Path
-from typing import Any, Callable, Iterable, Iterator
+from typing import Any, Callable, Iterable, Iterator, Mapping
 
 import numpy as np
 import pandas as pd
 
 from quant_system.backtest.cache import _safe_filename
-from quant_system.lab.data import MARKET_TZ, load_lab_bars
-from quant_system.lab.settings import LabSettings, data_ceiling, lab_data_dir, load_lab_settings
+from quant_system.lab.data import MARKET_TZ, load_lab_bars, with_retries, with_timeout
+from quant_system.lab.settings import (
+    LabCoverageSettings,
+    LabSettings,
+    data_ceiling,
+    lab_data_dir,
+    load_lab_settings,
+)
 
 BASE_TIMEFRAME = "15m"
 TIMEFRAME_MINUTES = {"15m": 15, "30m": 30, "1h": 60, "2h": 120}
@@ -71,7 +77,9 @@ class AlpacaIntradayProvider:
     """15m bars and the market calendar from Alpaca (paper keys work).
 
     The feed is never switched: if Alpaca refuses the configured feed, the
-    sync stops with Alpaca's error.
+    sync stops with Alpaca's error. Each request has a network timeout and is
+    retried twice (``lab.data.with_retries``); after that the sync stops, and a
+    rerun picks up at the name it stopped on.
     """
 
     source = "alpaca"
@@ -99,7 +107,7 @@ class AlpacaIntradayProvider:
 
             c = self._creds()
             # raw_data: plain dicts, not one pydantic model per bar (memory).
-            self._client = StockHistoricalDataClient(c["api_key"], c["secret_key"], raw_data=True)
+            self._client = with_timeout(StockHistoricalDataClient(c["api_key"], c["secret_key"], raw_data=True))
         return self._client
 
     def calendar(self, start: date, end: date) -> pd.DataFrame:
@@ -110,8 +118,11 @@ class AlpacaIntradayProvider:
             from alpaca.trading.client import TradingClient
 
             c = self._creds()
-            self._trading = TradingClient(c["api_key"], c["secret_key"], paper=True)
-        rows = self._trading.get_calendar(GetCalendarRequest(start=start, end=end))
+            self._trading = with_timeout(TradingClient(c["api_key"], c["secret_key"], paper=True))
+        rows = with_retries(
+            lambda: self._trading.get_calendar(GetCalendarRequest(start=start, end=end)),
+            f"Alpaca calendar {start}..{end}",
+        )
         return calendar_frame(
             [(pd.Timestamp(r.date), pd.Timestamp(r.open), pd.Timestamp(r.close)) for r in rows]
         )
@@ -137,7 +148,7 @@ class AlpacaIntradayProvider:
                 feed=DataFeed(self.feed),
             )
             try:
-                raw = client.get_stock_bars(req)
+                raw = with_retries(lambda: client.get_stock_bars(req), f"Alpaca 15m bars {symbol} {lo}..{hi}")
             except APIError as exc:
                 raise RuntimeError(
                     f"Alpaca refused {self.feed} 15m bars for {symbol} {lo}..{hi}: {exc}. "
@@ -403,6 +414,8 @@ class IntradayPanels:
     bars_left: np.ndarray
     minute: np.ndarray
     missing: list[str] = field(default_factory=list)
+    # Name -> sessions left out as suspect (``session_problems``); those rows are NaN.
+    skipped: dict[str, int] = field(default_factory=dict)
 
     @property
     def nbytes(self) -> int:
@@ -418,25 +431,41 @@ def build_panels(
     loader: Callable[[str], pd.DataFrame | None],
     start: date,
     ceiling: date,
+    daily: Mapping[str, pd.DataFrame] | None = None,
+    tolerance: float = LabCoverageSettings().price_tolerance,
 ) -> IntradayPanels:
-    """Read each name's 15m bars (one at a time), build ``timeframe`` bars, fill the panels."""
+    """Read each name's 15m bars (one at a time), build ``timeframe`` bars, fill the panels.
+
+    A name's suspect sessions (``session_problems`` against its ``daily`` bars)
+    are left out before the bars are built, so no signal, fill or indicator
+    sees them; the engine treats them like any missing bar. The benchmark is
+    never trimmed (its close feeds every name's indicators).
+    """
     names = sorted(dict.fromkeys(str(x).strip().upper() for x in symbols if str(x).strip()))
     slots = bar_slots(calendar, timeframe, start, ceiling)
     index = slots.index
     n, m = len(index), len(names)
     arrays = {f: np.full((n, m), np.nan, dtype=np.float32) for f in FIELDS}
     missing: list[str] = []
+    skipped: dict[str, int] = {}
 
-    def _bars(sym: str) -> pd.DataFrame | None:
+    def _bars(sym: str, *, check: bool) -> pd.DataFrame | None:
         df = loader(sym)
         if df is None or df.empty:
             return None
         df = _clip(df, ceiling)
         df = df.loc[df.index.normalize() >= pd.Timestamp(start)]
+        if check and not df.empty:
+            bad = skipped_sessions(
+                session_problems(df, (daily or {}).get(sym), calendar, start, ceiling, tolerance)
+            )
+            if len(bad):
+                df = df.loc[~df.index.normalize().isin(bad)]
+                skipped[sym] = int(len(bad))
         return resample(df, calendar, timeframe) if not df.empty else None
 
     for j, sym in enumerate(names):
-        bars = _bars(sym)
+        bars = _bars(sym, check=True)
         if bars is None:
             missing.append(sym)
             continue
@@ -445,7 +474,7 @@ def build_panels(
         for f in FIELDS:
             arrays[f][rows[ok], j] = bars[f].to_numpy()[ok]
         del bars
-    bench_bars = _bars(bench.upper())
+    bench_bars = _bars(bench.upper(), check=False)
     if bench_bars is None:
         raise ValueError(f"benchmark {bench} has no intraday bars; run `lab data intraday`")
     sessions = pd.DatetimeIndex(slots["session"].unique())
@@ -462,6 +491,7 @@ def build_panels(
         bars_left=slots["bars_left"].to_numpy(dtype=np.int16),
         minute=slots["minute"].to_numpy(dtype=np.int16),
         missing=missing,
+        skipped=skipped,
     )
 
 
@@ -548,7 +578,14 @@ class IntradaySource:
             self._calendar = cal
         return self._calendar
 
-    def panels(self, timeframe: str, symbols: Iterable[str], *, bench: str) -> IntradayPanels:
+    def panels(
+        self, timeframe: str, symbols: Iterable[str], *, bench: str,
+        daily: Mapping[str, pd.DataFrame] | None = None,
+    ) -> IntradayPanels:
+        """Panels for ``symbols``; ``daily`` (the run's daily bars) marks each name's suspect sessions.
+
+        Every request in one run passes the same daily bars, so cached panels stay valid.
+        """
         want = {str(x).strip().upper() for x in symbols if str(x).strip()}
         c = self._cached
         if c is not None and c.timeframe == timeframe and want <= set(c.symbols):
@@ -556,7 +593,8 @@ class IntradaySource:
         self._cached = None  # free the old panels before building new ones
         self._cached = build_panels(
             want, timeframe, bench=bench, calendar=self.calendar, loader=self._loader,
-            start=self.settings.data.start, ceiling=self.ceiling,
+            start=self.settings.data.start, ceiling=self.ceiling, daily=daily,
+            tolerance=self.settings.data.intraday.coverage.price_tolerance,
         )
         return self._cached
 
@@ -572,6 +610,62 @@ def _longest_run(flags: np.ndarray) -> int:
     return best
 
 
+def session_problems(
+    df15: pd.DataFrame | None,
+    daily: pd.DataFrame | None,
+    calendar: pd.DataFrame,
+    start: date,
+    ceiling: date,
+    tolerance: float,
+) -> dict[str, Any]:
+    """One name's suspect sessions: what intraday runs leave out, and the coverage check lists.
+
+    - ``short``: some bars, but under half the session's scheduled 15m bars.
+      Alpaca has market-wide gaps (2018-05-02/03, 2021-04-19, 2021-10-25) where
+      most names have only the opening bar.
+    - ``open`` / ``close``: the session's first 15m open or last 15m close is
+      over ``tolerance`` off the daily bar, after scaling by the median ratio
+      (the two caches can be adjusted a few days apart). Usually a first trade
+      away from the opening auction on a gap day; sometimes a bad print (PCG
+      2019-01-24: last 15m close 41% above the day's close).
+
+    Expected sessions (``days``): calendar sessions start..ceiling on which the
+    daily cache has a bar (every session when there are no daily bars, and then
+    only ``short`` is checked).
+    """
+    cal = calendar.loc[(calendar.index >= pd.Timestamp(start)) & (calendar.index <= pd.Timestamp(ceiling))]
+    has_daily = daily is not None and not daily.empty
+    days = cal.index.intersection(daily.index.normalize()) if has_daily else cal.index
+    none = pd.DatetimeIndex([])
+    out: dict[str, Any] = {
+        "days": days, "per_day": np.zeros(len(days), dtype=int), "short": none, "open": none, "close": none,
+        "open_ratio_median": None, "close_ratio_median": None,
+    }
+    if df15 is None or df15.empty:
+        return out
+    by_day = df15.groupby(df15.index.normalize())
+    per_day = by_day.size().reindex(days, fill_value=0).to_numpy()
+    scheduled = bar_slots(cal.loc[days], BASE_TIMEFRAME, start, ceiling).groupby("session").size()
+    scheduled = scheduled.reindex(days, fill_value=0).to_numpy()
+    out["per_day"] = per_day
+    out["short"] = days[(per_day > 0) & (per_day < scheduled / 2)]
+    if has_daily:
+        d = daily.loc[daily.index.isin(days)]
+        for name, ours, theirs in (("open", by_day["Open"].first(), d["Open"]),
+                                   ("close", by_day["Close"].last(), d["Close"])):
+            ratio = (ours.reindex(d.index) / theirs).replace([np.inf, -np.inf], np.nan).dropna()
+            k = float(ratio.median()) if len(ratio) else float("nan")
+            off = (ratio / k - 1.0).abs() if math.isfinite(k) and k > 0 else ratio * np.nan
+            out[name] = pd.DatetimeIndex(off.index[off > tolerance])
+            out[f"{name}_ratio_median"] = k
+    return out
+
+
+def skipped_sessions(problems: Mapping[str, Any]) -> pd.DatetimeIndex:
+    """Every session ``session_problems`` found, for any reason."""
+    return problems["short"].union(problems["open"]).union(problems["close"])
+
+
 def ticker_coverage(
     df15: pd.DataFrame | None,
     daily: pd.DataFrame | None,
@@ -582,24 +676,20 @@ def ticker_coverage(
 ) -> dict[str, Any]:
     """Coverage of one name at 15m and 1h, against the calendar and its daily bars.
 
-    Expected sessions: calendar sessions on which the daily cache has a bar
-    (every session from ``start`` when the name has no daily bars).
+    Expected sessions as in ``session_problems``. ``skipped_sessions`` are the
+    sessions intraday runs leave out for this name.
     """
-    cal = calendar.loc[(calendar.index >= pd.Timestamp(start)) & (calendar.index <= pd.Timestamp(ceiling))]
-    if daily is not None and not daily.empty:
-        days = cal.index.intersection(daily.index.normalize())
-    else:
-        days = cal.index
+    if df15 is not None:
+        df15 = _clip(df15, ceiling)
+    probs = session_problems(df15, daily, calendar, start, ceiling, cov.price_tolerance)
+    days = probs["days"]
     row: dict[str, Any] = {"sessions_expected": int(len(days))}
     if df15 is None or df15.empty:
         row.update({"first": None, "last": None, "flags": ["no intraday bars"]})
         return row
-    df15 = _clip(df15, ceiling)
     row["first"], row["last"] = str(df15.index.min()), str(df15.index.max())
-    sub = cal.loc[days]
+    sub = calendar.loc[days]
     flags: list[str] = []
-    by_day = df15.groupby(df15.index.normalize())
-    per_day = by_day.size().reindex(days, fill_value=0).to_numpy()
     for tf in ("15m", "1h"):
         slots = bar_slots(sub, tf, start, ceiling)
         have = resample(df15, calendar, tf).index.intersection(slots.index)
@@ -608,36 +698,30 @@ def ticker_coverage(
         row[tf] = {"bars_expected": expected, "bars": int(len(have)), "missing_share": share}
         if share > cov.max_missing_share:
             flags.append(f"{tf}: {share:.1%} of bars missing (limit {cov.max_missing_share:.0%})")
-    empty = per_day == 0
+    empty = probs["per_day"] == 0
     row["empty_sessions"] = int(empty.sum())
     row["longest_empty_run"] = _longest_run(empty)
     if row["empty_sessions"] > cov.max_empty_sessions:
         flags.append(f"{row['empty_sessions']} sessions with no bars (limit {cov.max_empty_sessions})")
-    scheduled = bar_slots(sub, BASE_TIMEFRAME, start, ceiling).groupby("session").size().reindex(days).to_numpy()
-    short = (per_day > 0) & (per_day < scheduled / 2)
-    row["short_sessions"] = [str(d.date()) for d in days[short]]
-    if short.sum() > cov.max_short_sessions:
-        flags.append(f"{int(short.sum())} sessions with under half their bars (limit {cov.max_short_sessions})")
+    short = probs["short"]
+    row["short_sessions"] = [str(d.date()) for d in short]
+    if len(short) > cov.max_short_sessions:
+        flags.append(f"{len(short)} sessions with under half their bars (limit {cov.max_short_sessions})")
     if daily is not None and not daily.empty:
-        d = daily.loc[daily.index.isin(days)]
-        first_open = by_day["Open"].first().reindex(d.index)
-        last_close = by_day["Close"].last().reindex(d.index)
-        vol = by_day["Volume"].sum().reindex(d.index)
         mism = 0
-        for name, ours, theirs in (("open", first_open, d["Open"]), ("close", last_close, d["Close"])):
-            ratio = (ours / theirs).replace([np.inf, -np.inf], np.nan).dropna()
-            k = float(ratio.median()) if len(ratio) else float("nan")
-            off = (ratio / k - 1.0).abs() if math.isfinite(k) and k > 0 else ratio * np.nan
-            bad = int((off > cov.price_tolerance).sum())
-            row[f"{name}_ratio_median"] = k
-            row[f"{name}_mismatch_days"] = bad
-            mism += bad
+        for name in ("open", "close"):
+            row[f"{name}_ratio_median"] = probs[f"{name}_ratio_median"]
+            row[f"{name}_mismatch_days"] = int(len(probs[name]))
+            mism += len(probs[name])
         if mism > cov.max_mismatch_days:
             flags.append(f"{mism} open/close days off the daily bar by over {cov.price_tolerance:.0%}")
+        d = daily.loc[daily.index.isin(days)]
+        vol = df15.groupby(df15.index.normalize())["Volume"].sum().reindex(d.index)
         vr = (vol / d["Volume"]).replace([np.inf, -np.inf], np.nan).dropna()
         row["volume_ratio_median"] = float(vr.median()) if len(vr) else None
     else:
         flags.append("no daily bars to compare")
+    row["skipped_sessions"] = [str(d.date()) for d in skipped_sessions(probs)]
     row["flags"] = flags
     return row
 
@@ -691,6 +775,8 @@ def intraday_coverage(
         "median_missing_share": {tf: _median(tf) for tf in ("15m", "1h")},
         "most_missing": {tf: _worst(tf) for tf in ("15m", "1h")},
         "flagged": flagged,
+        # Name-sessions intraday runs leave out (short, or open / close off the daily bar).
+        "skipped_name_sessions": sum(len(v.get("skipped_sessions") or []) for v in rows.values()),
         # Sessions where at least a tenth of the names have under half their bars.
         "short_session_dates": widespread,
         "thresholds": s.data.intraday.coverage.model_dump(mode="json"),

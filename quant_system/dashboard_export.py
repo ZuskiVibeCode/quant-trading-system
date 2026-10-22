@@ -1509,6 +1509,11 @@ def validate_payload(payload: dict[str, Any]) -> list[str]:
     return errors
 
 
+def _write_compact(path: Path, obj: Any) -> None:
+    """Minified JSON. The Orbit deploy uploads these files, and Vercel caps a deploy at 10 MB."""
+    path.write_text(json.dumps(obj, separators=(",", ":"), default=str) + "\n")
+
+
 def export_dashboard(
     tracker: Tracker | None = None,
     *,
@@ -1538,21 +1543,17 @@ def export_dashboard(
             raise ValueError("dashboard payload invalid: " + "; ".join(errors))
 
         latest_path = data_dir / "latest.json"
-        latest_path.write_text(json.dumps(payload, indent=2, default=str) + "\n")
+        _write_compact(latest_path, payload)
 
         # Sidecar for trade review history (export-time; no schema migration)
         reviews_path = data_dir / "trade_reviews.json"
-        reviews_path.write_text(
-            json.dumps(
-                {
-                    "exported_at": payload.get("meta", {}).get("exported_at"),
-                    "count": len(payload.get("trade_reviews") or []),
-                    "reviews": payload.get("trade_reviews") or [],
-                },
-                indent=2,
-                default=str,
-            )
-            + "\n"
+        _write_compact(
+            reviews_path,
+            {
+                "exported_at": payload.get("meta", {}).get("exported_at"),
+                "count": len(payload.get("trade_reviews") or []),
+                "reviews": payload.get("trade_reviews") or [],
+            },
         )
 
         history_path = None
@@ -1560,12 +1561,12 @@ def export_dashboard(
         if append_history and not payload["meta"].get("research_fallback"):
             _, _, day = local_day_bounds()
             history_path = hist_dir / f"{day}.json"
-            history_path.write_text(json.dumps(payload, indent=2, default=str) + "\n")
+            _write_compact(history_path, payload)
 
         # Rebuild zones_history from history/*.json + today's payload
         zones_hist = rebuild_zones_history(hist_dir, today_payload=payload)
         zones_hist_path = data_dir / "zones_history.json"
-        zones_hist_path.write_text(json.dumps(zones_hist, indent=2, default=str) + "\n")
+        _write_compact(zones_hist_path, zones_hist)
 
         # Embed a compact recent series in latest for chart depth without a second fetch
         recent_days = zones_hist.get("days") or []
@@ -1573,9 +1574,9 @@ def export_dashboard(
             recent_days = recent_days[-ZONE_SERIES_IN_LATEST:]
         payload["zones_series"] = {"days": recent_days}
         # Rewrite latest with zones_series included
-        latest_path.write_text(json.dumps(payload, indent=2, default=str) + "\n")
+        _write_compact(latest_path, payload)
         if history_path is not None:
-            history_path.write_text(json.dumps(payload, indent=2, default=str) + "\n")
+            _write_compact(history_path, payload)
 
         return {
             "latest": str(latest_path),

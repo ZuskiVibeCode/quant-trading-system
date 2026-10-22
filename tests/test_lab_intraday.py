@@ -27,6 +27,7 @@ from quant_system.lab.intraday import (
     regular_hours,
     resample,
     save_intraday,
+    session_problems,
     sync_intraday,
     ticker_coverage,
 )
@@ -480,3 +481,121 @@ def test_intraday_runs_take_turns_on_one_machine(tmp_path):
     assert first == "waited" and rest == ["ran"]
     with intraday_run_lock(tmp_path):  # free again, and reusable
         pass
+
+
+# -- suspect sessions, network timeouts, smoke runs ------------------------------
+
+
+def test_suspect_sessions_are_left_out_of_the_panels_but_not_the_benchmark():
+    cal, intra, daily = _world(n_sessions=12)
+    intra = {k: v.copy() for k, v in intra.items()}  # ``daily`` keeps the clean prices
+    d3, d5, d6 = cal.index[3], cal.index[5], cal.index[6]
+    day = lambda df, d: df.index.normalize() == d  # noqa: E731
+    a = intra["AAA"]
+    intra["AAA"] = a.loc[~day(a, d3) | (a.index.time == pd.Timestamp("09:30").time())]  # one bar: short
+    b = intra["BBB"]
+    b.loc[b.index[day(b, d5)][-1], "Close"] *= 1.4  # a bad last print (PCG 2019-01-24)
+    c = intra["CCC"]
+    c.loc[c.index[day(c, d6)][0], "Open"] *= 1.02  # first trade off the opening auction
+    s = intra["SPY"]
+    s.loc[s.index[day(s, d5)][-1], "Close"] *= 1.4
+
+    start, end = date(2016, 1, 1), date(2021, 12, 31)
+    probs = session_problems(intra["BBB"], daily["BBB"], cal, start, end, 0.01)
+    assert list(probs["close"]) == [d5] and len(probs["open"]) == 0 and len(probs["short"]) == 0
+    assert list(session_problems(intra["CCC"], daily["CCC"], cal, start, end, 0.01)["open"]) == [d6]
+
+    p = build_panels(list(NAMES), "15m", bench="SPY", calendar=cal, loader=intra.get, start=start,
+                     ceiling=end, daily=daily)
+    assert p.skipped == {"AAA": 1, "BBB": 1, "CCC": 1}
+    col = {sym: j for j, sym in enumerate(p.symbols)}
+    on = lambda d: p.index.normalize() == d  # noqa: E731
+    assert np.isnan(p.close[on(d3), col["AAA"]]).all() and np.isnan(p.open[on(d5), col["BBB"]]).all()
+    assert np.isnan(p.close[on(d6), col["CCC"]]).all() and not np.isnan(p.close[on(d6), col["BBB"]]).any()
+    assert not np.isnan(p.bench_close[on(d5)]).any()  # the benchmark is never trimmed
+    # Without daily bars only short sessions can be found.
+    bare = build_panels(list(NAMES), "15m", bench="SPY", calendar=cal, loader=intra.get, start=start, ceiling=end)
+    assert bare.skipped == {"AAA": 1}
+
+    row = ticker_coverage(intra["BBB"], daily["BBB"], cal, start, end, LabCoverageSettings())
+    assert row["skipped_sessions"] == [str(d5.date())] and row["close_mismatch_days"] == 1
+
+
+def test_intraday_runs_report_skipped_sessions(tmp_path):
+    settings = _settings(tmp_path / "cfg")
+    cal, intra, daily = _world()
+    intra = {k: v.copy() for k, v in intra.items()}
+    b = intra["BBB"]
+    b.loc[b.index[b.index.normalize() == cal.index[30]][-1], "Close"] *= 1.4
+    card = score_spec(_spec(), author_bot="b", intraday=_source(cal, intra, settings), settings=settings,
+                      bars=daily, data_dir=tmp_path, today=TODAY)
+    assert card["strategy"]["skipped_sessions"] == 1
+
+
+def test_alpaca_calls_get_a_timeout_and_retries(monkeypatch):
+    from alpaca.common.exceptions import APIError
+    from requests.exceptions import ConnectionError as ConnError, ReadTimeout
+
+    from quant_system.lab.data import REQUEST_TIMEOUT, with_retries, with_timeout
+
+    sent = []
+    session = SimpleNamespace(request=lambda method, url, **kw: sent.append(kw) or "ok")
+    client = with_timeout(SimpleNamespace(_session=session))
+    assert with_timeout(client) is client  # wrapping twice is harmless
+    client._session.request("GET", "u")
+    client._session.request("GET", "u", timeout=3)
+    assert [kw["timeout"] for kw in sent] == [REQUEST_TIMEOUT, 3]
+
+    waits: list[float] = []
+    tries = iter([ReadTimeout("stalled"), ConnError("reset"), "bars"])
+
+    def flaky():
+        x = next(tries)
+        if isinstance(x, Exception):
+            raise x
+        return x
+
+    assert with_retries(flaky, "15m bars AAA", wait=waits.append) == "bars" and waits == [5.0, 15.0]
+    with pytest.raises(RuntimeError, match="15m bars AAA: no answer after 3 tries"):
+        with_retries(lambda: (_ for _ in ()).throw(ReadTimeout("stalled")), "15m bars AAA", wait=waits.append)
+
+    def refused():
+        raise APIError("forbidden")
+
+    with pytest.raises(APIError):  # Alpaca's own refusal: not retried
+        with_retries(refused, "x", wait=waits.append)
+
+    # The provider goes through it: one stalled year is retried, not hung on.
+    monkeypatch.setattr("quant_system.lab.data._time.sleep", lambda s: None)
+    calls = []
+
+    class _Client:
+        def get_stock_bars(self, req):
+            calls.append(req.start.year)
+            if len(calls) == 1:
+                raise ReadTimeout("stalled")
+            return {"AAA": [{"t": f"{req.start.year}-03-01T14:30:00Z", "o": 1, "h": 1, "l": 1, "c": 1, "v": 1}]}
+
+    df = AlpacaIntradayProvider(client=_Client()).fetch("AAA", date(2016, 1, 1), date(2017, 12, 31))
+    assert calls == [2016, 2016, 2017] and len(df) == 2
+
+
+def test_smoke_run_is_not_a_trial_and_shows_no_score(tmp_path):
+    from quant_system.lab.runner import smoke_spec
+
+    settings = _settings(tmp_path / "cfg")
+    cal, intra, daily = _world()
+    kw = dict(settings=settings, bars=daily, data_dir=tmp_path, today=TODAY)
+    spec = _spec(exit="bars_held >= 4", sizing={"max_positions": 2})
+    card = smoke_spec(spec, author_bot="smoke-test", intraday=_source(cal, intra, settings), **kw)
+    assert card["kind"] == "smoke" and card["trade_count"] > 0 and card["sessions"] == len(cal)
+    assert trial_stats("discovery", data_dir=tmp_path)["n_trials"] == 0 and load_trials(data_dir=tmp_path) == []
+    record = json.loads(Path(card["smoke_file"]).read_text(encoding="utf-8"))
+    assert Path(card["smoke_file"]).parent == tmp_path / "smoke"
+    for shown in (card, record):
+        blob = json.dumps(shown).lower()
+        for word in ("sharpe", "cagr", "drawdown", "returns", "benchmark", "verdict", "contributor", "pnl"):
+            assert word not in blob, word
+    # The same spec still scores as a trial afterwards.
+    score_spec(spec, author_bot="b", intraday=_source(cal, intra, settings), **kw)
+    assert trial_stats("discovery", data_dir=tmp_path)["n_trials"] == 1

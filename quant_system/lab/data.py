@@ -17,9 +17,10 @@ days gets no warm-up and starts late.
 from __future__ import annotations
 
 import json
+import time as _time
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
-from typing import Any, Iterable, Protocol
+from typing import Any, Callable, Iterable, Protocol
 from zoneinfo import ZoneInfo
 
 import numpy as np
@@ -31,6 +32,50 @@ from quant_system.lab.settings import LabSettings, data_ceiling, lab_data_dir, l
 MARKET_TZ = ZoneInfo("America/New_York")
 MANIFEST_NAME = "_manifest.json"
 _ALPACA_COLUMNS = {"open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"}
+# alpaca-py sets no network timeout (it only retries HTTP 429 / 504), so a stalled
+# response would hang a sync. Every Alpaca call here gets one, and is retried.
+REQUEST_TIMEOUT = (10.0, 60.0)  # seconds: connect, then between bytes of the response
+REQUEST_RETRIES = 2
+RETRY_WAIT = (5.0, 15.0)  # seconds before the first and second retry
+
+
+def with_timeout(client: Any, timeout: tuple[float, float] = REQUEST_TIMEOUT) -> Any:
+    """Give an alpaca-py client a default timeout on every HTTP request it sends."""
+    session = getattr(client, "_session", None)
+    if session is not None and not getattr(session, "_lab_timeout", None):
+        send = session.request
+
+        def request(method: str, url: str, **kwargs: Any) -> Any:
+            kwargs.setdefault("timeout", timeout)
+            return send(method, url, **kwargs)
+
+        session.request = request
+        session._lab_timeout = timeout
+    return client
+
+
+def with_retries(
+    call: Callable[[], Any], what: str, *, retries: int = REQUEST_RETRIES,
+    wait: Callable[[float], None] | None = None,
+) -> Any:
+    """``call()``, retried after a timeout or dropped connection; a RuntimeError once out of tries.
+
+    Only network failures are retried. Alpaca's own refusals (``APIError``)
+    pass straight through.
+    """
+    from requests.exceptions import RequestException
+
+    sleep = wait or _time.sleep
+    for attempt in range(retries + 1):
+        try:
+            return call()
+        except RequestException as exc:
+            if attempt == retries:
+                raise RuntimeError(
+                    f"{what}: no answer after {retries + 1} tries ({type(exc).__name__}: {exc}). "
+                    "Stopping; rerun to resume."
+                ) from None
+            sleep(RETRY_WAIT[min(attempt, len(RETRY_WAIT) - 1)])
 
 
 class BarsProvider(Protocol):
@@ -90,7 +135,7 @@ class AlpacaBarsProvider:
                     "Alpaca keys not set (ALPACA_API_KEY / ALPACA_SECRET_KEY); "
                     "paper keys work for market data"
                 )
-            self._client = StockHistoricalDataClient(creds["api_key"], creds["secret_key"])
+            self._client = with_timeout(StockHistoricalDataClient(creds["api_key"], creds["secret_key"]))
         return self._client
 
     def fetch(self, symbols: list[str], start: date, end: date) -> dict[str, pd.DataFrame]:
@@ -110,7 +155,9 @@ class AlpacaBarsProvider:
                 adjustment=Adjustment(self.adjustment),
                 feed=DataFeed(self.feed),
             )
-            df = client.get_stock_bars(req).df
+            df = with_retries(
+                lambda: client.get_stock_bars(req).df, f"Alpaca daily bars {batch[0]}..{batch[-1]}"
+            )
             if df is None or df.empty:
                 continue
             for sym, frame in df.groupby(level="symbol"):
