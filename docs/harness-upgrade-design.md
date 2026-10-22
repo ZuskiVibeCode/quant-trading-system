@@ -533,7 +533,8 @@ checks in `StrategySpec._check_indicator_timeframe`.
   1,511 sessions):
   - a 15m `lab run --smoke` peaked at 856 MB, both with a daily trend and a
     1h filter and without them;
-  - `lab robust` on the same spec: see PR #44.
+  - `lab robust` on the same spec (all six checks, the 30m neighbour
+    included, one rerun at a time) peaked at 923 MB in 4.6 minutes.
 - **Engine.** A carried exit (#43) now also holds its slot. With
   `carry_exits`, a buy checks the position cap when it fills, so a strategy
   can't sit one over `max_positions` while a sell waits for a bar with a
