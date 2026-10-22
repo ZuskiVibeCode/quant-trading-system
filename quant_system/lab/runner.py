@@ -116,6 +116,7 @@ def evaluate(
     ew_bars = None
     if panels is not None:
         strat["timeframe"] = spec.timeframe
+        strat["timeframes"] = spec.timeframes  # fastest first: the bars it trades on, then slower ones
         # Where the return came from: previous close to the first bar's open, then the session.
         strat["overnight_return"] = float((1.0 + result.overnight).prod() - 1.0)
         strat["intraday_return"] = float((1.0 + result.intraday).prod() - 1.0)
@@ -270,6 +271,7 @@ def smoke_spec(
         "spec_hash": spec.hash,
         "author_bot": author,
         "timeframe": spec.timeframe or "1d",
+        "timeframes": spec.timeframes,
         "window": {"name": rw.name, "start": str(rw.start), "end": str(rw.end)},
         "universe": {"name": spec.universe, "names": len(result.symbols), "missing": len(result.missing)},
         "sessions": int(len(result.returns)),

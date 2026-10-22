@@ -496,6 +496,50 @@ sizes, panels, coverage) and `engine.run_spec_intraday`.
   in sequence, never in parallel. Robust reports and intraday `lab run` cards
   record `peak_memory_mb`.
 
+## 13. Multi-timeframe specs (Stage 2)
+
+An intraday spec's indicators may declare `timeframe: 1h` or `1d`, slower than
+the spec's own bars (15m: 1h or 1d; 1h: 1d). Rules, signals and fills run on
+the spec's own bars, which are the fastest. Code:
+`engine.intraday_indicator_panels`, `slower_bar_rows`, `place_closed`; spec
+checks in `StrategySpec._check_indicator_timeframe`.
+
+- **No unfinished bars.**
+  - **Daily** values come from the daily cache (with warm-up). Each session
+    sees the daily bar of the session before it, never its own. That bar
+    closes with the closing auction, after the session's last intraday bar.
+  - **1h** values are built per name from that name's 15m panel column. Each
+    1h bar starts at the open, like every bar here, and counts from the close
+    of its last scheduled 15m bar, whether or not the name traded then.
+    Skipped sessions are already blank in that column, so the slower bars
+    respect the skip rule.
+  - Two tests guard this by changing data the spec must not see yet and
+    requiring every earlier value to stay identical:
+    `test_slower_bars_are_seen_only_once_closed` (today's daily bar; 15m bars
+    from 10:30) and `test_multi_timeframe_engine_trades_nothing_on_unfinished_slower_bars`
+    (engine trades). Both fail if a daily bar becomes visible on its own day
+    or a 1h bar from its first 15m bar (checked by breaking the code on
+    purpose).
+- **Trials.** The indicator's `timeframe` is part of the spec, so every
+  combination has its own hash and counts as its own trial. Specs without it
+  keep their hashes. Scorecards and smoke cards list `timeframes`, fastest
+  first.
+- **Robustness.** The timeframe check changes only the spec's own bar size;
+  slower indicators keep theirs. A 1h indicator on 30m bars is still slower.
+- **Memory.** A slower indicator is computed one name at a time, and no
+  second panel is built: 1h bars come from the 15m column already in memory.
+  Measured on a full-size scratch cache on Sabastian's machine (the real
+  2016-2021 calendar and daily bars, 15m bars shaped from them, 300 names,
+  1,511 sessions):
+  - a 15m `lab run --smoke` peaked at 856 MB, both with a daily trend and a
+    1h filter and without them;
+  - `lab robust` on the same spec (all six checks, the 30m neighbour
+    included, one rerun at a time) peaked at 923 MB in 4.6 minutes.
+- **Engine.** A carried exit (#43) now also holds its slot. With
+  `carry_exits`, a buy checks the position cap when it fills, so a strategy
+  can't sit one over `max_positions` while a sell waits for a bar with a
+  price. Daily specs are unchanged.
+
 ## Order of PRs
 
 1. Agent replay fixes: next-open default, same-bar fix, benchmarks, overrides
@@ -574,5 +618,17 @@ Each PR: own branch, `pytest` passing, tests with synthetic bars (no network).
   later, one PR each.
 - `lab robust` on intraday specs runs its reruns one at a time and stays well
   inside the free memory on Grok's machine.
+
+## Decided (Sabastian, Oct 22, 2026)
+
+- **Intraday Stage 2** (section 13) approved as Orbit Control scoped it:
+  - daily, 1h and 15m bars only, on the existing caches, with the 2021-12-31
+    ceiling;
+  - only fully closed slower bars, backed by a lookahead test;
+  - fills unchanged;
+  - every timeframe combination is its own trial, and `--smoke` works.
+
+  Daily rules, thresholds, run-once and `config/risk.yaml` are unchanged.
+  Stage 3 (a multi-timeframe inventor bot) follows after this merges.
 
 No open questions right now.

@@ -33,6 +33,11 @@ _ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 # exist for the robustness neighbour check and are never scored as trials.
 Timeframe = Literal["15m", "30m", "1h", "2h"]
 SPEC_TIMEFRAMES = ("15m", "1h")
+# Slower bars an intraday spec's indicators may read (multi-timeframe specs):
+# 1h bars built from the 15m cache, 1d = the daily cache. Each is seen only once
+# fully closed (engine.slower_indicator_panels). Minutes per bar, for ordering.
+INDICATOR_TIMEFRAMES = {"1h": 60, "1d": 24 * 60}
+_MINUTES = {"15m": 15, "30m": 30, "1h": 60, "2h": 120}
 
 
 class ParamSpec(BaseModel):
@@ -98,7 +103,8 @@ class StrategySpec(BaseModel):
         for name, raw in self.indicators.items():
             if "fn" not in raw:
                 raise ValueError(f"indicator {name!r} needs fn")
-            args = {k: v for k, v in raw.items() if k != "fn"}
+            self._check_indicator_timeframe(name, raw.get("timeframe"))
+            args = {k: v for k, v in raw.items() if k not in ("fn", "timeframe")}
             for v in args.values():
                 if isinstance(v, str):
                     if not v.startswith("$") or v[1:] not in self.params:
@@ -137,6 +143,32 @@ class StrategySpec(BaseModel):
             raise ValueError(f"settings never used: {sorted(unused)}")
         return self
 
+    def _check_indicator_timeframe(self, name: str, tf: Any) -> None:
+        if tf is None:
+            return
+        if tf not in INDICATOR_TIMEFRAMES:
+            raise ValueError(
+                f"indicator {name!r}: timeframe {tf!r}; an indicator may read "
+                f"{' or '.join(INDICATOR_TIMEFRAMES)} bars (leave it out for the spec's own bars)"
+            )
+        if not self.timeframe:
+            raise ValueError(f"indicator {name!r}: a slower timeframe needs an intraday spec timeframe")
+        if INDICATOR_TIMEFRAMES[tf] <= _MINUTES[self.timeframe]:
+            raise ValueError(
+                f"indicator {name!r}: timeframe {tf} is not slower than the spec's {self.timeframe} bars"
+            )
+
+    def indicator_timeframe(self, name: str) -> str | None:
+        """The slower bar size an indicator reads (1h / 1d), or None for the spec's own bars."""
+        return self.indicators[name].get("timeframe")
+
+    @property
+    def timeframes(self) -> list[str]:
+        """Every bar size the spec reads, fastest first (``1d`` for a daily spec)."""
+        own = self.timeframe or "1d"
+        slower = {self.indicator_timeframe(n) for n in self.indicators} - {None, own}
+        return [own, *sorted(slower, key=INDICATOR_TIMEFRAMES.__getitem__)]
+
     @cached_property
     def rules(self) -> dict[str, Rule]:
         out = {"entry": parse_rule(self.entry), "exit": parse_rule(self.exit)}
@@ -150,7 +182,7 @@ class StrategySpec(BaseModel):
         return {
             k: (self.params[v[1:]].value if isinstance(v, str) else v)
             for k, v in raw.items()
-            if k != "fn"
+            if k not in ("fn", "timeframe")
         }
 
     def param_values(self) -> dict[str, float]:

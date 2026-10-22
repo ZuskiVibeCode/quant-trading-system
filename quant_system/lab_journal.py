@@ -262,14 +262,16 @@ def describe_spec(spec: Mapping[str, Any]) -> dict[str, Any]:
     for alias, raw in (spec.get("indicators") or {}).items():
         raw = dict(raw or {})
         fn = str(raw.pop("fn", alias))
+        timeframe = raw.pop("timeframe", None)  # a slower bar size (multi-timeframe specs)
         given = {k: (params[v[1:]].get("value") if isinstance(v, str) and v[1:] in params else v)
                  for k, v in raw.items()}
-        label = indicator_label(fn, given)
+        label = indicator_label(fn, given) + (f" on {timeframe} bars" if timeframe else "")
         names[alias] = label
         reg = REGISTRY.get(fn)
         indicators.append({
             "alias": alias,
             "fn": fn,
+            "timeframe": timeframe,
             "label": label,
             "settings": {k: _round(v, 6) if _num(v) is not None else v for k, v in given.items()},
             "about": reg.doc if reg else None,
