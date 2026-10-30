@@ -26,9 +26,12 @@ def spy_drawdown(bars: pd.DataFrame, length: int) -> pd.Series:
     return bench / bench.rolling(length).max() - 1.0
 
 
-@indicator("spy_vol_ratio", fast=(10, 5, 30), slow=(60, 30, 250))
+@indicator("spy_vol_ratio", fast=(10, 5, 20), slow=(60, 30, 250))
 def spy_vol_ratio(bars: pd.DataFrame, fast: int, slow: int) -> pd.Series:
-    """Stdev of SPY daily returns over fast days / over slow days (1.5 = recent vol 50% above normal)."""
+    """Stdev of SPY daily returns over fast days / over slow days (1.5 = recent vol 50% above normal).
+
+    fast max (20) sits below slow min (30), so fast < slow at every setting.
+    """
     ret = bars["BenchClose"].pct_change(fill_method=None)
     slow_sd = ret.rolling(slow).std()
     return ret.rolling(fast).std() / slow_sd.replace(0.0, np.nan)

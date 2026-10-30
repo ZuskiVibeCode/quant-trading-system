@@ -57,3 +57,13 @@ def test_spy_vol_ratio():
     assert out.iloc[-1] == pytest.approx(math.sqrt((40e-4 / 9) / (60e-4 / 29)))
     # Flat SPY: zero slow stdev -> undefined, not inf.
     assert REGISTRY["spy_vol_ratio"](_bench([100.0] * 50), fast=5, slow=30).isna().all()
+
+
+def test_spy_vol_ratio_fast_always_shorter_than_slow():
+    # fast >= slow would make the ratio a constant 1.0, so the ranges must not overlap.
+    p = REGISTRY["spy_vol_ratio"].params
+    assert p["fast"].hi < p["slow"].lo
+    # The tightest legal pair still varies on varying vol.
+    vals = [100.0 * (1.01 ** (i % 7)) * (0.98 ** (i % 3)) for i in range(120)]
+    out = REGISTRY["spy_vol_ratio"](_bench(vals), fast=20, slow=30).dropna()
+    assert out.nunique() > 1
