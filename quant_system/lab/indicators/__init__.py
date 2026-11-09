@@ -11,6 +11,7 @@ from quant_system.lab.indicators import volume  # noqa: F401  (volume studies)
 from quant_system.lab.indicators import patterns  # noqa: F401  (chart patterns)
 from quant_system.lab.indicators import benchmark  # noqa: F401  (SPY regime)
 from quant_system.lab.indicators import risk  # noqa: F401  (beta and realized vol)
+from quant_system.lab.indicators import breadth  # noqa: F401  (universe breadth)
 from quant_system.lab.indicators.registry import (
     BAR_COLUMNS,
     REGISTRY,

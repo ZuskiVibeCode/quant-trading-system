@@ -24,6 +24,7 @@ def _random_bars(n: int = 600, seed: int = 7) -> pd.DataFrame:
             "Close": close,
             "Volume": rng.uniform(1e5, 1e6, n),
             "BenchClose": bench,
+            "Breadth50": rng.uniform(0.0, 1.0, n),
         },
         index=idx,
     )
@@ -87,7 +88,7 @@ def test_settings_are_coerced_and_checked():
 
 def _line(values, **extra) -> pd.DataFrame:
     close = pd.Series(values, index=pd.bdate_range("2021-01-04", periods=len(values)), dtype=float)
-    cols = {"Open": close, "High": close, "Low": close, "Close": close, "Volume": 100.0, "BenchClose": close}
+    cols = {"Open": close, "High": close, "Low": close, "Close": close, "Volume": 100.0, "BenchClose": close, "Breadth50": 0.5}
     cols.update(extra)
     return pd.DataFrame(cols, index=close.index)
 
