@@ -112,19 +112,61 @@ def breadth_above_sma(
     return numer / denom
 
 
+_breadth_cache: dict[tuple, pd.Series] = {}
+
+
+def clear_breadth_cache() -> None:
+    """Drop cached lab-universe breadth series (tests)."""
+    _breadth_cache.clear()
+
+
+def lab_universe_breadth(
+    length: int = 50,
+    *,
+    settings: Any = None,
+    data_dir: Any = None,
+    today: Any = None,
+) -> pd.Series:
+    """Breadth over every name in config/lab_universe.yaml (not the run's subset).
+
+    Loads the broad universe through ``load_lab_bars`` (same data ceiling / warm-up
+    splice as every other lab load), computes ``breadth_above_sma``, and caches by
+    (length, data_dir, ceiling, universe path). Theme runs get the same series as
+    broad runs on shared dates.
+    """
+    from quant_system.lab.data import load_lab_bars
+    from quant_system.lab.settings import data_ceiling, load_lab_settings
+    from quant_system.lab.universe import universe_symbols
+
+    s = settings or load_lab_settings()
+    ceiling = data_ceiling(s, today=today)
+    key = (int(length), str(data_dir or ""), str(ceiling), str(s.universe_path))
+    hit = _breadth_cache.get(key)
+    if hit is not None:
+        return hit
+    names = universe_symbols("broad", settings=s)
+    loaded = load_lab_bars(names, settings=s, data_dir=data_dir, today=today)
+    series = breadth_above_sma(loaded, length)
+    _breadth_cache[key] = series
+    return series
+
+
 def indicator_panels(
     spec: StrategySpec,
     bars: dict[str, pd.DataFrame],
     bench_close: pd.Series,
     calendar: pd.DatetimeIndex,
+    *,
+    breadth: pd.Series | None = None,
 ) -> dict[str, np.ndarray]:
     """Each spec indicator, computed per name on its own sessions, as sessions x names."""
     out: dict[str, np.ndarray] = {}
-    breadth = breadth_above_sma(bars)  # over the already-loaded universe bars
+    # Always the full lab_universe series unless a caller (tests) passes one in.
+    breadth_series = lab_universe_breadth() if breadth is None else breadth
     frames = {
         s: df.assign(
             BenchClose=bench_close.reindex(df.index),
-            Breadth50=breadth.reindex(df.index),
+            Breadth50=breadth_series.reindex(df.index),
         )
         for s, df in bars.items()
     }
@@ -288,6 +330,7 @@ def run_spec(
     costs: LabCostSettings,
     *,
     bench: str = "SPY",
+    breadth: pd.Series | None = None,
 ) -> EngineResult:
     wanted = [s.upper() for s in dict.fromkeys(universe)]
     clipped = _through(bars, window.end)
@@ -306,7 +349,9 @@ def run_spec(
 
     px = {k: bars_panel(held_bars, col).reindex(index=calendar, columns=symbols) for k, col in _FIELDS.items()}
     env: dict[str, Any] = {k: v.to_numpy(dtype=float) for k, v in px.items()}
-    env.update(indicator_panels(spec, {s: held_bars[s] for s in symbols}, clipped[bench.upper()]["Close"], calendar))
+    env.update(indicator_panels(
+        spec, {s: held_bars[s] for s in symbols}, clipped[bench.upper()]["Close"], calendar, breadth=breadth,
+    ))
     env.update(spec.param_values())
 
     mdv = median_dollar_volume(px["close"], px["volume"], costs.lookback_days)
@@ -370,6 +415,7 @@ def intraday_indicator_panels(
     *,
     daily: dict[str, pd.DataFrame] | None = None,
     bench: str = "SPY",
+    breadth: pd.Series | None = None,
 ) -> dict[str, np.ndarray]:
     """Each spec indicator per name, as float32 bars x names on the spec's own bars.
 
@@ -392,9 +438,8 @@ def intraday_indicator_panels(
     hourly = slower_bar_rows(panels, rows, 60) if "1h" in by_tf else None
     day_rows = daily_bar_rows(panels, rows) if "1d" in by_tf else None
     bench_daily = (daily or {}).get(bench.upper())
-    # Daily breadth over loaded names (ex-benchmark); intraday bars see the prior session only.
-    daily_for_breadth = {s: df for s, df in (daily or {}).items() if s.upper() != bench.upper()}
-    breadth_daily = breadth_above_sma(daily_for_breadth)
+    # Full lab_universe breadth; intraday bars see the prior session only (today's close unknown).
+    breadth_daily = lab_universe_breadth() if breadth is None else breadth
     breadth_sessions = breadth_daily.reindex(panels.sessions)
     # Shift so session i sees session i-1's breadth (today's daily close is not known yet).
     breadth_prior = breadth_sessions.shift(1).to_numpy(dtype=float)
@@ -501,6 +546,7 @@ def run_spec_intraday(
     costs: LabCostSettings,
     *,
     bench: str = "SPY",
+    breadth: pd.Series | None = None,
 ) -> EngineResult:
     """Run an intraday spec on ``panels`` (its bar size); ``bars`` are the daily bars (costs).
 
@@ -536,7 +582,7 @@ def run_spec_intraday(
         "bar_of_day": panels.bar_of_day[:T, None].astype(float),
         "bars_left_today": panels.bars_left[:T, None].astype(float),
     }
-    env.update(intraday_indicator_panels(spec, panels, T, cols, daily=bars, bench=bench))
+    env.update(intraday_indicator_panels(spec, panels, T, cols, daily=bars, bench=bench, breadth=breadth))
     env.update(spec.param_values())
 
     # Liquidity from daily bars, as of the previous session's close.
