@@ -81,6 +81,37 @@ def _through(bars: dict[str, pd.DataFrame], end) -> dict[str, pd.DataFrame]:
     return {s: df for s, df in out.items() if not df.empty}
 
 
+
+def breadth_above_sma(
+    bars: dict[str, pd.DataFrame],
+    length: int = 50,
+    *,
+    exclude: set[str] | frozenset[str] | None = None,
+) -> pd.Series:
+    """Share of names whose close is above their own length-day SMA (0-1).
+
+    A name counts in the numerator and denominator only on dates where it has a
+    bar and at least ``length`` bars of its own history ending that day. Returns
+    NaN when no name is eligible. Each name uses only its own past bars
+    (point-in-time). ``exclude`` drops symbols such as the benchmark.
+    """
+    skip = {str(x).upper() for x in (exclude or ())}
+    use = {s: df for s, df in bars.items() if str(s).upper() not in skip and not df.empty}
+    if not use or length < 1:
+        return pd.Series(dtype=float)
+    eligible: dict[str, pd.Series] = {}
+    above: dict[str, pd.Series] = {}
+    for sym, df in use.items():
+        close = df["Close"].astype(float)
+        sma = close.rolling(length).mean()
+        ok = sma.notna()
+        eligible[sym] = ok.astype(float)
+        above[sym] = ((close > sma) & ok).astype(float)
+    denom = pd.DataFrame(eligible).sum(axis=1, min_count=1)
+    numer = pd.DataFrame(above).sum(axis=1)
+    return numer / denom
+
+
 def indicator_panels(
     spec: StrategySpec,
     bars: dict[str, pd.DataFrame],
@@ -89,8 +120,13 @@ def indicator_panels(
 ) -> dict[str, np.ndarray]:
     """Each spec indicator, computed per name on its own sessions, as sessions x names."""
     out: dict[str, np.ndarray] = {}
+    breadth = breadth_above_sma(bars)  # over the already-loaded universe bars
     frames = {
-        s: df.assign(BenchClose=bench_close.reindex(df.index)) for s, df in bars.items()
+        s: df.assign(
+            BenchClose=bench_close.reindex(df.index),
+            Breadth50=breadth.reindex(df.index),
+        )
+        for s, df in bars.items()
     }
     for name in spec.indicators:
         ind = get_indicator(str(spec.indicators[name]["fn"]))
@@ -356,6 +392,13 @@ def intraday_indicator_panels(
     hourly = slower_bar_rows(panels, rows, 60) if "1h" in by_tf else None
     day_rows = daily_bar_rows(panels, rows) if "1d" in by_tf else None
     bench_daily = (daily or {}).get(bench.upper())
+    # Daily breadth over loaded names (ex-benchmark); intraday bars see the prior session only.
+    daily_for_breadth = {s: df for s, df in (daily or {}).items() if s.upper() != bench.upper()}
+    breadth_daily = breadth_above_sma(daily_for_breadth)
+    breadth_sessions = breadth_daily.reindex(panels.sessions)
+    # Shift so session i sees session i-1's breadth (today's daily close is not known yet).
+    breadth_prior = breadth_sessions.shift(1).to_numpy(dtype=float)
+    breadth_on_bars = breadth_prior[panels.session[:rows]]
     for j in columns:
         has = np.flatnonzero(~np.isnan(panels.close[:rows, j]))
         if len(has):
@@ -364,6 +407,7 @@ def intraday_indicator_panels(
                     "Open": panels.open[has, j].astype(float), "High": panels.high[has, j].astype(float),
                     "Low": panels.low[has, j].astype(float), "Close": panels.close[has, j].astype(float),
                     "Volume": panels.volume[has, j].astype(float), "BenchClose": bench_close[has],
+                    "Breadth50": breadth_on_bars[has],
                 },
                 index=index[has],
             )
@@ -381,7 +425,8 @@ def intraday_indicator_panels(
             if df is None or df.empty:
                 continue
             frame_d = df[["Open", "High", "Low", "Close", "Volume"]].assign(
-                BenchClose=bench_daily["Close"].reindex(df.index) if bench_daily is not None else np.nan
+                BenchClose=bench_daily["Close"].reindex(df.index) if bench_daily is not None else np.nan,
+                Breadth50=breadth_daily.reindex(df.index),
             )
             prior = df.index.searchsorted(panels.sessions, side="left") - 1  # last daily bar before each session
             for name in by_tf["1d"]:
@@ -424,6 +469,7 @@ def resample_rows(frame: pd.DataFrame, key: np.ndarray) -> tuple[pd.DataFrame, n
     out = pd.DataFrame({
         "Open": g["Open"].first(), "High": g["High"].max(), "Low": g["Low"].min(),
         "Close": g["Close"].last(), "Volume": g["Volume"].sum(), "BenchClose": g["BenchClose"].last(),
+        "Breadth50": g["Breadth50"].last(),
     })
     keys = out.index.to_numpy()
     first = np.r_[True, key[1:] != key[:-1]]
