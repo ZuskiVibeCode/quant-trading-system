@@ -2,7 +2,7 @@
 
 An indicator takes one ticker's bars (columns Open, High, Low, Close, Volume and
 BenchClose, the benchmark's close on the same sessions, and Breadth50,
-the universe breadth series the engine injects like BenchClose) and returns one float
+Breadth200 and NetNewHighs252, the market-wide series the engine injects like BenchClose) and returns one float
 Series on the same index. No I/O, no global state, and the value on day t may
 use only bars up to and including t. ``lookahead_violations`` checks that for
 any indicator; the test suite runs it on every registered one.
@@ -17,7 +17,7 @@ from typing import Any, Callable
 import numpy as np
 import pandas as pd
 
-BAR_COLUMNS = ("Open", "High", "Low", "Close", "Volume", "BenchClose", "Breadth50")
+BAR_COLUMNS = ("Open", "High", "Low", "Close", "Volume", "BenchClose", "Breadth50", "Breadth200", "NetNewHighs252")
 
 
 @dataclass(frozen=True)
