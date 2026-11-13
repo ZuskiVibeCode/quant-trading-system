@@ -1,0 +1,92 @@
+{
+ "schema": 1,
+ "kind": "lab_nomination",
+ "spec_id": "quiet-high-20slot",
+ "spec_hash": "5c3f5b22b1b17768",
+ "author_bot": "momo",
+ "nominated_at": "2026-11-13T19:29:16+00:00",
+ "git_commit": "bbf1694758ff38012d74e6961fd22951e86a6dd9",
+ "frozen_trials": {
+  "window": "discovery",
+  "n_trials": 407,
+  "n_records": 968,
+  "sharpe_variance": 0.2126557945002713
+ },
+ "discovery": {
+  "passed": true,
+  "complete": true,
+  "sharpe": 1.2285322871172086,
+  "cagr": 0.18930279332544164,
+  "checks": {
+   "nudges": "pass",
+   "sectors": "pass",
+   "cap_buckets": "pass",
+   "selloffs": "pass",
+   "single_stock": "pass"
+  },
+  "robust_report": "20261113T192911929186Z-momo-5c3f5b22b1b17768.json",
+  "vs_benchmarks": {
+   "SPY": {
+    "sharpe_diff": 0.23047266964909607,
+    "excess_cagr": 0.01612955715044717
+   },
+   "equal_weight": {
+    "sharpe_diff": 0.37389635672381705,
+    "excess_cagr": 0.022356932530608997
+   }
+  }
+ },
+ "spec": {
+  "id": "quiet-high-20slot",
+  "author_bot": "momo",
+  "description": "20 slots at 5%. Close crosses above the prior 126-day high while 5-day volume runs below its 50-day average and OBV(126) > 0.08, above the 200-day; after 63 bars exit under the 50-day, or any time under the 200-day.",
+  "universe": "broad",
+  "indicators": {
+   "dh": {
+    "fn": "donchian_high",
+    "length": 126
+   },
+   "vo": {
+    "fn": "volume_osc",
+    "fast": 5,
+    "slow": 50
+   },
+   "ob": {
+    "fn": "obv_trend",
+    "length": 126
+   },
+   "trend": {
+    "fn": "sma",
+    "length": 200
+   },
+   "fast": {
+    "fn": "sma",
+    "length": 50
+   }
+  },
+  "params": {
+   "vmax": {
+    "value": 0.0,
+    "min": -0.2,
+    "max": 0.2
+   },
+   "flow": {
+    "value": 0.08,
+    "min": 0.03,
+    "max": 0.15
+   },
+   "hold": {
+    "value": 63.0,
+    "min": 42.0,
+    "max": 126.0
+   }
+  },
+  "entry": "crosses_above(close, dh) and vo < vmax and ob > flow and close > trend",
+  "exit": "close < trend or (bars_held >= hold and close < fast)",
+  "sizing": {
+   "method": "equal_weight",
+   "max_positions": 20,
+   "max_weight": 0.05
+  }
+ }
+}
